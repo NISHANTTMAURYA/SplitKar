@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:skapp/pages/home.dart';
-import 'package:skapp/pages/activity.dart';
-import 'package:skapp/pages/freinds.dart';
-import 'package:skapp/pages/groups.dart';
+import 'package:skapp/pages/main_page.dart';
 import 'package:skapp/pages/settings_page.dart';
 
 void main() {
@@ -22,10 +19,7 @@ class MyApp extends StatelessWidget {
       ),
       initialRoute: '/',
       routes: {
-        '/': (context) => HomePage(),
-        '/activity': (context) => ActivityPage(),
-        '/freinds': (context) => FreindsPage(),
-        '/groups': (context) => GroupsPage(),
+        '/': (context) => const MainPage(),
         '/settings': (context) => SettingsPage(),
       },
     );

@@ -67,10 +67,7 @@ class BottomNavbar extends StatelessWidget {
                     // Groups
                     Expanded(
                       child: GestureDetector(
-                        onTap: () {
-                          Navigator.pushReplacementNamed(context, '/groups');
-                          onItemSelected(0);
-                        },
+                        onTap: () => onItemSelected(0),
                         child: Container(
                           color: Colors.transparent,
                           height: 60,
@@ -94,13 +91,10 @@ class BottomNavbar extends StatelessWidget {
                         ),
                       ),
                     ),
-                    // Friends (center)
+                    // Friends
                     Expanded(
                       child: GestureDetector(
-                        onTap: () {
-                          Navigator.pushReplacementNamed(context, '/freinds');
-                          onItemSelected(1);
-                        },
+                        onTap: () => onItemSelected(1),
                         child: Container(
                           color: Colors.transparent,
                           height: 60,
@@ -127,10 +121,7 @@ class BottomNavbar extends StatelessWidget {
                     // Activity
                     Expanded(
                       child: GestureDetector(
-                        onTap: () {
-                          Navigator.pushReplacementNamed(context, '/activity');
-                          onItemSelected(2);
-                        },
+                        onTap: () => onItemSelected(2),
                         child: Container(
                           color: Colors.transparent,
                           height: 60,
