@@ -32,7 +32,7 @@ class _BottomNavbarState extends State<BottomNavbar> with SingleTickerProviderSt
     _prevIndex = widget.selectedIndex;
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 300),
+      duration: const Duration(milliseconds: 400),
     );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       setState(() {}); // To get correct itemWidth after first build
@@ -91,14 +91,14 @@ class _BottomNavbarState extends State<BottomNavbar> with SingleTickerProviderSt
     return Padding(
       padding: EdgeInsets.only(bottom: 10 + MediaQuery.of(context).padding.bottom),
       child: SizedBox(
-        height: 80,
+        height: 70,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
           child: Stack(
             children: [
               // Curved Bar Background
               Container(
-                height: 60,
+                height: 52,
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.inversePrimary.withOpacity(0.9),
                   // color: Colors.deepPurple[200],
@@ -106,8 +106,8 @@ class _BottomNavbarState extends State<BottomNavbar> with SingleTickerProviderSt
                   boxShadow: [
                     BoxShadow(
                       color: Colors.deepPurpleAccent,
-                      blurRadius: 24,
-                      offset: Offset(0, 8),
+                      blurRadius: 20,
+                      offset: Offset(0, 7),
                     ),
                   ],
                 ),
@@ -123,7 +123,7 @@ class _BottomNavbarState extends State<BottomNavbar> with SingleTickerProviderSt
                     right: right,
                     top: 0,
                     child: Container(
-                      height: 60,
+                      height: 52,
                       decoration: BoxDecoration(
                         color: Colors.deepPurple.withOpacity(0.3),
                         borderRadius: BorderRadius.circular(30),
@@ -141,7 +141,7 @@ class _BottomNavbarState extends State<BottomNavbar> with SingleTickerProviderSt
               ),
               // Navigation Items
               SizedBox(
-                height: 60,
+                height: 52,
                 child: Row(
                   children: List.generate(widget.labels.length, (index) {
                     return Expanded(
@@ -149,11 +149,11 @@ class _BottomNavbarState extends State<BottomNavbar> with SingleTickerProviderSt
                         onTap: () => widget.onItemSelected(index),
                         child: Container(
                           color: Colors.transparent,
-                          height: 60,
+                          height: 52,
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(widget.icons[index], color: widget.selectedIndex == index ? Colors.deepPurple : Colors.grey[700], size: 28),
+                              Icon(widget.icons[index], color: widget.selectedIndex == index ? Colors.deepPurple : Colors.grey[700], size: 26),
                               if (widget.selectedIndex == index) ...[
                                 SizedBox(width: 8),
                                 Text(
@@ -161,7 +161,7 @@ class _BottomNavbarState extends State<BottomNavbar> with SingleTickerProviderSt
                                   style: GoogleFonts.cabin(
                                     color: Colors.deepPurple,
                                     fontWeight: FontWeight.bold,
-                                    fontSize: 18,
+                                    fontSize: 17,
                                   ),
                                 ),
                               ]

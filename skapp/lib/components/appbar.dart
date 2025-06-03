@@ -17,7 +17,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     return AppBar(
       leadingWidth: 80,
       leading: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 4, 0, 4),
+        padding: const EdgeInsets.fromLTRB(20, 6, 5, 6),
         child: SafeArea(
           child: ClipRRect(
             borderRadius: BorderRadius.circular(12),
@@ -37,7 +37,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                   onTap: () {
                     scaffoldKey.currentState?.openDrawer();
                   },
-                  child: const Icon(Icons.menu, color: Colors.black, size: 25),
+                  child: const Icon(Icons.menu_rounded, color: Colors.black, size: 26),
                 ),
               ),
             ),
