@@ -14,7 +14,7 @@ class BottomNavbar extends StatelessWidget {
   Widget build(BuildContext context) {
     final double itemWidth = (MediaQuery.of(context).size.width - 40) / 3;
     return Padding(
-      padding: EdgeInsets.only(bottom: 0 + MediaQuery.of(context).padding.bottom),
+      padding: EdgeInsets.only(bottom: 10 + MediaQuery.of(context).padding.bottom),
       child: SizedBox(
         height: 80,
         child: Padding(
