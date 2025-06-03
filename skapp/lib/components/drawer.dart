@@ -45,7 +45,7 @@ class AppDrawer extends StatelessWidget {
               selected: selectedIndex == 0,
               selectedTileColor: Colors.deepPurple.withOpacity(0.2),
               onTap: () {
-                Navigator.pop(context);
+                Navigator.pushReplacementNamed(context, '/groups');
                 onItemSelected(0);
               },
             ),
@@ -55,7 +55,7 @@ class AppDrawer extends StatelessWidget {
               selected: selectedIndex == 1,
               selectedTileColor: Colors.deepPurple.withOpacity(0.2),
               onTap: () {
-                Navigator.pop(context);
+                Navigator.pushReplacementNamed(context, '/freinds');
                 onItemSelected(1);
               },
             ),
@@ -65,7 +65,7 @@ class AppDrawer extends StatelessWidget {
               selected: selectedIndex == 2,
               selectedTileColor: Colors.deepPurple.withOpacity(0.2),
               onTap: () {
-                Navigator.pop(context);
+                Navigator.pushReplacementNamed(context, '/activity');
                 onItemSelected(2);
               },
             ),
@@ -75,7 +75,7 @@ class AppDrawer extends StatelessWidget {
               title: Text('Settings', style: TextStyle(color: Colors.white)),
               onTap: () {
                 // TODO: Navigate to settings page
-                Navigator.pop(context);
+                Navigator.pushNamed(context, '/settings');
               },
             ),
           ],
