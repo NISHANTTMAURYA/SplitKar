@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:stylish_bottom_bar/stylish_bottom_bar.dart';
 import 'package:skapp/components/bottomNavbar.dart';
 import 'package:skapp/components/drawer.dart';
+import 'package:skapp/components/appbar.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -17,16 +18,12 @@ final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
 
-  final List<Widget> _pages = [
-    Center(child: Text("Home Page")),
-    Center(child: Text("Search Page")),
-    Center(child: Text("Profile Page")),
-  ];
+  
   @override
   Widget build(BuildContext context) {
     final double height = MediaQuery.of(context).size.height;
     final double width = MediaQuery.of(context).size.width;
-    final appBarHeight = AppBar().preferredSize.height;
+    
     final appBarWidth = MediaQuery.of(context).size.width;
     final double baseSize = width < height ? width : height;
     final Color barColor = Theme.of(
@@ -38,63 +35,7 @@ class _HomePageState extends State<HomePage> {
 
     return Scaffold(
       key: _scaffoldKey,
-      appBar: AppBar(
-        leadingWidth: 80, // Give more space for the offset
-        leading: Padding(
-          padding: EdgeInsets.fromLTRB(20, 4, 0, 4),
-          child: SafeArea(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Material(
-                child: Ink(
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.inversePrimary,
-                    border: Border.all(
-                      color: Theme.of(context).colorScheme.inversePrimary,
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: InkWell(
-                    splashColor: Colors.deepPurple.withOpacity(0.3),
-                    highlightColor: Colors.deepPurple.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    onTap: () {
-                      _scaffoldKey.currentState?.openDrawer();
-                    },
-                    child: Icon(Icons.menu, color: Colors.black, size: 25),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        centerTitle: true,
-        title: Padding(
-          padding: EdgeInsetsGeometry.only(left: 10),
-          child: Row(
-            mainAxisSize: MainAxisSize.min, // Important for centering
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Text(
-                "SplitKar",
-                style: GoogleFonts.cabin(
-                  fontSize: 40,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              SizedBox(width: 2), // Space between title and icon
-              Container(
-                padding: EdgeInsets.only(bottom: 5),
-                width: width * 0.13,
-                height: height * 0.9,
-                child: Image.asset('assets/images/wallet.png'),
-              ),
-            ],
-          ),
-        ),
-      ),
+      appBar: CustomAppBar(scaffoldKey: _scaffoldKey),
 
       drawer: AppDrawer(
         selectedIndex: _selectedIndex,
