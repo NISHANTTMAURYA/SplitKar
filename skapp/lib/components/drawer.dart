@@ -46,7 +46,7 @@ class AppDrawer extends StatelessWidget {
             ...List.generate(labels.length, (index) {
               return ListTile(
                 leading: Icon(icons[index], color: Colors.white),
-                title: Text(labels[index], style: TextStyle(color: Colors.white)),
+                title: Text(labels[index], style: GoogleFonts.cabin(color: Colors.white)),
                 selected: selectedIndex == index,
                 selectedTileColor: Colors.deepPurple.withOpacity(0.2),
                 onTap: () {
@@ -58,7 +58,7 @@ class AppDrawer extends StatelessWidget {
             Divider(color: Colors.white54),
             ListTile(
               leading: Icon(Icons.settings, color: Colors.white),
-              title: Text('Settings', style: TextStyle(color: Colors.white)),
+              title: Text('Settings', style: GoogleFonts.cabin(color: Colors.white)),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.pushNamed(context, '/settings');

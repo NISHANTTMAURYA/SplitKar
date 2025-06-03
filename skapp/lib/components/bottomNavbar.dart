@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import 'package:google_fonts/google_fonts.dart';
 class BottomNavbar extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onItemSelected;
@@ -82,7 +82,7 @@ class BottomNavbar extends StatelessWidget {
                                 SizedBox(width: 8),
                                 Text(
                                   labels[index],
-                                  style: TextStyle(
+                                  style: GoogleFonts.cabin(
                                     color: Colors.deepPurple,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 18,
