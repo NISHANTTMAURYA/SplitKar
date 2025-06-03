@@ -51,9 +51,19 @@ class _MainPageState extends State<MainPage> {
   }
 
   void _onItemSelected(int index) {
+    if ((_selectedIndex - index).abs() == 1) {
+      // Animate for adjacent pages
+      _pageController.animateToPage(
+        index,
+        duration: Duration(milliseconds: 350),
+        curve: Curves.easeInOut,
+      );
+    } else {
+      // Jump for non-adjacent pages
+      _pageController.jumpToPage(index);
+    }
     setState(() {
       _selectedIndex = index;
-      _pageController.jumpToPage(index);
     });
   }
 

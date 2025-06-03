@@ -51,7 +51,7 @@ class BottomNavbar extends StatelessWidget {
                   width: itemWidth,
                   height: 60,
                   decoration: BoxDecoration(
-                    color: Colors.deepPurple.withOpacity(0.18),
+                    color: Colors.deepPurple.withOpacity(0.3),
                     borderRadius: BorderRadius.circular(30),
                     boxShadow: [
                       BoxShadow(

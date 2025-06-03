@@ -10,12 +10,9 @@ class FreindsPage extends StatelessWidget {
     
     final appBarWidth = MediaQuery.of(context).size.width;
     final double baseSize = width < height ? width : height;
-    final Color barColor = Theme.of(
-      context,
-    ).colorScheme.surface.withOpacity(0.95);
-    final Color accentColor = Theme.of(context).colorScheme.inversePrimary;
-    final Color iconColor = Colors.grey[600]!;
-    final Color selectedColor = Colors.blueAccent;
+    
+
+
     return Scaffold(
       body: SingleChildScrollView(
         child: Column(
