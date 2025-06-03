@@ -7,7 +7,9 @@ import 'package:skapp/pages/freinds.dart';
 import 'package:skapp/pages/activity.dart';
 
 class MainPage extends StatefulWidget {
-  const MainPage({super.key});
+  final int? initialIndex;
+  
+  const MainPage({super.key, this.initialIndex});
 
   @override
   State<MainPage> createState() => _MainPageState();
@@ -15,8 +17,32 @@ class MainPage extends StatefulWidget {
 
 class _MainPageState extends State<MainPage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  int _selectedIndex = 0;
-  final PageController _pageController = PageController();
+
+  // Single map containing all page information
+  final Map<String, dynamic> pages = {
+    'Groups': {
+      'page': const GroupsPage(),
+      'icon': Icons.group,
+    },
+    'Friends': {
+      'page': const FreindsPage(),
+      'icon': Icons.person,
+    },
+    'Activity': {
+      'page': const ActivityPage(),
+      'icon': Icons.local_activity,
+    },
+  };
+
+  late int _selectedIndex;
+  late final PageController _pageController;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedIndex = widget.initialIndex ?? 1; // Use provided index or default to Friends
+    _pageController = PageController(initialPage: _selectedIndex);
+  }
 
   @override
   void dispose() {
@@ -39,6 +65,8 @@ class _MainPageState extends State<MainPage> {
       drawer: AppDrawer(
         selectedIndex: _selectedIndex,
         onItemSelected: _onItemSelected,
+        labels: pages.keys.toList(),
+        icons: pages.values.map((page) => page['icon'] as IconData).toList(),
       ),
       body: PageView(
         controller: _pageController,
@@ -48,15 +76,13 @@ class _MainPageState extends State<MainPage> {
             _selectedIndex = index;
           });
         },
-        children: const [
-          GroupsPage(),
-          FreindsPage(),
-          ActivityPage(),
-        ],
+        children: pages.values.map((page) => page['page'] as Widget).toList(),
       ),
       bottomNavigationBar: BottomNavbar(
         selectedIndex: _selectedIndex,
         onItemSelected: _onItemSelected,
+        labels: pages.keys.toList(),
+        icons: pages.values.map((page) => page['icon'] as IconData).toList(),
       ),
     );
   }

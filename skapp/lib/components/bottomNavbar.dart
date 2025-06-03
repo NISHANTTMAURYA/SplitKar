@@ -3,16 +3,20 @@ import 'package:flutter/material.dart';
 class BottomNavbar extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onItemSelected;
+  final List<String> labels;
+  final List<IconData> icons;
 
   const BottomNavbar({
     Key? key,
     required this.selectedIndex,
     required this.onItemSelected,
+    required this.labels,
+    required this.icons,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    final double itemWidth = (MediaQuery.of(context).size.width - 40) / 3;
+    final double itemWidth = (MediaQuery.of(context).size.width - 40) / labels.length;
     return Padding(
       padding: EdgeInsets.only(bottom: 10 + MediaQuery.of(context).padding.bottom),
       child: SizedBox(
@@ -63,22 +67,21 @@ class BottomNavbar extends StatelessWidget {
               SizedBox(
                 height: 60,
                 child: Row(
-                  children: [
-                    // Groups
-                    Expanded(
+                  children: List.generate(labels.length, (index) {
+                    return Expanded(
                       child: GestureDetector(
-                        onTap: () => onItemSelected(0),
+                        onTap: () => onItemSelected(index),
                         child: Container(
                           color: Colors.transparent,
                           height: 60,
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.group, color: selectedIndex == 0 ? Colors.deepPurple : Colors.grey[700], size: 28),
-                              if (selectedIndex == 0) ...[
+                              Icon(icons[index], color: selectedIndex == index ? Colors.deepPurple : Colors.grey[700], size: 28),
+                              if (selectedIndex == index) ...[
                                 SizedBox(width: 8),
                                 Text(
-                                  'Groups',
+                                  labels[index],
                                   style: TextStyle(
                                     color: Colors.deepPurple,
                                     fontWeight: FontWeight.bold,
@@ -90,62 +93,8 @@ class BottomNavbar extends StatelessWidget {
                           ),
                         ),
                       ),
-                    ),
-                    // Friends
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => onItemSelected(1),
-                        child: Container(
-                          color: Colors.transparent,
-                          height: 60,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.person, color: selectedIndex == 1 ? Colors.deepPurple : Colors.grey[700], size: 28),
-                              if (selectedIndex == 1) ...[
-                                SizedBox(width: 8),
-                                Text(
-                                  'Friends',
-                                  style: TextStyle(
-                                    color: Colors.deepPurple,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 18,
-                                  ),
-                                ),
-                              ]
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    // Activity
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => onItemSelected(2),
-                        child: Container(
-                          color: Colors.transparent,
-                          height: 60,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.local_activity, color: selectedIndex == 2 ? Colors.deepPurple : Colors.grey[700], size: 28),
-                              if (selectedIndex == 2) ...[
-                                SizedBox(width: 8),
-                                Text(
-                                  'Activity',
-                                  style: TextStyle(
-                                    color: Colors.deepPurple,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 18,
-                                  ),
-                                ),
-                              ]
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+                    );
+                  }),
                 ),
               ),
             ],

@@ -4,11 +4,15 @@ import 'package:google_fonts/google_fonts.dart';
 class AppDrawer extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onItemSelected;
+  final List<String> labels;
+  final List<IconData> icons;
 
   const AppDrawer({
     Key? key,
     required this.selectedIndex,
     required this.onItemSelected,
+    required this.labels,
+    required this.icons,
   }) : super(key: key);
 
   @override
@@ -39,36 +43,18 @@ class AppDrawer extends StatelessWidget {
                 ],
               ),
             ),
-            ListTile(
-              leading: Icon(Icons.group, color: Colors.white),
-              title: Text('Groups', style: TextStyle(color: Colors.white)),
-              selected: selectedIndex == 0,
-              selectedTileColor: Colors.deepPurple.withOpacity(0.2),
-              onTap: () {
-                Navigator.pop(context);
-                onItemSelected(0);
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.person, color: Colors.white),
-              title: Text('Friends', style: TextStyle(color: Colors.white)),
-              selected: selectedIndex == 1,
-              selectedTileColor: Colors.deepPurple.withOpacity(0.2),
-              onTap: () {
-                Navigator.pop(context);
-                onItemSelected(1);
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.local_activity, color: Colors.white),
-              title: Text('Activity', style: TextStyle(color: Colors.white)),
-              selected: selectedIndex == 2,
-              selectedTileColor: Colors.deepPurple.withOpacity(0.2),
-              onTap: () {
-                Navigator.pop(context);
-                onItemSelected(2);
-              },
-            ),
+            ...List.generate(labels.length, (index) {
+              return ListTile(
+                leading: Icon(icons[index], color: Colors.white),
+                title: Text(labels[index], style: TextStyle(color: Colors.white)),
+                selected: selectedIndex == index,
+                selectedTileColor: Colors.deepPurple.withOpacity(0.2),
+                onTap: () {
+                  Navigator.pop(context);
+                  onItemSelected(index);
+                },
+              );
+            }),
             Divider(color: Colors.white54),
             ListTile(
               leading: Icon(Icons.settings, color: Colors.white),
