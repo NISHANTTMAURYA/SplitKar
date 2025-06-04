@@ -6,22 +6,22 @@ class FreindsPage extends StatelessWidget {
 
   // Example dynamic friends list (replace with your data source)
   final List<String> friends = const [
-    // "chaitu",
-    // "nishant",
-    // "arjun",
-    // "meera",
-    // "sana",
-    // "rahul",
-    // "zoya",
-    // "amit",
-    // "krish",
-    // "riya",
-    // "neha",
-    // "kabir",
-    // "tanvi",
-    // "manav",
-    // "isha",
-    // "rohan",
+    "chaitu",
+    "nishant",
+    "arjun",
+    "meera",
+    "sana",
+    "rahul",
+    "zoya",
+    "amit",
+    "krish",
+    "riya",
+    "neha",
+    "kabir",
+    "tanvi",
+    "manav",
+    "isha",
+    "rohan",
   ];
 
   @override

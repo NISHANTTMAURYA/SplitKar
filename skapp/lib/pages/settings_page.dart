@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:skapp/components/appbar.dart';
 import 'package:skapp/components/drawer.dart';
+import 'package:skapp/pages/main_page.dart';
 
 class SettingsPage extends StatelessWidget {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
@@ -17,11 +18,12 @@ class SettingsPage extends StatelessWidget {
       drawer: AppDrawer(
         selectedIndex: -1, // Settings doesn't have an index in bottom nav
         onItemSelected: (index) {
-          // Navigate to the main page with the selected index
-          Navigator.pushReplacementNamed(
+          _scaffoldKey.currentState?.closeDrawer();
+          Navigator.pushReplacement(
             context,
-            '/',
-            arguments: {'index': index},
+            MaterialPageRoute(
+              builder: (context) => MainPage(initialIndex: index),
+            ),
           );
         },
         labels: labels,
