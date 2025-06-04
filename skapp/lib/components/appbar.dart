@@ -3,8 +3,13 @@ import 'package:google_fonts/google_fonts.dart';
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
+  final PageController? pageController;
 
-  const CustomAppBar({super.key, required this.scaffoldKey});
+  const CustomAppBar({
+    super.key, 
+    required this.scaffoldKey,
+    this.pageController,
+  });
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
@@ -46,28 +51,40 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       ),
       backgroundColor: Colors.transparent,
       centerTitle: true,
-      title: Padding(
-        padding: const EdgeInsets.only(left: 10),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Text(
-              "SplitKar",
-              style: GoogleFonts.cabin(
-                fontSize: 40,
-                fontWeight: FontWeight.w500,
+      title: GestureDetector(
+        onTap: () {
+          if (pageController != null && pageController!.page! > 0) {
+            pageController!.previousPage(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+            );
+          } else if (Navigator.of(context).canPop()) {
+            Navigator.of(context).pop();
+          }
+        },
+        child: Padding(
+          padding: const EdgeInsets.only(left: 10),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text(
+                "SplitKar",
+                style: GoogleFonts.cabin(
+                  fontSize: 40,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
-            ),
-            const SizedBox(width: 2),
-            Container(
-              padding: const EdgeInsets.only(bottom: 5),
-              width: width * 0.13,
-              height: height * 0.9,
-              child: Image.asset('assets/images/wallet.png'),
-            ),
-          ],
+              const SizedBox(width: 2),
+              Container(
+                padding: const EdgeInsets.only(bottom: 5),
+                width: width * 0.13,
+                height: height * 0.9,
+                child: Image.asset('assets/images/wallet.png'),
+              ),
+            ],
+          ),
         ),
       ),
     );

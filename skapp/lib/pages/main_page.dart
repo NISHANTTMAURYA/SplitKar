@@ -71,7 +71,10 @@ class _MainPageState extends State<MainPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       key: _scaffoldKey,
-      appBar: CustomAppBar(scaffoldKey: _scaffoldKey),
+      appBar: CustomAppBar(
+        scaffoldKey: _scaffoldKey,
+        pageController: _pageController,
+      ),
       drawer: AppDrawer(
         selectedIndex: _selectedIndex,
         onItemSelected: _onItemSelected,
