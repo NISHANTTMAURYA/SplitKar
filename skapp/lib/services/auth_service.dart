@@ -33,27 +33,30 @@ class AuthService {
       final GoogleSignInAuthentication googleAuth = await account.authentication;
       print('Google Auth: $googleAuth');
       final String? idToken = googleAuth.idToken;
-      print('ID Token: $idToken');
+      print('ID Token length: ${idToken?.length}');
       
       if (idToken == null) {
         print('Failed to get ID token from Google Sign In');
         return null;
       }
 
+      print('Making API call to: $_baseUrl/auth/google/');
       final response = await http.post(
         Uri.parse('$_baseUrl/auth/google/'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'id_token': idToken}),
       );
-      print('HTTP Response: ${response.statusCode} ${response.body}');
+      print('HTTP Response Status: ${response.statusCode}');
+      print('HTTP Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        
+        print('Successfully decoded response data');
         await _saveToken(data['access']);
         return data;
       } else {
-        print('Login failed: ${response.body}');
+        print('Login failed with status ${response.statusCode}');
+        print('Error response: ${response.body}');
         return null;
       }
     } on PlatformException catch (e) {
@@ -74,6 +77,26 @@ class AuthService {
 
   Future<String?> getToken() async {
     return await _secureStorage.read(key: _tokenKey);
+  }
+
+  Future<bool> isAuthenticated() async {
+    final token = await getToken();
+    if (token == null) return false;
+    
+    try {
+      // Validate token with backend
+      final response = await http.get(
+        Uri.parse('$_baseUrl/auth/validate/'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Error validating token: $e');
+      return false;
+    }
   }
 
   Future<void> signOut() async {

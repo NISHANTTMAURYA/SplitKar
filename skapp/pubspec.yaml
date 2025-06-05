@@ -42,6 +42,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   rive: ^0.13.20
   stylish_bottom_bar: ^1.1.1
+  provider: ^6.1.5
 
 dev_dependencies:
   flutter_test:
