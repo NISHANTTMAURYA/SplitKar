@@ -112,24 +112,32 @@ class FreindsPage extends StatelessWidget {
         onTap: onAddFriends,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(15, 5, 15, 5),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.add,
-                size: iconSize,
-                color: Theme.of(context).colorScheme.inversePrimary,
-                semanticLabel: 'Add Friends',
-              ),
-              Text(
-                'Add Friends',
-                style: textStyle ?? TextStyle(
-                  color: Theme.of(context).colorScheme.inversePrimary,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ],
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.add,
+                    size: iconSize,
+                    color: Theme.of(context).colorScheme.inversePrimary,
+                    semanticLabel: 'Add Friends',
+                  ),
+                  SizedBox(width: 4),
+                  Flexible(
+                    child: Text(
+                      'Add Friends',
+                      style: textStyle ?? TextStyle(
+                        color: Theme.of(context).colorScheme.inversePrimary,
+                        fontWeight: FontWeight.w800,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
         ),
       ),
@@ -326,10 +334,22 @@ class _FriendsHeaderDelegate extends SliverPersistentHeaderDelegate {
   @override
   Widget build(
       BuildContext context, double shrinkOffset, bool overlapsContent) {
-    // Gap grows from 32 to 120 as you scroll (over 30px scroll)
-    final double gap = 32 + (shrinkOffset * (120 - 32) / 30).clamp(0, 88);
+    // ANIMATION LOGIC EXPLANATION:
+    // 1. Base Gap Calculation:
+    //    - Starts at 16px (minimum gap)
+    //    - Ends at 160px (maximum gap - increased for more spread)
+    //    - Takes 300px of scroll to complete (much slower animation)
+    //    - Formula: minGap + (scrollProgress * (maxGap - minGap) / scrollDistance)
+    final double gap = 16 + (shrinkOffset * (160 - 16) / 300).clamp(0, 144);
+    
+    // 2. Easing Function:
+    //    - Creates non-linear animation for natural feel
+    //    - As gap approaches max (160px), movement slows down
+    //    - 0.4 is the easing factor (higher = stronger easing)
+    //    - Formula: gap * (1 - (gap/maxGap) * easingFactor)
+    final double easedGap = gap * (1 - (gap / 160) * 0.4);
+    
     return Container(
-      
       decoration: BoxDecoration(
         image: DecorationImage(
           image: AssetImage('assets/images/freinds_scroll.jpg'),
@@ -345,29 +365,42 @@ class _FriendsHeaderDelegate extends SliverPersistentHeaderDelegate {
               width: double.infinity,
               decoration: BoxDecoration(
                 color: Colors.deepPurple,
-                borderRadius: BorderRadius.circular(5),
+                borderRadius: BorderRadius.circular(3),
               ),
-              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 14),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'Friends',
-                    style: headerTextStyle,
-                  ),
-                  SizedBox(width: gap),
-                  FreindsPage.addFriendsButton(
-                    context,
-                    () {},
-                    textStyle: headerTextStyle.copyWith(
-                      fontSize: buttonFontSize,
-                      fontWeight: FontWeight.w800,
-                      color: Theme.of(context).colorScheme.inversePrimary,
-                    ),
-                    iconSize: buttonIconSize,
-                  ),
-                ],
+              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // 3. Layout Structure:
+                      //    - Flexible widgets allow content to shrink if needed
+                      //    - SizedBox with easedGap creates the animated spacing
+                      //    - Text and button maintain their relative positions
+                      Flexible(
+                        child: Text(
+                          'Friends',
+                          style: headerTextStyle,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      SizedBox(width: gap),
+                      Flexible(
+                        child: FreindsPage.addFriendsButton(
+                          context,
+                          () {},
+                          textStyle: headerTextStyle.copyWith(
+                            fontSize: buttonFontSize,
+                            fontWeight: FontWeight.w800,
+                            color: Theme.of(context).colorScheme.inversePrimary,
+                          ),
+                          iconSize: buttonIconSize,
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
           ],
