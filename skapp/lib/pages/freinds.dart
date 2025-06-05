@@ -1,8 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:skapp/components/appbar.dart';
 
 class FreindsPage extends StatelessWidget {
-  const FreindsPage({super.key});
+  final GlobalKey<ScaffoldState> scaffoldKey;
+  final PageController? pageController;
+
+  const FreindsPage({
+    super.key,
+    required this.scaffoldKey,
+    this.pageController,
+  });
 
   // Example dynamic friends list (replace with your data source)
   final List<String> friends = const [
@@ -30,8 +38,16 @@ class FreindsPage extends StatelessWidget {
     return Scaffold(
       body: SafeArea(
         child: hasFriends
-            ? _FriendsListView(friends: friends)
-            : _NoFriendsView(onAddFriends: () {/* TODO: Add friends logic */}),
+            ? _FriendsListView(
+                friends: friends,
+                scaffoldKey: scaffoldKey,
+                pageController: pageController,
+              )
+            : _NoFriendsView(
+                onAddFriends: () {
+                  /* TODO: Add friends logic */
+                },
+              ),
       ),
     );
   }
@@ -66,10 +82,12 @@ class FreindsPage extends StatelessWidget {
   }
 
   // Shared widget for the add friends button
-  static Widget addFriendsButton(BuildContext context, VoidCallback onAddFriends, {double? fontSize, double? iconSize}) {
-    final double height = MediaQuery.of(context).size.height;
-    final double width = MediaQuery.of(context).size.width;
-    final double baseSize = width < height ? width : height;
+  static Widget addFriendsButton(
+    BuildContext context,
+    VoidCallback onAddFriends, {
+    TextStyle? textStyle,
+    double? iconSize,
+  }) {
     return Material(
       color: Colors.transparent,
       shape: RoundedRectangleBorder(
@@ -81,7 +99,7 @@ class FreindsPage extends StatelessWidget {
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        splashColor: Colors.deepPurple.withOpacity(0.3),
+        splashColor: Colors.grey.withOpacity(0.3),
         highlightColor: Colors.deepPurple.withOpacity(0.1),
         onTap: onAddFriends,
         child: Padding(
@@ -92,15 +110,14 @@ class FreindsPage extends StatelessWidget {
             children: [
               Icon(
                 Icons.add,
-                size: iconSize ?? baseSize * 0.07,
+                size: iconSize,
                 color: Theme.of(context).colorScheme.inversePrimary,
                 semanticLabel: 'Add Friends',
               ),
               Text(
                 'Add Friends',
-                style: TextStyle(
+                style: textStyle ?? TextStyle(
                   color: Theme.of(context).colorScheme.inversePrimary,
-                  fontSize: fontSize ?? baseSize * 0.05,
                   fontWeight: FontWeight.w800,
                 ),
               ),
@@ -134,12 +151,76 @@ class _NoFriendsView extends StatelessWidget {
 
 class _FriendsListView extends StatelessWidget {
   final List<String> friends;
-  const _FriendsListView({required this.friends});
+  final GlobalKey<ScaffoldState> scaffoldKey;
+  final PageController? pageController;
+  const _FriendsListView({
+    required this.friends,
+    required this.scaffoldKey,
+    this.pageController,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
     final double height = MediaQuery.of(context).size.height;
-    return Stack(
+    final double baseSize = width < height ? width : height;
+    final TextStyle friendNameStyle = GoogleFonts.cabin(
+      fontSize: width * 0.045,
+    );
+    final TextStyle headerTextStyle = GoogleFonts.cabin(
+      fontSize: width * 0.08,
+      fontWeight: FontWeight.bold,
+    );
+    final double buttonFontSize = width * 0.04;
+    final double buttonIconSize = width * 0.05;
+
+    return CustomScrollView(
+      slivers: [
+        SliverPersistentHeader(
+          floating: true,
+          pinned: false,
+          delegate: _FriendsHeaderDelegate(
+            context,
+            headerTextStyle: headerTextStyle,
+            buttonFontSize: buttonFontSize,
+            buttonIconSize: buttonIconSize,
+          ),
+        ),
+        SliverList(
+          delegate: SliverChildBuilderDelegate((
+            BuildContext context,
+            int index,
+          ) {
+            return Card(
+              color: Colors.white.withOpacity(0.85),
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              margin: const EdgeInsets.symmetric(vertical: 6),
+              child: ListTile(
+                leading: CircleAvatar(
+                  backgroundColor: Theme.of(
+                    context,
+                  ).colorScheme.inversePrimary.withOpacity(0.7),
+                  child: Text(friends[index][0]),
+                ),
+                title: Text(
+                  friends[index],
+                  style: friendNameStyle,
+                ),
+              ),
+            );
+          }, childCount: friends.length),
+        ),
+        SliverFillRemaining(),
+      ],
+    );
+  }
+}
+
+/*
+Stack(
       children: [
         // Background: faded image and text
         Column(
@@ -207,6 +288,82 @@ class _FriendsListView extends StatelessWidget {
           ),
         ),
       ],
+    )
+*/
+
+class _FriendsHeaderDelegate extends SliverPersistentHeaderDelegate {
+  final BuildContext context;
+  final TextStyle headerTextStyle;
+  final double buttonFontSize;
+  final double buttonIconSize;
+
+  const _FriendsHeaderDelegate(
+    this.context, {
+    required this.headerTextStyle,
+    required this.buttonFontSize,
+    required this.buttonIconSize,
+  });
+
+  @override
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    // Gap grows from 32 to 120 as you scroll (over 30px scroll)
+    final double gap = 32 + (shrinkOffset * (120 - 32) / 30).clamp(0, 88);
+    return Container(
+      decoration: BoxDecoration(
+        image: DecorationImage(
+          image: AssetImage('assets/images/freinds_scroll.jpg'),
+          fit: BoxFit.cover,
+        ),
+      ),
+      child: SizedBox(
+        height: maxExtent,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: Colors.deepPurple,
+                borderRadius: BorderRadius.circular(5),
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Friends',
+                    style: headerTextStyle,
+                  ),
+                  SizedBox(width: gap),
+                  FreindsPage.addFriendsButton(
+                    context,
+                    () {},
+                    textStyle: headerTextStyle.copyWith(
+                      fontSize: buttonFontSize,
+                      fontWeight: FontWeight.w800,
+                      color: Theme.of(context).colorScheme.inversePrimary,
+                    ),
+                    iconSize: buttonIconSize,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
+  }
+
+  @override
+  double get maxExtent => 200.0;
+
+  @override
+  double get minExtent => 200.0;
+
+  @override
+  bool shouldRebuild(SliverPersistentHeaderDelegate oldDelegate) {
+    return false;
   }
 }

@@ -17,23 +17,7 @@ class MainPage extends StatefulWidget {
 
 class _MainPageState extends State<MainPage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-
-  // Single map containing all page information
-  final Map<String, dynamic> pages = {
-    'Groups': {
-      'page': const GroupsPage(),
-      'icon': Icons.group,
-    },
-    'Friends': {
-      'page': const FreindsPage(),
-      'icon': Icons.person,
-    },
-    'Activity': {
-      'page': const ActivityPage(),
-      'icon': Icons.local_activity,
-    },
-  };
-
+  late Map<String, dynamic> pages;
   late int _selectedIndex;
   late final PageController _pageController;
 
@@ -42,6 +26,22 @@ class _MainPageState extends State<MainPage> {
     super.initState();
     _selectedIndex = widget.initialIndex ?? 1; // Use provided index or default to Friends
     _pageController = PageController(initialPage: _selectedIndex);
+    
+    // Initialize pages map here where we have access to _scaffoldKey
+    pages = {
+      'Groups': {
+        'page': const GroupsPage(),
+        'icon': Icons.group,
+      },
+      'Friends': {
+        'page':  FreindsPage(scaffoldKey: _scaffoldKey,pageController:_pageController ,),
+        'icon': Icons.person,
+      },
+      'Activity': {
+        'page': const ActivityPage(),
+        'icon': Icons.local_activity,
+      },
+    };
   }
 
   @override
@@ -71,7 +71,11 @@ class _MainPageState extends State<MainPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       key: _scaffoldKey,
-      appBar: CustomAppBar(
+      appBar:_selectedIndex==1? CustomAppBar(
+        scaffoldKey: _scaffoldKey,
+        pageController: _pageController,
+        page_color_white: true,
+      ):CustomAppBar(
         scaffoldKey: _scaffoldKey,
         pageController: _pageController,
       ),
