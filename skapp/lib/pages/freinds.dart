@@ -5,11 +5,13 @@ import 'package:skapp/components/appbar.dart';
 class FreindsPage extends StatelessWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
   final PageController? pageController;
+  final Function(bool) onFriendsListStateChanged;
 
   const FreindsPage({
     super.key,
     required this.scaffoldKey,
     this.pageController,
+    required this.onFriendsListStateChanged,
   });
 
   // Example dynamic friends list (replace with your data source)
@@ -34,21 +36,27 @@ class FreindsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    final double height = MediaQuery.of(context).size.height;
     final bool hasFriends = friends.isNotEmpty;
+    
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      onFriendsListStateChanged(hasFriends);
+    });
+    
     return Scaffold(
-      body: SafeArea(
-        child: hasFriends
-            ? _FriendsListView(
-                friends: friends,
-                scaffoldKey: scaffoldKey,
-                pageController: pageController,
-              )
-            : _NoFriendsView(
-                onAddFriends: () {
-                  /* TODO: Add friends logic */
-                },
-              ),
-      ),
+      body: hasFriends
+              ? _FriendsListView(
+                  friends: friends,
+                  scaffoldKey: scaffoldKey,
+                  pageController: pageController,
+                )
+              : _NoFriendsView(
+                  onAddFriends: () {
+                    /* TODO: Add friends logic */
+                  },
+                ),
+        
     );
   }
 
@@ -186,110 +194,121 @@ class _FriendsListView extends StatelessWidget {
             buttonIconSize: buttonIconSize,
           ),
         ),
+        SliverToBoxAdapter(
+      child: SizedBox(height: 10), // <-- This adds vertical space (16 pixels)
+    ),
         SliverList(
           delegate: SliverChildBuilderDelegate((
             BuildContext context,
             int index,
           ) {
-            return Card(
-              color: Colors.white.withOpacity(0.85),
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-              margin: const EdgeInsets.symmetric(vertical: 6),
-              child: ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: Theme.of(
-                    context,
-                  ).colorScheme.inversePrimary.withOpacity(0.7),
-                  child: Text(friends[index][0]),
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(8,0,8,0),
+              child: Card(
+                color: Colors.white.withOpacity(0.85),
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                title: Text(
-                  friends[index],
-                  style: friendNameStyle,
+                margin: const EdgeInsets.symmetric(vertical: 6),
+                child: ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: Theme.of(
+                      context,
+                    ).colorScheme.inversePrimary.withOpacity(0.7),
+                    child: Text(friends[index][0]),
+                  ),
+                  title: Text(
+                    friends[index],
+                    style: friendNameStyle,
+                  ),
                 ),
               ),
             );
           }, childCount: friends.length),
         ),
-        SliverFillRemaining(),
-      ],
-    );
-  }
-}
-
-/*
-Stack(
-      children: [
-        // Background: faded image and text
-        Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            SizedBox(height: height * 0.08),
-            FreindsPage.friendsImage(context, opacity: 0.25),
-            SizedBox(height: 20),
-            FreindsPage.friendsText(context),
-          ],
-        ),
-        // Foreground: Friends list with header and Add Friends button
-        Positioned.fill(
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.deepPurple.withOpacity(0.06),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: Colors.deepPurple,
+                    width: 1,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.deepPurple.withOpacity(0.08),
+                      blurRadius: 4,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      'Friends',
+                      'You have ',
                       style: GoogleFonts.cabin(
-                        fontSize: MediaQuery.of(context).size.width * 0.06,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                        color: Colors.deepPurple,
+                        letterSpacing: 0.2,
+                        shadows: [
+                          Shadow(
+                            color: Colors.deepPurple.withOpacity(0.10),
+                            blurRadius: 1,
+                            offset: Offset(0.5, 1),
+                          ),
+                        ],
                       ),
                     ),
-                    FreindsPage.addFriendsButton(
-                      context,
-                      () {},
-                      fontSize: MediaQuery.of(context).size.width * 0.04,
-                      iconSize: MediaQuery.of(context).size.width * 0.045,
+                    Text(
+                      '${friends.length}',
+                      style: GoogleFonts.cabin(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: Colors.deepPurple,
+                        letterSpacing: 0.5,
+                        shadows: [
+                          Shadow(
+                            color: Colors.deepPurple.withOpacity(0.15),
+                            blurRadius: 2,
+                            offset: Offset(0.5, 1),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Text(
+                      ' friends 🎉',
+                      style: GoogleFonts.cabin(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                        color: Colors.deepPurple,
+                        letterSpacing: 0.2,
+                        shadows: [
+                          Shadow(
+                            color: Colors.deepPurple.withOpacity(0.10),
+                            blurRadius: 1,
+                            offset: Offset(0.5, 1),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
               ),
-              // Friends list
-              Expanded(
-                child: ListView.builder(
-                  padding: EdgeInsets.only(top: 0, left: 20, right: 20, bottom: 20),
-                  itemCount: friends.length,
-                  itemBuilder: (context, index) {
-                    return Card(
-                      color: Colors.white.withOpacity(0.85),
-                      elevation: 2,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      margin: const EdgeInsets.symmetric(vertical: 6),
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: Theme.of(context).colorScheme.inversePrimary.withOpacity(0.7),
-                          child: Text(friends[index][0]),
-                        ),
-                        title: Text(
-                          friends[index],
-                          style: GoogleFonts.cabin(fontSize: MediaQuery.of(context).size.width * 0.045),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ],
-    )
-*/
+    );
+  }
+}
 
 class _FriendsHeaderDelegate extends SliverPersistentHeaderDelegate {
   final BuildContext context;
@@ -310,6 +329,7 @@ class _FriendsHeaderDelegate extends SliverPersistentHeaderDelegate {
     // Gap grows from 32 to 120 as you scroll (over 30px scroll)
     final double gap = 32 + (shrinkOffset * (120 - 32) / 30).clamp(0, 88);
     return Container(
+      
       decoration: BoxDecoration(
         image: DecorationImage(
           image: AssetImage('assets/images/freinds_scroll.jpg'),
@@ -327,7 +347,7 @@ class _FriendsHeaderDelegate extends SliverPersistentHeaderDelegate {
                 color: Colors.deepPurple,
                 borderRadius: BorderRadius.circular(5),
               ),
-              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
+              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 14),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 mainAxisSize: MainAxisSize.min,

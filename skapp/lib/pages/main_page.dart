@@ -20,6 +20,7 @@ class _MainPageState extends State<MainPage> {
   late Map<String, dynamic> pages;
   late int _selectedIndex;
   late final PageController _pageController;
+  bool _isFriendsListEmpty = true;
 
   @override
   void initState() {
@@ -34,7 +35,15 @@ class _MainPageState extends State<MainPage> {
         'icon': Icons.group,
       },
       'Friends': {
-        'page':  FreindsPage(scaffoldKey: _scaffoldKey,pageController:_pageController ,),
+        'page': FreindsPage(
+          scaffoldKey: _scaffoldKey,
+          pageController: _pageController,
+          onFriendsListStateChanged: (hasFriends) {
+            setState(() {
+              _isFriendsListEmpty = !hasFriends;
+            });
+          },
+        ),
         'icon': Icons.person,
       },
       'Activity': {
@@ -71,14 +80,16 @@ class _MainPageState extends State<MainPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       key: _scaffoldKey,
-      appBar:_selectedIndex==1? CustomAppBar(
-        scaffoldKey: _scaffoldKey,
-        pageController: _pageController,
-        page_color_white: true,
-      ):CustomAppBar(
-        scaffoldKey: _scaffoldKey,
-        pageController: _pageController,
-      ),
+      appBar: _selectedIndex == 1 && !_isFriendsListEmpty
+          ? CustomAppBar(
+              scaffoldKey: _scaffoldKey,
+              pageController: _pageController,
+              page_color_white: true,
+            )
+          : CustomAppBar(
+              scaffoldKey: _scaffoldKey,
+              pageController: _pageController,
+            ),
       drawer: AppDrawer(
         selectedIndex: _selectedIndex,
         onItemSelected: _onItemSelected,
