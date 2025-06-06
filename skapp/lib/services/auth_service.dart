@@ -7,6 +7,7 @@ import 'package:skapp/config.dart';
 
 class AuthService {
   static const String _tokenKey = 'auth_token';
+  static const String _refreshTokenKey = 'refresh_token';
 
   // Use the dynamic base URL
   static String get _baseUrl => AppConfig.baseUrl;
@@ -19,6 +20,102 @@ class AuthService {
   );
   final FlutterSecureStorage _secureStorage = FlutterSecureStorage();
 
+  // Helper to parse backend errors
+  String _parseBackendError(http.Response response) {
+    try {
+      final data = jsonDecode(response.body);
+      if (data is Map) {
+        // Check if the error is a single message wrapped in {'error': '...'}
+        if (data.containsKey('error') && data['error'] is String) {
+          return data['error'];
+        }
+        // Check for serializer validation errors (a map of field errors)
+        else if (data.isNotEmpty) {
+          // Concatenate all error messages
+          String messages = data.entries.map((entry) {
+            String field = entry.key;
+            dynamic errorList = entry.value;
+            if (errorList is List) {
+              return "$field: ${errorList.join(', ')}";
+            } else {
+              return "$field: $errorList";
+            }
+          }).join('; ');
+          return messages.isNotEmpty ? messages : 'Unknown validation error';
+        }
+      } else if (data is String) {
+        return data; // Handle plain string errors if any
+      }
+    } catch (e) {
+      print('Error parsing backend error response: $e');
+    }
+    return 'An unexpected error occurred';
+  }
+
+  // Manual Login
+  Future<Map<String, dynamic>?> loginWithEmailOrUsername(String usernameOrEmail, String password) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/auth/login/'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'username_or_email': usernameOrEmail,
+          'password': password,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        await _saveTokens(data['access'], data['refresh']);
+        return data;
+      } else {
+        final errorMessage = _parseBackendError(response);
+        throw errorMessage;
+      }
+    } catch (e) {
+      print('Error during login: $e');
+      rethrow; // Rethrow to be caught by the UI layer
+    }
+  }
+
+  // Manual Registration
+  Future<Map<String, dynamic>?> register({
+    required String username,
+    required String email,
+    required String password,
+    required String password2,
+    String? firstName,
+    String? lastName,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/auth/register/'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'username': username,
+          'email': email,
+          'password': password,
+          'password2': password2,
+          'first_name': firstName,
+          'last_name': lastName,
+        }),
+      );
+
+      if (response.statusCode == 201) {
+        final data = jsonDecode(response.body);
+        await _saveTokens(data['access'], data['refresh']);
+        return data;
+      } else {
+        final errorMessage = _parseBackendError(response);
+        throw errorMessage; // Throw the specific error message
+      }
+    } catch (e) {
+      print('Error during registration: $e');
+      rethrow; // Rethrow to be caught by the UI layer
+    }
+  }
+
+  // Google Sign In
   Future<Map<String, dynamic>?> signInWithGoogle() async {
     try {
       print('Starting Google Sign-In');
@@ -52,31 +149,40 @@ class AuthService {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         print('Successfully decoded response data');
-        await _saveToken(data['access']);
+        await _saveTokens(data['access'], data['refresh']);
         return data;
       } else {
-        print('Login failed with status ${response.statusCode}');
-        print('Error response: ${response.body}');
-        return null;
+        // Google sign-in specific error handling might differ slightly
+        final errorMessage = _parseBackendError(response);
+        print('Google Sign-In failed: $errorMessage');
+        // Depending on the specific error format, you might return null
+        // or throw a specific exception. For now, returning null as before
+        // for Google Sign-In API errors.
+        return null; // Or throw errorMessage; if you want consistent error handling
       }
     } on PlatformException catch (e) {
       print('Platform Exception during Google sign in: ${e.code} - ${e.message}');
       if (e.code == 'sign_in_failed') {
         print('Make sure you have configured the SHA-1 fingerprint in Google Cloud Console');
       }
-      return null;
+      rethrow;
     } catch (error) {
       print('Error during Google sign in: $error');
-      return null;
+      rethrow;
     }
   }
 
-  Future<void> _saveToken(String token) async {
-    await _secureStorage.write(key: _tokenKey, value: token);
+  Future<void> _saveTokens(String accessToken, String refreshToken) async {
+    await _secureStorage.write(key: _tokenKey, value: accessToken);
+    await _secureStorage.write(key: _refreshTokenKey, value: refreshToken);
   }
 
   Future<String?> getToken() async {
     return await _secureStorage.read(key: _tokenKey);
+  }
+
+  Future<String?> getRefreshToken() async {
+    return await _secureStorage.read(key: _refreshTokenKey);
   }
 
   Future<bool> isAuthenticated() async {
@@ -103,6 +209,7 @@ class AuthService {
     try {
       await _googleSignIn.signOut();
       await _secureStorage.delete(key: _tokenKey);
+      await _secureStorage.delete(key: _refreshTokenKey);
     } catch (error) {
       print('Error during sign out: $error');
     }
