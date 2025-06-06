@@ -3,6 +3,7 @@ import 'package:skapp/services/auth_service.dart';
 import 'package:skapp/pages/main_page.dart';
 import 'package:skapp/pages/register_page.dart';
 import 'package:skapp/utils/async_action_mixin.dart';
+import 'package:skapp/widgets/animated_text_field.dart';
 
 class LoginPage extends StatefulWidget {
   @override
@@ -16,10 +17,23 @@ class _LoginPageState extends State<LoginPage> with AsyncActionMixin<LoginPage> 
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
 
+  // Focus nodes for animation
+  final _usernameFocus = FocusNode();
+  final _passwordFocus = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _usernameFocus.addListener(() => setState(() {}));
+    _passwordFocus.addListener(() => setState(() {}));
+  }
+
   @override
   void dispose() {
     _usernameController.dispose();
     _passwordController.dispose();
+    _usernameFocus.dispose();
+    _passwordFocus.dispose();
     super.dispose();
   }
 
@@ -46,6 +60,23 @@ class _LoginPageState extends State<LoginPage> with AsyncActionMixin<LoginPage> 
     );
   }
 
+  void _navigateToRegister() {
+    Navigator.of(context).push(
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) => RegisterPage(),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          const begin = Offset(1.0, 0.0);
+          const end = Offset.zero;
+          const curve = Curves.easeInOut;
+          var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+          var offsetAnimation = animation.drive(tween);
+          return SlideTransition(position: offsetAnimation, child: child);
+        },
+        transitionDuration: Duration(milliseconds: 300),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -68,14 +99,12 @@ class _LoginPageState extends State<LoginPage> with AsyncActionMixin<LoginPage> 
                   textAlign: TextAlign.center,
                 ),
                 SizedBox(height: 32),
-                TextFormField(
+                AnimatedTextField(
                   controller: _usernameController,
-                  decoration: InputDecoration(
-                    labelText: 'Username or Email',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.person),
-                  ),
-                  keyboardType: TextInputType.emailAddress,
+                  label: 'Username or Email',
+                  prefixIcon: Icons.person,
+                  focusNode: _usernameFocus,
+                  isEmail: true,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter your username or email';
@@ -84,22 +113,14 @@ class _LoginPageState extends State<LoginPage> with AsyncActionMixin<LoginPage> 
                   },
                 ),
                 SizedBox(height: 16),
-                TextFormField(
+                AnimatedTextField(
                   controller: _passwordController,
-                  decoration: InputDecoration(
-                    labelText: 'Password',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.lock),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscurePassword ? Icons.visibility : Icons.visibility_off,
-                      ),
-                      onPressed: () {
-                        setState(() => _obscurePassword = !_obscurePassword);
-                      },
-                    ),
-                  ),
+                  label: 'Password',
+                  prefixIcon: Icons.lock,
+                  focusNode: _passwordFocus,
+                  isPassword: true,
                   obscureText: _obscurePassword,
+                  onTogglePassword: () => setState(() => _obscurePassword = !_obscurePassword),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter your password';
@@ -112,6 +133,9 @@ class _LoginPageState extends State<LoginPage> with AsyncActionMixin<LoginPage> 
                   onPressed: isLoading ? null : _handleLogin,
                   style: ElevatedButton.styleFrom(
                     padding: EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                   child: isLoading
                       ? CircularProgressIndicator()
@@ -136,16 +160,14 @@ class _LoginPageState extends State<LoginPage> with AsyncActionMixin<LoginPage> 
                   label: Text('Sign in with Google'),
                   style: OutlinedButton.styleFrom(
                     padding: EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 ),
                 SizedBox(height: 24),
                 TextButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => RegisterPage()),
-                    );
-                  },
+                  onPressed: _navigateToRegister,
                   child: Text('Don\'t have an account? Register'),
                 ),
               ],

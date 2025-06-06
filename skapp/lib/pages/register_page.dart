@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:skapp/services/auth_service.dart';
 import 'package:skapp/pages/main_page.dart';
 import 'package:skapp/utils/async_action_mixin.dart';
+import 'package:skapp/widgets/animated_text_field.dart';
 
 class RegisterPage extends StatefulWidget {
   @override
@@ -20,6 +21,25 @@ class _RegisterPageState extends State<RegisterPage> with AsyncActionMixin<Regis
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
 
+  // Focus nodes for animation
+  final _usernameFocus = FocusNode();
+  final _emailFocus = FocusNode();
+  final _passwordFocus = FocusNode();
+  final _confirmPasswordFocus = FocusNode();
+  final _firstNameFocus = FocusNode();
+  final _lastNameFocus = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _usernameFocus.addListener(() => setState(() {}));
+    _emailFocus.addListener(() => setState(() {}));
+    _passwordFocus.addListener(() => setState(() {}));
+    _confirmPasswordFocus.addListener(() => setState(() {}));
+    _firstNameFocus.addListener(() => setState(() {}));
+    _lastNameFocus.addListener(() => setState(() {}));
+  }
+
   @override
   void dispose() {
     _usernameController.dispose();
@@ -28,6 +48,12 @@ class _RegisterPageState extends State<RegisterPage> with AsyncActionMixin<Regis
     _confirmPasswordController.dispose();
     _firstNameController.dispose();
     _lastNameController.dispose();
+    _usernameFocus.dispose();
+    _emailFocus.dispose();
+    _passwordFocus.dispose();
+    _confirmPasswordFocus.dispose();
+    _firstNameFocus.dispose();
+    _lastNameFocus.dispose();
     super.dispose();
   }
 
@@ -47,6 +73,10 @@ class _RegisterPageState extends State<RegisterPage> with AsyncActionMixin<Regis
       navigateOnSuccess: true,
       successPage: MainPage(),
     );
+  }
+
+  void _navigateBack() {
+    Navigator.of(context).pop();
   }
 
   @override
@@ -71,13 +101,11 @@ class _RegisterPageState extends State<RegisterPage> with AsyncActionMixin<Regis
                   textAlign: TextAlign.center,
                 ),
                 SizedBox(height: 32),
-                TextFormField(
+                AnimatedTextField(
                   controller: _usernameController,
-                  decoration: InputDecoration(
-                    labelText: 'Username',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.person),
-                  ),
+                  label: 'Username',
+                  prefixIcon: Icons.person,
+                  focusNode: _usernameFocus,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter a username';
@@ -89,14 +117,12 @@ class _RegisterPageState extends State<RegisterPage> with AsyncActionMixin<Regis
                   },
                 ),
                 SizedBox(height: 16),
-                TextFormField(
+                AnimatedTextField(
                   controller: _emailController,
-                  decoration: InputDecoration(
-                    labelText: 'Email',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.email),
-                  ),
-                  keyboardType: TextInputType.emailAddress,
+                  label: 'Email',
+                  prefixIcon: Icons.email,
+                  focusNode: _emailFocus,
+                  isEmail: true,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter an email';
@@ -108,40 +134,28 @@ class _RegisterPageState extends State<RegisterPage> with AsyncActionMixin<Regis
                   },
                 ),
                 SizedBox(height: 16),
-                TextFormField(
+                AnimatedTextField(
                   controller: _firstNameController,
-                  decoration: InputDecoration(
-                    labelText: 'First Name (Optional)',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.person_outline),
-                  ),
+                  label: 'First Name (Optional)',
+                  prefixIcon: Icons.person_outline,
+                  focusNode: _firstNameFocus,
                 ),
                 SizedBox(height: 16),
-                TextFormField(
+                AnimatedTextField(
                   controller: _lastNameController,
-                  decoration: InputDecoration(
-                    labelText: 'Last Name (Optional)',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.person_outline),
-                  ),
+                  label: 'Last Name (Optional)',
+                  prefixIcon: Icons.person_outline,
+                  focusNode: _lastNameFocus,
                 ),
                 SizedBox(height: 16),
-                TextFormField(
+                AnimatedTextField(
                   controller: _passwordController,
-                  decoration: InputDecoration(
-                    labelText: 'Password',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.lock),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscurePassword ? Icons.visibility : Icons.visibility_off,
-                      ),
-                      onPressed: () {
-                        setState(() => _obscurePassword = !_obscurePassword);
-                      },
-                    ),
-                  ),
+                  label: 'Password',
+                  prefixIcon: Icons.lock,
+                  focusNode: _passwordFocus,
+                  isPassword: true,
                   obscureText: _obscurePassword,
+                  onTogglePassword: () => setState(() => _obscurePassword = !_obscurePassword),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter a password';
@@ -153,22 +167,14 @@ class _RegisterPageState extends State<RegisterPage> with AsyncActionMixin<Regis
                   },
                 ),
                 SizedBox(height: 16),
-                TextFormField(
+                AnimatedTextField(
                   controller: _confirmPasswordController,
-                  decoration: InputDecoration(
-                    labelText: 'Confirm Password',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.lock_outline),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscureConfirmPassword ? Icons.visibility : Icons.visibility_off,
-                      ),
-                      onPressed: () {
-                        setState(() => _obscureConfirmPassword = !_obscureConfirmPassword);
-                      },
-                    ),
-                  ),
+                  label: 'Confirm Password',
+                  prefixIcon: Icons.lock_outline,
+                  focusNode: _confirmPasswordFocus,
+                  isPassword: true,
                   obscureText: _obscureConfirmPassword,
+                  onTogglePassword: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please confirm your password';
@@ -184,6 +190,9 @@ class _RegisterPageState extends State<RegisterPage> with AsyncActionMixin<Regis
                   onPressed: isLoading ? null : _handleRegister,
                   style: ElevatedButton.styleFrom(
                     padding: EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                   child: isLoading
                       ? CircularProgressIndicator()
@@ -191,9 +200,7 @@ class _RegisterPageState extends State<RegisterPage> with AsyncActionMixin<Regis
                 ),
                 SizedBox(height: 16),
                 TextButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
+                  onPressed: _navigateBack,
                   child: Text('Already have an account? Login'),
                 ),
               ],
