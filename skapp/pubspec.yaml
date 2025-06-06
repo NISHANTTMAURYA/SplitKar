@@ -73,6 +73,8 @@ flutter:
     - assets/loaders/loader.json
     - assets/loaders/loader1.json
     - assets/loaders/loader2.json
+    - assets/images/loader3.json
+    - assets/loaders/loader4.json
    
 
 

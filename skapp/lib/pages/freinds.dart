@@ -33,12 +33,16 @@ class FreindsPage extends StatelessWidget {
     "isha",
     "rohan",
   ];
+  
 
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
     final double height = MediaQuery.of(context).size.height;
     final bool hasFriends = friends.isNotEmpty;
+    
+    // Add this line to print the color
+    print('Inverse Primary Color: ${Theme.of(context).colorScheme.inversePrimary}');
     
     WidgetsBinding.instance.addPostFrameCallback((_) {
       onFriendsListStateChanged(hasFriends);
@@ -364,7 +368,7 @@ class _FriendsHeaderDelegate extends SliverPersistentHeaderDelegate {
             Container(
               width: double.infinity,
               decoration: BoxDecoration(
-                color: Colors.deepPurple,
+                color: Colors.deepPurple[400],
                 borderRadius: BorderRadius.circular(3),
               ),
               padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),

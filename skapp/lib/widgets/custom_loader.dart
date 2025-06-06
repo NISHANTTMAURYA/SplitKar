@@ -7,7 +7,7 @@ class CustomLoader extends StatelessWidget {
 
   const CustomLoader({
     Key? key,
-    this.size = 48.0,  // Increased button loader size
+    this.size = 50.0,  // Increased button loader size
     this.isButtonLoader = false,
   }) : super(key: key);
 
@@ -17,14 +17,49 @@ class CustomLoader extends StatelessWidget {
     final screenWidth = MediaQuery.of(context).size.width;
     final responsiveSize = isButtonLoader ? size : screenWidth * 0.6; // 60% of screen width for full loader
 
-    final loader = Lottie.asset(
-      isButtonLoader ? 'assets/loaders/loader1.json' : 'assets/loaders/loader2.json',
-      width: responsiveSize,
-      height: responsiveSize,
-      fit: BoxFit.contain,
-    );
+    return FutureBuilder(
+      future: _loadAnimation(context),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          print('Error loading animation: ${snapshot.error}');
+          return Center(
+            child: CircularProgressIndicator(),
+          );
+        }
 
-    // Only wrap in Center if it's not a button loader
-    return isButtonLoader ? loader : Center(child: loader);
+        if (!snapshot.hasData) {
+          return Center(
+            child: CircularProgressIndicator(),
+          );
+        }
+
+        return Center(
+          child: Lottie.asset(
+            snapshot.data!,
+            width: responsiveSize,
+            height: responsiveSize,
+            fit: BoxFit.contain,
+            errorBuilder: (context, error, stackTrace) {
+              print('Lottie error: $error');
+              return Center(
+                child: CircularProgressIndicator(),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  Future<String> _loadAnimation(BuildContext context) async {
+    try {
+      final path = isButtonLoader ? 'assets/loaders/loader4.json' : 'assets/images/loader3.json';
+      // Verify the asset exists
+      await DefaultAssetBundle.of(context).load(path);
+      return path;
+    } catch (e) {
+      print('Error loading animation asset: $e');
+      rethrow;
+    }
   }
 } 
