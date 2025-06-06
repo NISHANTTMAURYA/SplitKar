@@ -190,13 +190,14 @@ class AuthService {
     if (token == null) return false;
     
     try {
-      // Validate token with backend
-      final response = await http.get(
+      // Validate token with backend using POST
+      final response = await http.post(
         Uri.parse('$_baseUrl/auth/validate/'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
         },
+        body: jsonEncode({'token': token}),
       );
       return response.statusCode == 200;
     } catch (e) {

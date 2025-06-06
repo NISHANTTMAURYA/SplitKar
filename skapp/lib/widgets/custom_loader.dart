@@ -17,11 +17,14 @@ class CustomLoader extends StatelessWidget {
     final screenWidth = MediaQuery.of(context).size.width;
     final responsiveSize = isButtonLoader ? size : screenWidth * 0.6; // 60% of screen width for full loader
 
-    return Lottie.asset(
+    final loader = Lottie.asset(
       isButtonLoader ? 'assets/loaders/loader1.json' : 'assets/loaders/loader2.json',
       width: responsiveSize,
       height: responsiveSize,
       fit: BoxFit.contain,
     );
+
+    // Only wrap in Center if it's not a button loader
+    return isButtonLoader ? loader : Center(child: loader);
   }
 } 
