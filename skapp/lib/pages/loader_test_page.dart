@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:skapp/widgets/custom_loader.dart';
 
 class LoaderTestPage extends StatelessWidget {
+  const LoaderTestPage({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Loader Test'),
-      ),
+      appBar: AppBar(title: Text('Loader Test')),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -24,4 +24,4 @@ class LoaderTestPage extends StatelessWidget {
       ),
     );
   }
-} 
+}

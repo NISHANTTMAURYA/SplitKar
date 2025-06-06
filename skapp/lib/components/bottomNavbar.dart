@@ -8,18 +8,19 @@ class BottomNavbar extends StatefulWidget {
   final List<IconData> icons;
 
   const BottomNavbar({
-    Key? key,
+    super.key,
     required this.selectedIndex,
     required this.onItemSelected,
     required this.labels,
     required this.icons,
-  }) : super(key: key);
+  });
 
   @override
   State<BottomNavbar> createState() => _BottomNavbarState();
 }
 
-class _BottomNavbarState extends State<BottomNavbar> with SingleTickerProviderStateMixin {
+class _BottomNavbarState extends State<BottomNavbar>
+    with SingleTickerProviderStateMixin {
   late double itemWidth;
   late AnimationController _controller;
   late Animation<double> _leftAnim;
@@ -58,22 +59,46 @@ class _BottomNavbarState extends State<BottomNavbar> with SingleTickerProviderSt
     if (direction > 0) {
       // Moving right: right side moves first
       _leftAnim = TweenSequence([
-        TweenSequenceItem(tween: Tween<double>(begin: startLeft, end: startLeft), weight: 50),
-        TweenSequenceItem(tween: Tween<double>(begin: startLeft, end: endLeft), weight: 50),
+        TweenSequenceItem(
+          tween: Tween<double>(begin: startLeft, end: startLeft),
+          weight: 50,
+        ),
+        TweenSequenceItem(
+          tween: Tween<double>(begin: startLeft, end: endLeft),
+          weight: 50,
+        ),
       ]).animate(_controller);
       _rightAnim = TweenSequence([
-        TweenSequenceItem(tween: Tween<double>(begin: startRight, end: startRight - stretch), weight: 50),
-        TweenSequenceItem(tween: Tween<double>(begin: startRight - stretch, end: endRight), weight: 50),
+        TweenSequenceItem(
+          tween: Tween<double>(begin: startRight, end: startRight - stretch),
+          weight: 50,
+        ),
+        TweenSequenceItem(
+          tween: Tween<double>(begin: startRight - stretch, end: endRight),
+          weight: 50,
+        ),
       ]).animate(_controller);
     } else {
       // Moving left: left side moves first (no rightward movement)
       _leftAnim = TweenSequence([
-        TweenSequenceItem(tween: Tween<double>(begin: startLeft, end: endLeft), weight: 50),
-        TweenSequenceItem(tween: Tween<double>(begin: endLeft, end: endLeft), weight: 50),
+        TweenSequenceItem(
+          tween: Tween<double>(begin: startLeft, end: endLeft),
+          weight: 50,
+        ),
+        TweenSequenceItem(
+          tween: Tween<double>(begin: endLeft, end: endLeft),
+          weight: 50,
+        ),
       ]).animate(_controller);
       _rightAnim = TweenSequence([
-        TweenSequenceItem(tween: Tween<double>(begin: startRight, end: startRight + stretch), weight: 50),
-        TweenSequenceItem(tween: Tween<double>(begin: startRight + stretch, end: endRight), weight: 50),
+        TweenSequenceItem(
+          tween: Tween<double>(begin: startRight, end: startRight + stretch),
+          weight: 50,
+        ),
+        TweenSequenceItem(
+          tween: Tween<double>(begin: startRight + stretch, end: endRight),
+          weight: 50,
+        ),
       ]).animate(_controller);
     }
     _controller.forward(from: 0);
@@ -89,7 +114,9 @@ class _BottomNavbarState extends State<BottomNavbar> with SingleTickerProviderSt
   Widget build(BuildContext context) {
     itemWidth = (MediaQuery.of(context).size.width - 40) / widget.labels.length;
     return Padding(
-      padding: EdgeInsets.only(bottom: 10 + MediaQuery.of(context).padding.bottom),
+      padding: EdgeInsets.only(
+        bottom: 10 + MediaQuery.of(context).padding.bottom,
+      ),
       child: SizedBox(
         height: 70,
         child: Padding(
@@ -100,7 +127,9 @@ class _BottomNavbarState extends State<BottomNavbar> with SingleTickerProviderSt
               Container(
                 height: 52,
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.inversePrimary.withOpacity(0.9),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.inversePrimary.withOpacity(0.9),
                   // color: Colors.deepPurple[200],
                   borderRadius: BorderRadius.circular(30),
                   boxShadow: [
@@ -116,8 +145,13 @@ class _BottomNavbarState extends State<BottomNavbar> with SingleTickerProviderSt
               AnimatedBuilder(
                 animation: _controller,
                 builder: (context, child) {
-                  final left = _controller.isAnimating ? _leftAnim.value : widget.selectedIndex * itemWidth;
-                  final right = _controller.isAnimating ? _rightAnim.value : (widget.labels.length - widget.selectedIndex - 1) * itemWidth;
+                  final left = _controller.isAnimating
+                      ? _leftAnim.value
+                      : widget.selectedIndex * itemWidth;
+                  final right = _controller.isAnimating
+                      ? _rightAnim.value
+                      : (widget.labels.length - widget.selectedIndex - 1) *
+                            itemWidth;
                   return Positioned(
                     left: left,
                     right: right,
@@ -153,7 +187,13 @@ class _BottomNavbarState extends State<BottomNavbar> with SingleTickerProviderSt
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(widget.icons[index], color: widget.selectedIndex == index ? Colors.deepPurple : Colors.grey[700], size: 26),
+                              Icon(
+                                widget.icons[index],
+                                color: widget.selectedIndex == index
+                                    ? Colors.deepPurple
+                                    : Colors.grey[700],
+                                size: 26,
+                              ),
                               if (widget.selectedIndex == index) ...[
                                 SizedBox(width: 8),
                                 Text(
@@ -164,7 +204,7 @@ class _BottomNavbarState extends State<BottomNavbar> with SingleTickerProviderSt
                                     fontSize: 17,
                                   ),
                                 ),
-                              ]
+                              ],
                             ],
                           ),
                         ),

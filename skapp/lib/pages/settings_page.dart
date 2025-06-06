@@ -7,6 +7,8 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:skapp/pages/login_page.dart';
 
 class SettingsPage extends StatefulWidget {
+  const SettingsPage({super.key});
+
   @override
   _SettingsPageState createState() => _SettingsPageState();
 }
@@ -18,7 +20,11 @@ class _SettingsPageState extends State<SettingsPage> {
 
   // Use the same labels and icons as in main_page.dart
   final List<String> labels = ['Groups', 'Friends', 'Activity'];
-  final List<IconData> icons = [Icons.group, Icons.person, Icons.local_activity];
+  final List<IconData> icons = [
+    Icons.group,
+    Icons.person,
+    Icons.local_activity,
+  ];
 
   @override
   void initState() {
@@ -69,13 +75,23 @@ class _SettingsPageState extends State<SettingsPage> {
           children: [
             if (_account != null) ...[
               CircleAvatar(
-                backgroundImage: _account!.photoUrl != null ? NetworkImage(_account!.photoUrl!) : null,
+                backgroundImage: _account!.photoUrl != null
+                    ? NetworkImage(_account!.photoUrl!)
+                    : null,
                 radius: 32,
-                child: _account!.photoUrl == null ? Icon(Icons.person, size: 32) : null,
+                child: _account!.photoUrl == null
+                    ? Icon(Icons.person, size: 32)
+                    : null,
               ),
               SizedBox(height: 12),
-              Text(_account!.displayName ?? 'No Name', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              Text(_account!.email, style: TextStyle(fontSize: 16, color: Colors.grey)),
+              Text(
+                _account!.displayName ?? 'No Name',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              Text(
+                _account!.email,
+                style: TextStyle(fontSize: 16, color: Colors.grey),
+              ),
               SizedBox(height: 24),
             ],
             ElevatedButton.icon(

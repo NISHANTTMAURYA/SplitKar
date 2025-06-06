@@ -7,15 +7,15 @@ import 'package:skapp/widgets/custom_loader.dart';
 class AuthWrapper extends StatelessWidget {
   final AuthService _authService = AuthService();
 
+  AuthWrapper({super.key});
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<bool>(
       future: _authService.isAuthenticated(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return Scaffold(
-            body: CustomLoader(size: 40),
-          );
+          return Scaffold(body: CustomLoader(size: 40));
         }
 
         if (snapshot.hasData && snapshot.data == true) {
@@ -26,4 +26,4 @@ class AuthWrapper extends StatelessWidget {
       },
     );
   }
-} 
+}

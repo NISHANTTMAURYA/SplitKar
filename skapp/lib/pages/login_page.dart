@@ -7,11 +7,14 @@ import 'package:skapp/widgets/animated_text_field.dart';
 import 'package:skapp/widgets/custom_loader.dart';
 
 class LoginPage extends StatefulWidget {
+  const LoginPage({super.key});
+
   @override
   _LoginPageState createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> with AsyncActionMixin<LoginPage> {
+class _LoginPageState extends State<LoginPage>
+    with AsyncActionMixin<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _authService = AuthService();
   final _usernameController = TextEditingController();
@@ -69,7 +72,10 @@ class _LoginPageState extends State<LoginPage> with AsyncActionMixin<LoginPage> 
           const begin = Offset(1.0, 0.0);
           const end = Offset.zero;
           const curve = Curves.easeInOut;
-          var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+          var tween = Tween(
+            begin: begin,
+            end: end,
+          ).chain(CurveTween(curve: curve));
           var offsetAnimation = animation.drive(tween);
           return SlideTransition(position: offsetAnimation, child: child);
         },
@@ -81,10 +87,7 @@ class _LoginPageState extends State<LoginPage> with AsyncActionMixin<LoginPage> 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Login'),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: Text('Login'), centerTitle: true),
       body: Center(
         child: SingleChildScrollView(
           padding: EdgeInsets.all(16.0),
@@ -121,7 +124,8 @@ class _LoginPageState extends State<LoginPage> with AsyncActionMixin<LoginPage> 
                   focusNode: _passwordFocus,
                   isPassword: true,
                   obscureText: _obscurePassword,
-                  onTogglePassword: () => setState(() => _obscurePassword = !_obscurePassword),
+                  onTogglePassword: () =>
+                      setState(() => _obscurePassword = !_obscurePassword),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter your password';
@@ -178,4 +182,4 @@ class _LoginPageState extends State<LoginPage> with AsyncActionMixin<LoginPage> 
       ),
     );
   }
-} 
+}

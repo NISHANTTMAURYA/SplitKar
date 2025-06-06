@@ -8,12 +8,12 @@ class AppDrawer extends StatelessWidget {
   final List<IconData> icons;
 
   const AppDrawer({
-    Key? key,
+    super.key,
     required this.selectedIndex,
     required this.onItemSelected,
     required this.labels,
     required this.icons,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -26,11 +26,7 @@ class AppDrawer extends StatelessWidget {
             DrawerHeader(
               child: Row(
                 children: [
-                  Image.asset(
-                    'assets/images/logo.png',
-                    width: 48,
-                    height: 48,
-                  ),
+                  Image.asset('assets/images/logo.png', width: 48, height: 48),
                   SizedBox(width: 16),
                   Text(
                     'SplitKar',
@@ -46,7 +42,10 @@ class AppDrawer extends StatelessWidget {
             ...List.generate(labels.length, (index) {
               return ListTile(
                 leading: Icon(icons[index], color: Colors.white),
-                title: Text(labels[index], style: GoogleFonts.cabin(color: Colors.white)),
+                title: Text(
+                  labels[index],
+                  style: GoogleFonts.cabin(color: Colors.white),
+                ),
                 selected: selectedIndex == index,
                 selectedTileColor: Colors.deepPurple.withOpacity(0.2),
                 onTap: () {
@@ -58,7 +57,10 @@ class AppDrawer extends StatelessWidget {
             Divider(color: Colors.white54),
             ListTile(
               leading: Icon(Icons.settings, color: Colors.white),
-              title: Text('Settings', style: GoogleFonts.cabin(color: Colors.white)),
+              title: Text(
+                'Settings',
+                style: GoogleFonts.cabin(color: Colors.white),
+              ),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.pushNamed(context, '/settings');

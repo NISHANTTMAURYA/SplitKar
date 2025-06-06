@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:skapp/components/appbar.dart';
 
 class FreindsPage extends StatelessWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
@@ -33,34 +32,34 @@ class FreindsPage extends StatelessWidget {
     "isha",
     "rohan",
   ];
-  
 
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
     final double height = MediaQuery.of(context).size.height;
     final bool hasFriends = friends.isNotEmpty;
-    
+
     // Add this line to print the color
-    print('Inverse Primary Color: ${Theme.of(context).colorScheme.inversePrimary}');
-    
+    print(
+      'Inverse Primary Color: ${Theme.of(context).colorScheme.inversePrimary}',
+    );
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       onFriendsListStateChanged(hasFriends);
     });
-    
+
     return Scaffold(
       body: hasFriends
-              ? _FriendsListView(
-                  friends: friends,
-                  scaffoldKey: scaffoldKey,
-                  pageController: pageController,
-                )
-              : _NoFriendsView(
-                  onAddFriends: () {
-                    /* TODO: Add friends logic */
-                  },
-                ),
-        
+          ? _FriendsListView(
+              friends: friends,
+              scaffoldKey: scaffoldKey,
+              pageController: pageController,
+            )
+          : _NoFriendsView(
+              onAddFriends: () {
+                /* TODO: Add friends logic */
+              },
+            ),
     );
   }
 
@@ -132,10 +131,12 @@ class FreindsPage extends StatelessWidget {
                   Flexible(
                     child: Text(
                       'Add Friends',
-                      style: textStyle ?? TextStyle(
-                        color: Theme.of(context).colorScheme.inversePrimary,
-                        fontWeight: FontWeight.w800,
-                      ),
+                      style:
+                          textStyle ??
+                          TextStyle(
+                            color: Theme.of(context).colorScheme.inversePrimary,
+                            fontWeight: FontWeight.w800,
+                          ),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
@@ -207,15 +208,17 @@ class _FriendsListView extends StatelessWidget {
           ),
         ),
         SliverToBoxAdapter(
-      child: SizedBox(height: 10), // <-- This adds vertical space (16 pixels)
-    ),
+          child: SizedBox(
+            height: 10,
+          ), // <-- This adds vertical space (16 pixels)
+        ),
         SliverList(
           delegate: SliverChildBuilderDelegate((
             BuildContext context,
             int index,
           ) {
             return Padding(
-              padding: const EdgeInsets.fromLTRB(8,0,8,0),
+              padding: const EdgeInsets.fromLTRB(8, 0, 8, 0),
               child: Card(
                 color: Colors.white.withOpacity(0.85),
                 elevation: 2,
@@ -230,10 +233,7 @@ class _FriendsListView extends StatelessWidget {
                     ).colorScheme.inversePrimary.withOpacity(0.7),
                     child: Text(friends[index][0]),
                   ),
-                  title: Text(
-                    friends[index],
-                    style: friendNameStyle,
-                  ),
+                  title: Text(friends[index], style: friendNameStyle),
                 ),
               ),
             );
@@ -244,14 +244,14 @@ class _FriendsListView extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 12),
             child: Center(
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.deepPurple.withOpacity(0.06),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: Colors.deepPurple,
-                    width: 1,
-                  ),
+                  border: Border.all(color: Colors.deepPurple, width: 1),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.deepPurple.withOpacity(0.08),
@@ -337,7 +337,10 @@ class _FriendsHeaderDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   Widget build(
-      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
     // ANIMATION LOGIC EXPLANATION:
     // 1. Base Gap Calculation:
     //    - Starts at 16px (minimum gap)
@@ -345,14 +348,14 @@ class _FriendsHeaderDelegate extends SliverPersistentHeaderDelegate {
     //    - Takes 300px of scroll to complete (much slower animation)
     //    - Formula: minGap + (scrollProgress * (maxGap - minGap) / scrollDistance)
     final double gap = 16 + (shrinkOffset * (160 - 16) / 300).clamp(0, 144);
-    
+
     // 2. Easing Function:
     //    - Creates non-linear animation for natural feel
     //    - As gap approaches max (160px), movement slows down
     //    - 0.4 is the easing factor (higher = stronger easing)
     //    - Formula: gap * (1 - (gap/maxGap) * easingFactor)
     final double easedGap = gap * (1 - (gap / 160) * 0.4);
-    
+
     return Container(
       decoration: BoxDecoration(
         image: DecorationImage(
