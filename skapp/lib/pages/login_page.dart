@@ -4,6 +4,7 @@ import 'package:skapp/pages/main_page.dart';
 import 'package:skapp/pages/register_page.dart';
 import 'package:skapp/utils/async_action_mixin.dart';
 import 'package:skapp/widgets/animated_text_field.dart';
+import 'package:skapp/widgets/custom_loader.dart';
 
 class LoginPage extends StatefulWidget {
   @override
@@ -138,7 +139,7 @@ class _LoginPageState extends State<LoginPage> with AsyncActionMixin<LoginPage> 
                     ),
                   ),
                   child: isLoading
-                      ? CircularProgressIndicator()
+                      ? CustomLoader(isButtonLoader: true)
                       : Text('Login'),
                 ),
                 SizedBox(height: 16),

@@ -30,7 +30,7 @@ class AnimatedTextField extends StatelessWidget {
     final hasText = controller.text.isNotEmpty;
 
     return AnimatedContainer(
-      duration: Duration(milliseconds: 300),
+      duration: Duration(milliseconds: 400),
       curve: Curves.easeOutCubic,
       transform: Matrix4.identity()
         ..scale(isFocused ? 1.02 : 1.0),

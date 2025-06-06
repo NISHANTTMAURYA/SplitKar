@@ -43,6 +43,7 @@ dependencies:
   rive: ^0.13.20
   stylish_bottom_bar: ^1.1.1
   provider: ^6.1.5
+  lottie: ^3.3.1
 
 dev_dependencies:
   flutter_test:
@@ -69,6 +70,9 @@ flutter:
     - assets/images/logo.png
     - assets/images/freinds_scroll.jpg
     - assets/images/google_logo.png
+    - assets/loaders/loader.json
+    - assets/loaders/loader1.json
+    - assets/loaders/loader2.json
    
 
 

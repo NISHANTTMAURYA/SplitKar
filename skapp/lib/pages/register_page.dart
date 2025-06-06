@@ -3,6 +3,7 @@ import 'package:skapp/services/auth_service.dart';
 import 'package:skapp/pages/main_page.dart';
 import 'package:skapp/utils/async_action_mixin.dart';
 import 'package:skapp/widgets/animated_text_field.dart';
+import 'package:skapp/widgets/custom_loader.dart';
 
 class RegisterPage extends StatefulWidget {
   @override
@@ -195,7 +196,7 @@ class _RegisterPageState extends State<RegisterPage> with AsyncActionMixin<Regis
                     ),
                   ),
                   child: isLoading
-                      ? CircularProgressIndicator()
+                      ? CustomLoader(isButtonLoader: true)
                       : Text('Register'),
                 ),
                 SizedBox(height: 16),
