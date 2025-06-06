@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:skapp/services/auth_service.dart';
 import 'package:skapp/pages/main_page.dart';
+import 'package:skapp/utils/async_action_mixin.dart';
 
 class RegisterPage extends StatefulWidget {
   @override
   _RegisterPageState createState() => _RegisterPageState();
 }
 
-class _RegisterPageState extends State<RegisterPage> {
+class _RegisterPageState extends State<RegisterPage> with AsyncActionMixin<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
   final _authService = AuthService();
   final _usernameController = TextEditingController();
@@ -16,7 +17,6 @@ class _RegisterPageState extends State<RegisterPage> {
   final _confirmPasswordController = TextEditingController();
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
-  bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
 
@@ -34,38 +34,19 @@ class _RegisterPageState extends State<RegisterPage> {
   Future<void> _handleRegister() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _isLoading = true);
-
-    try {
-      final result = await _authService.register(
+    await handleAsyncAction(
+      () => _authService.register(
         username: _usernameController.text.trim(),
         email: _emailController.text.trim(),
         password: _passwordController.text,
         password2: _confirmPasswordController.text,
         firstName: _firstNameController.text.trim(),
         lastName: _lastNameController.text.trim(),
-      );
-
-      if (result != null && mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => MainPage()),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.toString()),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
+      ),
+      context,
+      navigateOnSuccess: true,
+      successPage: MainPage(),
+    );
   }
 
   @override
@@ -200,11 +181,11 @@ class _RegisterPageState extends State<RegisterPage> {
                 ),
                 SizedBox(height: 24),
                 ElevatedButton(
-                  onPressed: _isLoading ? null : _handleRegister,
+                  onPressed: isLoading ? null : _handleRegister,
                   style: ElevatedButton.styleFrom(
                     padding: EdgeInsets.symmetric(vertical: 16),
                   ),
-                  child: _isLoading
+                  child: isLoading
                       ? CircularProgressIndicator()
                       : Text('Register'),
                 ),

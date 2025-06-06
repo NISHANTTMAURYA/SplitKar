@@ -15,6 +15,21 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework.permissions import AllowAny
 from rest_framework.exceptions import AuthenticationFailed
 
+# Helper function to generate tokens and user data response
+def get_tokens_for_user(user):
+    refresh = RefreshToken.for_user(user)
+    return {
+        'refresh': str(refresh),
+        'access': str(refresh.access_token),
+        'user': {
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+        }
+    }
+
 # Create your views here.
 
 class GoogleLoginAPIView(APIView):
@@ -65,19 +80,9 @@ class GoogleLoginAPIView(APIView):
                     last_name=last_name
                 )
             
-            # Generate JWT
-            refresh = RefreshToken.for_user(user)
-            return Response({
-                'refresh': str(refresh),
-                'access': str(refresh.access_token),
-                'user': {
-                    'id': user.id,
-                    'username': user.username,
-                    'email': user.email,
-                    'first_name': user.first_name,
-                    'last_name': user.last_name,
-                }
-            })
+            # Generate JWT and return response
+            return Response(get_tokens_for_user(user))
+
         except ValueError as e:
             return Response(
                 {'error': _('Invalid id_token')},
@@ -97,18 +102,8 @@ class UserRegistrationAPIView(APIView):
             serializer = UserRegistrationSerializer(data=request.data)
             if serializer.is_valid():
                 user = serializer.save()
-                refresh = RefreshToken.for_user(user)
-                return Response({
-                    'refresh': str(refresh),
-                    'access': str(refresh.access_token),
-                    'user': {
-                        'id': user.id,
-                        'username': user.username,
-                        'email': user.email,
-                        'first_name': user.first_name,
-                        'last_name': user.last_name,
-                    }
-                }, status=status.HTTP_201_CREATED)
+                # Generate JWT and return response
+                return Response(get_tokens_for_user(user), status=status.HTTP_201_CREATED)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         except ValidationError as e:
             return Response(
@@ -142,18 +137,8 @@ class UserLoginAPIView(APIView):
                     user = authenticate(username=user.username, password=password)
                     
                     if user:
-                        refresh = RefreshToken.for_user(user)
-                        return Response({
-                            'refresh': str(refresh),
-                            'access': str(refresh.access_token),
-                            'user': {
-                                'id': user.id,
-                                'username': user.username,
-                                'email': user.email,
-                                'first_name': user.first_name,
-                                'last_name': user.last_name,
-                            }
-                        })
+                        # Generate JWT and return response
+                        return Response(get_tokens_for_user(user))
                     
                     # If user is found but authenticate fails (wrong password for usable password account)
                     raise AuthenticationFailed(_('Invalid credentials'))
