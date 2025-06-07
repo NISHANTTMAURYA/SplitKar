@@ -6,11 +6,14 @@ import 'package:skapp/widgets/animated_text_field.dart';
 import 'package:skapp/widgets/custom_loader.dart';
 
 class RegisterPage extends StatefulWidget {
+  const RegisterPage({super.key});
+
   @override
   _RegisterPageState createState() => _RegisterPageState();
 }
 
-class _RegisterPageState extends State<RegisterPage> with AsyncActionMixin<RegisterPage> {
+class _RegisterPageState extends State<RegisterPage>
+    with AsyncActionMixin<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
   final _authService = AuthService();
   final _usernameController = TextEditingController();
@@ -83,10 +86,7 @@ class _RegisterPageState extends State<RegisterPage> with AsyncActionMixin<Regis
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Register'),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: Text('Register'), centerTitle: true),
       body: Center(
         child: SingleChildScrollView(
           padding: EdgeInsets.all(16.0),
@@ -128,7 +128,9 @@ class _RegisterPageState extends State<RegisterPage> with AsyncActionMixin<Regis
                     if (value == null || value.isEmpty) {
                       return 'Please enter an email';
                     }
-                    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                    if (!RegExp(
+                      r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                    ).hasMatch(value)) {
                       return 'Please enter a valid email';
                     }
                     return null;
@@ -156,7 +158,8 @@ class _RegisterPageState extends State<RegisterPage> with AsyncActionMixin<Regis
                   focusNode: _passwordFocus,
                   isPassword: true,
                   obscureText: _obscurePassword,
-                  onTogglePassword: () => setState(() => _obscurePassword = !_obscurePassword),
+                  onTogglePassword: () =>
+                      setState(() => _obscurePassword = !_obscurePassword),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter a password';
@@ -175,7 +178,9 @@ class _RegisterPageState extends State<RegisterPage> with AsyncActionMixin<Regis
                   focusNode: _confirmPasswordFocus,
                   isPassword: true,
                   obscureText: _obscureConfirmPassword,
-                  onTogglePassword: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+                  onTogglePassword: () => setState(
+                    () => _obscureConfirmPassword = !_obscureConfirmPassword,
+                  ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please confirm your password';
@@ -211,4 +216,4 @@ class _RegisterPageState extends State<RegisterPage> with AsyncActionMixin<Regis
       ),
     );
   }
-} 
+}

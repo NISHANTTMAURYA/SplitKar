@@ -39,6 +39,9 @@ class GoogleLoginAPIView(APIView):
 
     def post(self, request):
         token = request.data.get('id_token')
+        print('Received id_token:', token[:40] + '...' if token else None)
+        google_client_id = os.environ.get('GOOGLE_CLIENT_ID') or '7120580451-cmn9dcuv9eo0la2path3u1uppeegh37f.apps.googleusercontent.com'
+        print('GOOGLE_CLIENT_ID used for verification:', google_client_id)
         if not token:
             return Response(
                 {'error': _('No id_token provided')},
@@ -49,9 +52,10 @@ class GoogleLoginAPIView(APIView):
             idinfo = id_token.verify_oauth2_token(
                 token,
                 google_requests.Request(),
-                os.environ.get('GOOGLE_CLIENT_ID') or '7120580451-cmn9dcuv9eo0la2path3u1uppeegh37f.apps.googleusercontent.com'
+                google_client_id
             )
-            
+            print('Token verification succeeded. idinfo:', idinfo)
+            print('Token audience (aud):', idinfo.get('aud'))
             email = idinfo['email']
             first_name = idinfo.get('given_name', '')
             last_name = idinfo.get('family_name', '')
@@ -86,11 +90,13 @@ class GoogleLoginAPIView(APIView):
             return Response(get_tokens_for_user(user))
 
         except ValueError as e:
+            print('Token verification error:', e)
             return Response(
                 {'error': _('Invalid id_token')},
                 status=status.HTTP_400_BAD_REQUEST
             )
         except Exception as e:
+            print('Unexpected error during Google token verification:', e)
             return Response(
                 {'error': str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR

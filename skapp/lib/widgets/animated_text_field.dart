@@ -12,7 +12,7 @@ class AnimatedTextField extends StatelessWidget {
   final bool obscureText;
 
   const AnimatedTextField({
-    Key? key,
+    super.key,
     required this.controller,
     required this.label,
     required this.prefixIcon,
@@ -22,7 +22,7 @@ class AnimatedTextField extends StatelessWidget {
     this.validator,
     this.onTogglePassword,
     this.obscureText = false,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -32,8 +32,7 @@ class AnimatedTextField extends StatelessWidget {
     return AnimatedContainer(
       duration: Duration(milliseconds: 400),
       curve: Curves.easeOutCubic,
-      transform: Matrix4.identity()
-        ..scale(isFocused ? 1.02 : 1.0),
+      transform: Matrix4.identity()..scale(isFocused ? 1.02 : 1.0),
       child: TextFormField(
         controller: controller,
         focusNode: focusNode,
@@ -41,15 +40,10 @@ class AnimatedTextField extends StatelessWidget {
         keyboardType: isEmail ? TextInputType.emailAddress : TextInputType.text,
         decoration: InputDecoration(
           labelText: label,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(
-              color: Colors.grey.shade400,
-              width: 1,
-            ),
+            borderSide: BorderSide(color: Colors.grey.shade400, width: 1),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
@@ -61,10 +55,7 @@ class AnimatedTextField extends StatelessWidget {
           prefixIcon: AnimatedSwitcher(
             duration: Duration(milliseconds: 300),
             transitionBuilder: (Widget child, Animation<double> animation) {
-              return FadeTransition(
-                opacity: animation,
-                child: child,
-              );
+              return FadeTransition(opacity: animation, child: child);
             },
             child: Icon(
               prefixIcon,
@@ -75,17 +66,17 @@ class AnimatedTextField extends StatelessWidget {
           suffixIcon: isPassword
               ? AnimatedSwitcher(
                   duration: Duration(milliseconds: 300),
-                  transitionBuilder: (Widget child, Animation<double> animation) {
-                    return FadeTransition(
-                      opacity: animation,
-                      child: child,
-                    );
-                  },
+                  transitionBuilder:
+                      (Widget child, Animation<double> animation) {
+                        return FadeTransition(opacity: animation, child: child);
+                      },
                   child: IconButton(
                     key: ValueKey<bool>(isFocused),
                     icon: Icon(
                       obscureText ? Icons.visibility : Icons.visibility_off,
-                      color: isFocused ? Theme.of(context).primaryColor : Colors.grey,
+                      color: isFocused
+                          ? Theme.of(context).primaryColor
+                          : Colors.grey,
                     ),
                     onPressed: onTogglePassword,
                   ),
@@ -104,4 +95,4 @@ class AnimatedTextField extends StatelessWidget {
       ),
     );
   }
-} 
+}
