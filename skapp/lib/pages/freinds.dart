@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class FreindsPage extends StatelessWidget {
+class FreindsPage extends StatefulWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
   final PageController? pageController;
   final Function(bool) onFriendsListStateChanged;
@@ -13,57 +13,9 @@ class FreindsPage extends StatelessWidget {
     required this.onFriendsListStateChanged,
   });
 
-  // Example dynamic friends list (replace with your data source)
-  final List<String> friends = const [
-    "chaitu",
-    "nishant",
-    "arjun",
-    "meera",
-    "sana",
-    "rahul",
-    "zoya",
-    "amit",
-    "krish",
-    "riya",
-    "neha",
-    "kabir",
-    "tanvi",
-    "manav",
-    "isha",
-    "rohan",
-  ];
-
   @override
-  Widget build(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-    final double height = MediaQuery.of(context).size.height;
-    final bool hasFriends = friends.isNotEmpty;
+  State<FreindsPage> createState() => _FreindsPageState();
 
-    // Add this line to print the color
-    print(
-      'Inverse Primary Color: ${Theme.of(context).colorScheme.inversePrimary}',
-    );
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      onFriendsListStateChanged(hasFriends);
-    });
-
-    return Scaffold(
-      body: hasFriends
-          ? _FriendsListView(
-              friends: friends,
-              scaffoldKey: scaffoldKey,
-              pageController: pageController,
-            )
-          : _NoFriendsView(
-              onAddFriends: () {
-                /* TODO: Add friends logic */
-              },
-            ),
-    );
-  }
-
-  // Shared widget for the friends image
   static Widget friendsImage(BuildContext context, {double? opacity}) {
     final double height = MediaQuery.of(context).size.height;
     final double width = MediaQuery.of(context).size.width;
@@ -146,6 +98,67 @@ class FreindsPage extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _FreindsPageState extends State<FreindsPage> {
+  // Example dynamic friends list (replace with your data source)
+  final List<String> friends = const [
+    "chaitu",
+    "nishant",
+    "arjun",
+    "meera",
+    "sana",
+    "rahul",
+    "zoya",
+    "amit",
+    "krish",
+    "riya",
+    "neha",
+    "kabir",
+    "tanvi",
+    "manav",
+    "isha",
+    "rohan",
+  ];
+
+  bool _isImagePreloaded = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_isImagePreloaded) {
+      precacheImage(
+        const AssetImage('assets/images/freinds_scroll.jpg'),
+        context,
+      );
+      _isImagePreloaded = true;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    final double height = MediaQuery.of(context).size.height;
+    final bool hasFriends = friends.isNotEmpty;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      widget.onFriendsListStateChanged(hasFriends);
+    });
+
+    return Scaffold(
+      body: hasFriends
+          ? _FriendsListView(
+              friends: friends,
+              scaffoldKey: widget.scaffoldKey,
+              pageController: widget.pageController,
+            )
+          : _NoFriendsView(
+              onAddFriends: () {
+                /* TODO: Add friends logic */
+              },
+            ),
     );
   }
 }

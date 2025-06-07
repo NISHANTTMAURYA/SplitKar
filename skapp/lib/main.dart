@@ -1,8 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:skapp/components/auth_wrapper.dart';
 import 'package:skapp/pages/settings_profile/settings_page.dart';
+import 'package:logging/logging.dart';
 
 void main() {
+  
+  // Initialize logging
+  Logger.root.level = Level.ALL;
+  Logger.root.onRecord.listen((record) {
+    print('${record.level.name}: ${record.time}: ${record.message}');
+  });
+  
   runApp(const MyApp());
 }
 

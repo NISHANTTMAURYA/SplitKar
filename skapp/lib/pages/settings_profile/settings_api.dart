@@ -6,33 +6,33 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:skapp/config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:logging/logging.dart';
 
 class ProfileApi {
+  static final _logger = Logger('ProfileApi');
   static const String _photoUrlKey = 'cached_photo_url';
   static const String _emailKey = 'cached_email';
   static const String _nameKey = 'cached_name';
-  static const int _minLoadingTime = 1; // seconds
+  static const int _minLoadingTime = 500; // milliseconds
 
   final AuthService _authService;
   final GoogleSignIn _googleSignIn;
   late SharedPreferences _prefs;
-  
+
   // Profile data
   GoogleSignInAccount? _account;
   Map<String, dynamic>? _profileDetails;
   bool _isLoading = true;
   String? _error;
-  
+
   // Cached profile data
   String? _cachedPhotoUrl;
   String? _cachedEmail;
   String? _cachedName;
 
-  ProfileApi({
-    AuthService? authService,
-    GoogleSignIn? googleSignIn,
-  }) : _authService = authService ?? AuthService(),
-       _googleSignIn = googleSignIn ?? GoogleSignIn();
+  ProfileApi({AuthService? authService, GoogleSignIn? googleSignIn})
+    : _authService = authService ?? AuthService(),
+      _googleSignIn = googleSignIn ?? GoogleSignIn();
 
   // Getters
   GoogleSignInAccount? get account => _account;
@@ -47,8 +47,20 @@ class ProfileApi {
     if (photoUrl == null) return '';
     // Remove any existing size parameters and get base URL
     final baseUrl = photoUrl.split('=')[0];
-    // Add size parameter for high resolution (500x500)
-    return '$baseUrl=s500';
+    // Add size parameter for highest resolution (s999)
+    return '$baseUrl=s999';
+  }
+
+  // Get original image URL without any size restrictions
+  String getOriginalPhotoUrl() {
+    if (_account?.photoUrl == null) return '';
+    return _account!.photoUrl!;
+  }
+
+  // Get high resolution image URL
+  String getHighResPhotoUrl() {
+    if (_account?.photoUrl == null) return '';
+    return _getHighResPhotoUrl(_account!.photoUrl);
   }
 
   Future<void> _initPrefs() async {
@@ -59,7 +71,7 @@ class ProfileApi {
       _cachedEmail = _prefs.getString(_emailKey);
       _cachedName = _prefs.getString(_nameKey);
     } catch (e) {
-      print('Error initializing preferences: $e');
+      _logger.severe('Error initializing preferences: $e');
       // Continue without cached data
     }
   }
@@ -76,7 +88,7 @@ class ProfileApi {
         await _prefs.setString(_nameKey, _cachedName!);
       }
     } catch (e) {
-      print('Error caching profile data: $e');
+      _logger.severe('Error caching profile data: $e');
       // Continue without caching
     }
   }
@@ -91,7 +103,7 @@ class ProfileApi {
         await _cacheProfileData();
       }
     } catch (e) {
-      print('Error loading Google account: $e');
+      _logger.severe('Error loading Google account: $e');
       _error = 'Failed to load Google account';
     }
   }
@@ -103,13 +115,17 @@ class ProfileApi {
       if (newToken != null) {
         return true;
       }
-      
+
       // If refresh fails, logout and redirect to login
-      await logout(context);
+      if (context.mounted) {
+        await logout(context);
+      }
       return false;
     } catch (e) {
-      print('Error refreshing token: $e');
-      await logout(context);
+      _logger.severe('Error refreshing token: $e');
+      if (context.mounted) {
+        await logout(context);
+      }
       return false;
     }
   }
@@ -118,24 +134,24 @@ class ProfileApi {
     try {
       final response = await http.get(
         Uri.parse('${AppConfig.baseUrl}/profile/'),
-        headers: {
-          'Authorization': 'Bearer $token',
-        },
+        headers: {'Authorization': 'Bearer $token'},
       );
 
       if (response.statusCode == 200) {
         _profileDetails = jsonDecode(response.body);
-        print('Profile Details: $_profileDetails');
+        _logger.info('Profile Details loaded successfully');
       } else if (response.statusCode == 401) {
         // Token expired or invalid
         final responseBody = jsonDecode(response.body);
         if (responseBody['code'] == 'token_not_valid') {
-          final success = await _handleTokenExpiration(context);
-          if (success) {
-            // Retry with new token
-            final newToken = await _authService.getToken();
-            if (newToken != null) {
-              await _loadProfileDetails(newToken, context);
+          if (context.mounted) {
+            final success = await _handleTokenExpiration(context);
+            if (success) {
+              // Retry with new token
+              final newToken = await _authService.getToken();
+              if (newToken != null && context.mounted) {
+                await _loadProfileDetails(newToken, context);
+              }
             }
           }
         } else {
@@ -143,10 +159,10 @@ class ProfileApi {
         }
       } else {
         _error = 'Failed to load profile. Status code: ${response.statusCode}';
-        print('Response body: ${response.body}');
+        _logger.warning('Failed to load profile. Response body: ${response.body}');
       }
     } catch (e) {
-      print('Error loading profile details: $e');
+      _logger.severe('Error loading profile details: $e');
       _error = 'Failed to load profile details';
     }
   }
@@ -156,30 +172,28 @@ class ProfileApi {
     _error = null;
 
     try {
-      // Initialize shared preferences
       await _initPrefs();
-      
-      // Start both the delay and data loading in parallel
+
       await Future.wait([
         // Minimum loading time
-        Future.delayed(Duration(seconds: _minLoadingTime)),
+        Future.delayed(Duration(milliseconds: _minLoadingTime)),
         // Actual data loading
         Future(() async {
-          // First load Google account data
           await _loadGoogleAccount();
-          
-          // Then load profile details from API
+
           final token = await _authService.getToken();
           if (token == null) {
             _error = 'No authentication token available';
             return;
           }
 
-          await _loadProfileDetails(token, context);
+          if (context.mounted) {
+            await _loadProfileDetails(token, context);
+          }
         }),
       ]);
     } catch (e) {
-      print('Error in loadAllProfileData: $e');
+      _logger.severe('Error in loadAllProfileData: $e');
       _error = 'Error loading profile data';
     } finally {
       _isLoading = false;
@@ -193,7 +207,7 @@ class ProfileApi {
       await _prefs.remove(_photoUrlKey);
       await _prefs.remove(_emailKey);
       await _prefs.remove(_nameKey);
-      
+
       if (context.mounted) {
         Navigator.pushAndRemoveUntil(
           context,
@@ -202,7 +216,7 @@ class ProfileApi {
         );
       }
     } catch (e) {
-      print('Error during logout: $e');
+      _logger.severe('Error during logout: $e');
       _error = 'Error during logout';
     }
   }

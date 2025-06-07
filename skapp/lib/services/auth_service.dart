@@ -4,8 +4,10 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/services.dart';
 import 'package:skapp/config.dart';
+import 'package:logging/logging.dart';
 
 class AuthService {
+  static final _logger = Logger('AuthService');
   static const String _tokenKey = 'auth_token';
   static const String _refreshTokenKey = 'refresh_token';
 
@@ -47,7 +49,7 @@ class AuthService {
         return data; // Handle plain string errors if any
       }
     } catch (e) {
-      print('Error parsing backend error response: $e');
+      _logger.severe('Error parsing backend error response: $e');
     }
     return 'An unexpected error occurred';
   }
@@ -73,7 +75,7 @@ class AuthService {
         throw errorMessage;
       }
     } catch (e) {
-      print('Error during login: $e');
+      _logger.severe('Error during login: $e');
       rethrow; // Rethrow to be caught by the UI layer
     }
   }
@@ -110,7 +112,7 @@ class AuthService {
         throw errorMessage; // Throw the specific error message
       }
     } catch (e) {
-      print('Error during registration: $e');
+      _logger.severe('Error during registration: $e');
       rethrow; // Rethrow to be caught by the UI layer
     }
   }
@@ -118,56 +120,56 @@ class AuthService {
   // Google Sign In
   Future<Map<String, dynamic>?> signInWithGoogle() async {
     try {
-      print('Starting Google Sign-In');
+      _logger.info('Starting Google Sign-In');
       await _googleSignIn.signOut();
       final GoogleSignInAccount? account = await _googleSignIn.signIn();
-      print('Account: $account');
+      _logger.info('Account: $account');
       if (account == null) {
-        print('Google Sign In was canceled by user');
+        _logger.warning('Google Sign In was canceled by user');
         return null;
       }
 
       final GoogleSignInAuthentication googleAuth = await account.authentication;
-      print('Google Auth: $googleAuth');
+      _logger.info('Google Auth: $googleAuth');
       final String? idToken = googleAuth.idToken;
-      print('ID Token length: ${idToken?.length}');
+      _logger.info('ID Token length: ${idToken?.length}');
       
       if (idToken == null) {
-        print('Failed to get ID token from Google Sign In');
+        _logger.severe('Failed to get ID token from Google Sign In');
         return null;
       }
 
-      print('Making API call to: $_baseUrl/auth/google/');
+      _logger.info('Making API call to: $_baseUrl/auth/google/');
       final response = await http.post(
         Uri.parse('$_baseUrl/auth/google/'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'id_token': idToken}),
       );
-      print('HTTP Response Status: ${response.statusCode}');
-      print('HTTP Response Body: ${response.body}');
+      _logger.info('HTTP Response Status: ${response.statusCode}');
+      _logger.info('HTTP Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        print('Successfully decoded response data');
+        _logger.info('Successfully decoded response data');
         await _saveTokens(data['access'], data['refresh']);
         return data;
       } else {
         // Google sign-in specific error handling might differ slightly
         final errorMessage = _parseBackendError(response);
-        print('Google Sign-In failed: $errorMessage');
+        _logger.severe('Google Sign-In failed: $errorMessage');
         // Depending on the specific error format, you might return null
         // or throw a specific exception. For now, returning null as before
         // for Google Sign-In API errors.
         return null; // Or throw errorMessage; if you want consistent error handling
       }
     } on PlatformException catch (e) {
-      print('Platform Exception during Google sign in: ${e.code} - ${e.message}');
+      _logger.severe('Platform Exception during Google sign in: ${e.code} - ${e.message}');
       if (e.code == 'sign_in_failed') {
-        print('Make sure you have configured the SHA-1 fingerprint in Google Cloud Console');
+        _logger.warning('Make sure you have configured the SHA-1 fingerprint in Google Cloud Console');
       }
       rethrow;
     } catch (error) {
-      print('Error during Google sign in: $error');
+      _logger.severe('Error during Google sign in: $error');
       rethrow;
     }
   }
@@ -201,7 +203,7 @@ class AuthService {
       );
       return response.statusCode == 200;
     } catch (e) {
-      print('Error validating token: $e');
+      _logger.severe('Error validating token: $e');
       return false;
     }
   }
@@ -212,7 +214,7 @@ class AuthService {
       await _secureStorage.delete(key: _tokenKey);
       await _secureStorage.delete(key: _refreshTokenKey);
     } catch (error) {
-      print('Error during sign out: $error');
+      _logger.severe('Error during sign out: $error');
     }
   }
 
@@ -220,7 +222,7 @@ class AuthService {
     try {
       final refreshToken = await getRefreshToken();
       if (refreshToken == null) {
-        print('No refresh token available');
+        _logger.warning('No refresh token available');
         return null;
       }
 
@@ -237,12 +239,12 @@ class AuthService {
         await _secureStorage.write(key: _tokenKey, value: newAccessToken);
         return newAccessToken;
       } else {
-        print('Token refresh failed: ${response.statusCode}');
-        print('Response body: ${response.body}');
+        _logger.severe('Token refresh failed: ${response.statusCode}');
+        _logger.severe('Response body: ${response.body}');
         return null;
       }
     } catch (e) {
-      print('Error refreshing token: $e');
+      _logger.severe('Error refreshing token: $e');
       return null;
     }
   }

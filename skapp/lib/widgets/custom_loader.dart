@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
+import 'package:logging/logging.dart';
 
 class CustomLoader extends StatelessWidget {
+  static final _logger = Logger('CustomLoader');
   final double size;
   final bool isButtonLoader;
 
@@ -23,7 +25,7 @@ class CustomLoader extends StatelessWidget {
       future: _loadAnimation(context),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
-          print('Error loading animation: ${snapshot.error}');
+          _logger.severe('Error loading animation: ${snapshot.error}');
           return Center(child: CircularProgressIndicator());
         }
 
@@ -38,7 +40,7 @@ class CustomLoader extends StatelessWidget {
             height: responsiveSize,
             fit: BoxFit.contain,
             errorBuilder: (context, error, stackTrace) {
-              print('Lottie error: $error');
+              _logger.severe('Lottie error: $error');
               return Center(child: CircularProgressIndicator());
             },
           ),
@@ -56,7 +58,7 @@ class CustomLoader extends StatelessWidget {
       await DefaultAssetBundle.of(context).load(path);
       return path;
     } catch (e) {
-      print('Error loading animation asset: $e');
+      _logger.severe('Error loading animation asset: $e');
       rethrow;
     }
   }
