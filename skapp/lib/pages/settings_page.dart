@@ -103,13 +103,10 @@ class _SettingsPageState extends State<SettingsPage> {
           children: [
             if (_account != null) ...[
               CircleAvatar(
-                backgroundImage: _account!.photoUrl != null ? NetworkImage(_account!.photoUrl!) : null,
-                radius: 50,
-                child: _account!.photoUrl == null ? Icon(Icons.person, size: 32) : null,
                 backgroundImage: _account!.photoUrl != null
                     ? NetworkImage(_account!.photoUrl!)
                     : null,
-                radius: 32,
+                radius: 50,
                 child: _account!.photoUrl == null
                     ? Icon(Icons.person, size: 32)
                     : null,
