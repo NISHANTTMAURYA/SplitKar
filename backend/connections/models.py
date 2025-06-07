@@ -32,18 +32,28 @@ class Profile(TimeStampedModel):
     def __str__(self): 
         return f"{self.user.username} Profile" 
      
+    def generate_unique_code(self):
+        """Generate a unique profile code using username and random characters"""
+        # Get first 6 chars of username, or full username if shorter
+        # Remove any special characters and spaces from username
+        clean_username = ''.join(c for c in self.user.username if c.isalnum())
+        username_prefix = clean_username[:7].upper()
+        
+        # Generate 3 random chars to ensure uniqueness
+        random_suffix = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
+        code = f"{username_prefix}@{random_suffix}"
+        
+        # If code already exists, try again with different random suffix
+        while Profile.objects.filter(profile_code=code).exists():
+            random_suffix = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
+            code = f"{username_prefix}@{random_suffix}"
+        
+        return code
+
     def save(self, *args, **kwargs): 
         if not self.profile_code: 
             self.profile_code = self.generate_unique_code() 
         super().save(*args, **kwargs) 
-     
-    @staticmethod 
-    def generate_unique_code(): 
-        """Generate a unique profile code""" 
-        while True: 
-            code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8)) 
-            if not Profile.objects.filter(profile_code=code).exists(): 
-                return code 
  
 class FriendRequestManager(models.Manager): 
     def send_request(self, from_user, to_user): 
