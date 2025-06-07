@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from .models import Profile, FriendRequest
-from .serializers import ProfileLookupSerializer, FriendRequestByCodeSerializer
+from .serializers import ProfileLookupSerializer, FriendRequestByCodeSerializer, FriendRequestAcceptSerializer, FriendRequestDeclineSerializer
 
 # Create your views here.
 
@@ -41,6 +41,52 @@ def send_friend_request(request):
                 'status': friend_request.status,
                 'to_user': friend_request.to_user.username
             }, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def accept_friend_request(request):
+    """
+    Accept a pending friend request.
+    """
+    serializer = FriendRequestAcceptSerializer(data=request.data, context={'request': request})
+    if serializer.is_valid():
+        try:
+            friend_request = serializer.save()
+            return Response({
+                'message': 'Friend request accepted successfully',
+                'status': friend_request.status,
+                'from_user': friend_request.from_user.username,
+                'to_user': friend_request.to_user.username
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def decline_friend_request(request):
+    """
+    Decline a pending friend request.
+    """
+    serializer = FriendRequestDeclineSerializer(data=request.data, context={'request': request})
+    if serializer.is_valid():
+        try:
+            friend_request = serializer.save()
+            return Response({
+                'message': 'Friend request declined successfully',
+                'status': friend_request.status,
+                'from_user': friend_request.from_user.username,
+                'to_user': friend_request.to_user.username
+            }, status=status.HTTP_200_OK)
         except Exception as e:
             return Response(
                 {'error': str(e)},

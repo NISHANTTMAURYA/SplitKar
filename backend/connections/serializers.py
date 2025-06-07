@@ -32,4 +32,58 @@ class ProfileLookupSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Profile
-        fields = ['username', 'profile_code'] 
+        fields = ['username', 'profile_code']
+
+class FriendRequestAcceptSerializer(serializers.Serializer):
+    request_id = serializers.IntegerField(required=True)
+
+    def validate_request_id(self, value):
+        try:
+            friend_request = FriendRequest.objects.get(id=value)
+        except FriendRequest.DoesNotExist:
+            raise serializers.ValidationError(_("Friend request not found."))
+
+        # Ensure the request is addressed to the current user
+        if friend_request.to_user != self.context['request'].user:
+            raise serializers.ValidationError(_("You can only accept requests sent to you."))
+
+        # Ensure the request is pending
+        if friend_request.status != 'pending':
+            raise serializers.ValidationError(_("This friend request is not pending."))
+
+        self.instance = friend_request # Store the instance for use in save()
+        return value
+
+    def save(self, **kwargs):
+        if not hasattr(self, 'instance'):
+            raise serializers.ValidationError("Validator did not set instance.")
+        friend_request = self.instance
+        friend_request.accept()
+        return friend_request
+
+class FriendRequestDeclineSerializer(serializers.Serializer):
+    request_id = serializers.IntegerField(required=True)
+
+    def validate_request_id(self, value):
+        try:
+            friend_request = FriendRequest.objects.get(id=value)
+        except FriendRequest.DoesNotExist:
+            raise serializers.ValidationError(_("Friend request not found."))
+
+        # Ensure the request is addressed to the current user
+        if friend_request.to_user != self.context['request'].user:
+            raise serializers.ValidationError(_("You can only decline requests sent to you."))
+
+        # Ensure the request is pending
+        if friend_request.status != 'pending':
+            raise serializers.ValidationError(_("This friend request is not pending."))
+
+        self.instance = friend_request # Store the instance for use in save()
+        return value
+
+    def save(self, **kwargs):
+        if not hasattr(self, 'instance'):
+            raise serializers.ValidationError("Validator did not set instance.")
+        friend_request = self.instance
+        friend_request.decline()
+        return friend_request 
