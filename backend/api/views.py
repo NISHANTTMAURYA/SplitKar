@@ -7,13 +7,15 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 import os
-from .serializers import UserRegistrationSerializer, UserLoginSerializer
+from .serializers import UserRegistrationSerializer, UserLoginSerializer,UserSerializer
 from django.contrib.auth import authenticate
 from django.db.models import Q
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.decorators import permission_classes, api_view
 from rest_framework.exceptions import AuthenticationFailed
+
 
 # Helper function to generate tokens and user data response
 def get_tokens_for_user(user):
@@ -158,3 +160,11 @@ class UserLoginAPIView(APIView):
                 {'error': str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+
+@permission_classes([IsAuthenticated])
+@api_view(['GET'])
+def ProfileDetailsAPIView(request):
+    user = request.user
+    serializer = UserSerializer(user)
+    return Response(serializer.data)

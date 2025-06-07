@@ -5,6 +5,9 @@ import 'package:skapp/pages/main_page.dart';
 import 'package:skapp/services/auth_service.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:skapp/pages/login_page.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:skapp/config.dart';
 
 class SettingsPage extends StatefulWidget {
   @override
@@ -15,7 +18,7 @@ class _SettingsPageState extends State<SettingsPage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final AuthService _authService = AuthService();
   GoogleSignInAccount? _account;
-
+  Map<String, dynamic>? _profileDetails;
   // Use the same labels and icons as in main_page.dart
   final List<String> labels = ['Groups', 'Friends', 'Activity'];
   final List<IconData> icons = [Icons.group, Icons.person, Icons.local_activity];
@@ -24,6 +27,7 @@ class _SettingsPageState extends State<SettingsPage> {
   void initState() {
     super.initState();
     _loadAccount();
+    _loadProfileDetails();
   }
 
   Future<void> _loadAccount() async {
@@ -41,6 +45,30 @@ class _SettingsPageState extends State<SettingsPage> {
         MaterialPageRoute(builder: (context) => LoginPage()),
         (route) => false,
       );
+    }
+  }
+  Future <void> _loadProfileDetails() async{
+    final token = await _authService.getToken();
+    if (token == null) {
+      print('No token available');
+      return;
+    }
+    
+    final response = await http.get(
+      Uri.parse('${AppConfig.baseUrl}/profile/'),
+      headers: {
+        'Authorization': 'Bearer $token',
+      },
+    );
+    
+    if(response.statusCode == 200){
+      setState(() {
+        _profileDetails = jsonDecode(response.body);
+        print('Profile Details: $_profileDetails');
+      });
+    } else {
+      print('Failed to load profile. Status code: ${response.statusCode}');
+      print('Response body: ${response.body}');
     }
   }
 
@@ -70,7 +98,7 @@ class _SettingsPageState extends State<SettingsPage> {
             if (_account != null) ...[
               CircleAvatar(
                 backgroundImage: _account!.photoUrl != null ? NetworkImage(_account!.photoUrl!) : null,
-                radius: 32,
+                radius: 50,
                 child: _account!.photoUrl == null ? Icon(Icons.person, size: 32) : null,
               ),
               SizedBox(height: 12),
@@ -78,11 +106,16 @@ class _SettingsPageState extends State<SettingsPage> {
               Text(_account!.email, style: TextStyle(fontSize: 16, color: Colors.grey)),
               SizedBox(height: 24),
             ],
+            if(_profileDetails != null) ...[
+              Text(_profileDetails!['username'], style: TextStyle(fontSize: 16, color: Colors.grey)),
+              Text(_profileDetails!['first_name'], style: TextStyle(fontSize: 16, color: Colors.grey, fontWeight: FontWeight.bold)),
+              Text(_profileDetails!['last_name'], style: TextStyle(fontSize: 16, color: Colors.grey, fontWeight: FontWeight.bold)),
+            ],
             ElevatedButton.icon(
               onPressed: _logout,
               icon: Icon(Icons.logout),
               label: Text('Logout'),
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              style: ElevatedButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.inversePrimary),
             ),
           ],
         ),

@@ -53,7 +53,7 @@ class CustomLoader extends StatelessWidget {
 
   Future<String> _loadAnimation(BuildContext context) async {
     try {
-      final path = isButtonLoader ? 'assets/loaders/loader4.json' : 'assets/images/loader3.json';
+      final path = isButtonLoader ? 'assets/images/loader4.json' : 'assets/images/loader3.json';
       // Verify the asset exists
       await DefaultAssetBundle.of(context).load(path);
       return path;

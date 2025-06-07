@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import GoogleLoginAPIView, UserRegistrationAPIView, UserLoginAPIView
+from .views import GoogleLoginAPIView, UserRegistrationAPIView, UserLoginAPIView, ProfileDetailsAPIView
 from rest_framework_simplejwt.views import TokenVerifyView
 
 urlpatterns = [
@@ -7,4 +7,5 @@ urlpatterns = [
     path('auth/register/', UserRegistrationAPIView.as_view(), name='user-register'),
     path('auth/login/', UserLoginAPIView.as_view(), name='user-login'),
     path('auth/validate/', TokenVerifyView.as_view(), name='token-verify'),
+    path('profile/', ProfileDetailsAPIView ,name='profile-details'),
 ] 

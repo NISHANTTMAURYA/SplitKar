@@ -74,3 +74,12 @@ class UserLoginSerializer(serializers.Serializer):
             raise serializers.ValidationError(_("Both username/email and password are required."))
 
         return attrs 
+    
+
+
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'email', 'first_name', 'last_name']
+        
