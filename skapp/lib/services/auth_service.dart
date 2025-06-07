@@ -215,4 +215,35 @@ class AuthService {
       print('Error during sign out: $error');
     }
   }
+
+  Future<String?> refreshToken() async {
+    try {
+      final refreshToken = await getRefreshToken();
+      if (refreshToken == null) {
+        print('No refresh token available');
+        return null;
+      }
+
+      final response = await http.post(
+        Uri.parse('$_baseUrl/auth/token/refresh/'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'refresh': refreshToken}),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final newAccessToken = data['access'];
+        // Save the new access token
+        await _secureStorage.write(key: _tokenKey, value: newAccessToken);
+        return newAccessToken;
+      } else {
+        print('Token refresh failed: ${response.statusCode}');
+        print('Response body: ${response.body}');
+        return null;
+      }
+    } catch (e) {
+      print('Error refreshing token: $e');
+      return null;
+    }
+  }
 } 

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:skapp/components/auth_wrapper.dart';
-import 'package:skapp/pages/settings_page.dart';
+import 'package:skapp/pages/settings_profile/settings_page.dart';
 
 void main() {
   runApp(const MyApp());

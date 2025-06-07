@@ -34,7 +34,7 @@ dependencies:
   image: ^4.1.7
   google_sign_in: ^6.1.6
   http: ^1.1.0
-  shared_preferences: ^2.2.2
+  shared_preferences: ^2.5.3
   flutter_secure_storage: ^9.0.0
 
   # The following adds the Cupertino Icons font to your application.
@@ -44,6 +44,7 @@ dependencies:
   stylish_bottom_bar: ^1.1.1
   provider: ^6.1.5
   lottie: ^3.3.1
+  cached_network_image: ^3.4.1
 
 dev_dependencies:
   flutter_test:
