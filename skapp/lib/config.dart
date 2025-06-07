@@ -12,10 +12,12 @@ class AppConfig {
 
   // Use '10.0.2.2' for Android emulator, your local IP for real device
   static const String emulatorBaseUrl = 'http://10.0.2.2:8000/api';
-  static const String deviceBaseUrl = 'http://192.168.29.203:8000/api'; // <-- replace with your local IP
+  static const String deviceBaseUrl =
+      'http://192.168.29.203:8000/api'; // <-- replace with your local IP
 
   // Change this to switch between emulator and device
-  static const bool useEmulator = false; // Set to true if using emulator, false if using real device
+  static const bool useEmulator =
+      false; // Set to true if using emulator, false if using real device
 
   static String get baseUrl => useEmulator ? emulatorBaseUrl : deviceBaseUrl;
 }

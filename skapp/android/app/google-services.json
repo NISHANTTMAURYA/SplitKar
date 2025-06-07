@@ -1,1 +1,29 @@
-{"installed":{"client_id":"7120580451-4uoi258uojfvoq1v2ach2j2dgk8bf297.apps.googleusercontent.com","project_id":"splitkar","auth_uri":"https://accounts.google.com/o/oauth2/auth","token_uri":"https://oauth2.googleapis.com/token","auth_provider_x509_cert_url":"https://www.googleapis.com/oauth2/v1/certs"}}
+{
+  "project_info": {
+    "project_number": "773929397958",
+    "project_id": "splitkarnew",
+    "storage_bucket": "splitkarnew.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:773929397958:android:193cf1caba2d18edcd31c7",
+        "android_client_info": {
+          "package_name": "com.example.skapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDErr3SDS1rhs9X9j71esBkpzHBdw9kvWY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
