@@ -5,6 +5,7 @@ import 'package:skapp/pages/register_page.dart';
 import 'package:skapp/utils/async_action_mixin.dart';
 import 'package:skapp/widgets/animated_text_field.dart';
 import 'package:skapp/widgets/custom_loader.dart';
+import 'package:flutter/services.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});

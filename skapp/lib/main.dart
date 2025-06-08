@@ -1,3 +1,6 @@
+import 'dart:io';
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:skapp/components/auth_wrapper.dart';
 import 'package:skapp/pages/settings_profile/settings_page.dart';
@@ -47,11 +50,15 @@ class ProfileNotifier extends ChangeNotifier {
 }
 
 void main() {
+  if (Platform.isAndroid || Platform.isIOS) {
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  }
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.deepPurple, // Status bar background color
     statusBarIconBrightness: Brightness.dark, // Status bar icons (light for dark background)
     statusBarBrightness: Brightness.dark, // For iOS
   ));
+  
   // Initialize logging
   Logger.root.level = Level.ALL;
   Logger.root.onRecord.listen((record) {
@@ -70,9 +77,12 @@ void main() {
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
+  
 
   @override
   Widget build(BuildContext context) {
+    final display = ui.PlatformDispatcher.instance.displays.first;
+        print('Display refresh rate: ${display.refreshRate}');
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'SplitKar',
