@@ -288,12 +288,31 @@ class _SettingsOptionsList extends StatelessWidget {
   final VoidCallback onLogout;
   final double screenWidth;
   final double screenHeight;
+  final Logger _logger = Logger('_SettingsOptionsList');
 
-  const _SettingsOptionsList({
+  _SettingsOptionsList({
     required this.onLogout,
     required this.screenWidth,
     required this.screenHeight,
   });
+
+  void _navigateWithAnimation(BuildContext context, Widget page) {
+    Navigator.push(
+      context,
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) => page,
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          const begin = Offset(1.0, 0.0);
+          const end = Offset.zero;
+          const curve = Curves.easeInOut;
+          var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+          var offsetAnimation = animation.drive(tween);
+          return SlideTransition(position: offsetAnimation, child: child);
+        },
+        transitionDuration: Duration(milliseconds: 300),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -309,46 +328,64 @@ class _SettingsOptionsList extends StatelessWidget {
           context,
           Icons.edit,
           'Edit Profile Name',
-          () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => EditProfilePage()),
-          ),
+          () {
+            _logger.info('Navigating to Edit Profile page');
+            _navigateWithAnimation(context, EditProfilePage());
+          },
         ),
         _buildOptionTile(
           context,
           Icons.list_alt,
           'List project',
-          () => print('List project pressed'),
+          () {
+            _logger.info('List project option pressed');
+            // TODO: Implement list project functionality
+          },
         ),
         _buildOptionTile(
           context,
           Icons.lock,
           'Change Password',
-          () => print('Change Password pressed'),
+          () {
+            _logger.info('Change Password option pressed');
+            // TODO: Implement change password functionality
+          },
         ),
         _buildOptionTile(
           context,
           Icons.email,
           'Change Email Address',
-          () => print('Change Email Address pressed'),
+          () {
+            _logger.info('Change Email Address option pressed');
+            // TODO: Implement change email functionality
+          },
         ),
         _buildOptionTile(
           context,
           Icons.settings,
           'Settings',
-          () => print('Settings pressed'),
+          () {
+            _logger.info('Settings option pressed');
+            // TODO: Implement settings functionality
+          },
         ),
         _buildOptionTile(
           context,
           Icons.tune,
           'Preferences',
-          () => print('Preferences pressed'),
+          () {
+            _logger.info('Preferences option pressed');
+            // TODO: Implement preferences functionality
+          },
         ),
         _buildOptionTile(
           context,
           Icons.logout,
           'Logout',
-          onLogout,
+          () {
+            _logger.info('Logout option pressed');
+            onLogout();
+          },
           isLogout: true,
         ),
       ],

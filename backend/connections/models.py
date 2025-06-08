@@ -221,7 +221,7 @@ class Friendship(TimeStampedModel):
  
 class Group(TimeStampedModel): 
     name = models.CharField(max_length=100, db_index=True) 
-    description = models.TextField(blank=True) 
+    description = models.TextField(default='', blank=True) 
     created_by = models.ForeignKey( 
         User,  
         on_delete=models.CASCADE,  

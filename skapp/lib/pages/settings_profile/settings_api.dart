@@ -296,4 +296,121 @@ class ProfileApi {
       profileNotifier.setError('Error reloading profile data');
     }
   }
+
+  /// Updates the user's profile information
+  /// 
+  /// This method sends a PATCH request to update the user's profile information
+  /// including username, first name, and last name. It handles token management,
+  /// error parsing, and response validation.
+  /// 
+  /// Parameters:
+  /// - [username] (required): The new username for the user
+  /// - [firstName] (optional): The user's first name
+  /// - [lastName] (optional): The user's last name
+  /// - [context] (optional): The BuildContext for logout navigation
+  /// 
+  /// Returns:
+  /// - A Map containing the updated profile data if successful
+  /// - Throws an error message if the update fails
+  Future<Map<String, dynamic>?> updateProfile({
+    required String username,
+    String? firstName,
+    String? lastName,
+    BuildContext? context, // Optional context for logout navigation
+  }) async {
+    try {
+      _logger.info('Starting profile update...');
+      _logger.info('Update data:');
+      _logger.info('- Username: $username');
+      _logger.info('- First Name: $firstName');
+      _logger.info('- Last Name: $lastName');
+
+      // Ensure token is valid, try to refresh if needed
+      String? token = await _authService.getToken();
+      if (token == null) {
+        _logger.warning('No authentication token available');
+        throw 'Session expired. Please log in again.';
+      }
+
+      // Try to refresh token if needed
+      final isAuthenticated = await _authService.isAuthenticated();
+      if (!isAuthenticated) {
+        final refreshed = await _authService.refreshToken();
+        if (refreshed == null) {
+          _logger.warning('Token refresh failed. Logging out.');
+          if (context != null) await _authService.signOut();
+          throw 'Session expired. Please log in again.';
+        }
+        token = refreshed;
+      }
+
+      final response = await http.patch(
+        Uri.parse('${AppConfig.baseUrl}/profile/update/'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'username': username,
+          'first_name': firstName,
+          'last_name': lastName,
+        }),
+      ).timeout(Duration(seconds: 10));
+
+      _logger.info('Profile update response status: ${response.statusCode}');
+      _logger.info('Profile update response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        _logger.info('Profile updated successfully');
+        return data;
+      } else {
+        // Check for token error in backend response
+        final errorBody = response.body;
+        if (errorBody.contains('token_not_valid') || errorBody.contains('Token is expired')) {
+          _logger.warning('Backend reports token is invalid or expired. Logging out.');
+          if (context != null) await _authService.signOut();
+          throw 'Session expired. Please log in again.';
+        }
+        final errorMessage = _parseBackendError(response);
+        _logger.warning('Profile update failed: $errorMessage');
+        throw errorMessage;
+      }
+    } catch (e) {
+      _logger.severe('Error updating profile: $e');
+      // Always show a user-friendly message for session issues
+      if (e.toString().contains('token') || e.toString().contains('expired')) {
+        throw 'Session expired. Please log in again.';
+      }
+      rethrow;
+    }
+  }
+
+  /// Helper method to parse backend error responses
+  String _parseBackendError(http.Response response) {
+    try {
+      final data = jsonDecode(response.body);
+      if (data is Map) {
+        if (data.containsKey('error') && data['error'] is String) {
+          return data['error'];
+        } else if (data.isNotEmpty) {
+          String messages = data.entries.map((entry) {
+            String field = entry.key;
+            dynamic errorList = entry.value;
+            if (errorList is List) {
+              return "$field: ${errorList.join(', ')}";
+            } else {
+              return "$field: $errorList";
+            }
+          }).join('; ');
+          return messages.isNotEmpty ? messages : 'Unknown validation error';
+        }
+      } else if (data is String) {
+        return data;
+      }
+    } catch (e) {
+      _logger.severe('Error parsing backend error response: $e');
+    }
+    return 'An unexpected error occurred';
+  }
 }

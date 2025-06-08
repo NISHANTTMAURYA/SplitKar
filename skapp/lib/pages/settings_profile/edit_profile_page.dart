@@ -78,11 +78,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
       _logger.info('- First Name: $currentFirstName -> ${_firstNameController.text}');
       _logger.info('- Last Name: $currentLastName -> ${_lastNameController.text}');
 
-      final authService = AuthService();
-      final response = await authService.updateProfile(
+      final profileApi = ProfileApi();
+      final response = await profileApi.updateProfile(
         username: _usernameController.text,
         firstName: _firstNameController.text,
         lastName: _lastNameController.text,
+        context: context,
       );
 
       _logger.info('Profile update API response: $response');
@@ -114,8 +115,17 @@ class _EditProfilePageState extends State<EditProfilePage> {
       }
     } catch (e) {
       _logger.severe('Error updating profile: $e');
+      String errorMsg = e.toString();
+      if (errorMsg.contains('Session expired')) {
+        setState(() {
+          _errorMessage = 'Session expired. Please log in again.';
+        });
+        // Optionally, navigate to login page or pop to root
+        // Navigator.of(context).pushReplacement(...);
+        return;
+      }
       setState(() {
-        _errorMessage = e.toString();
+        _errorMessage = errorMsg;
       });
       // Revert local state on error
       profile.updateProfile(
