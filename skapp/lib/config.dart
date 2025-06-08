@@ -6,18 +6,28 @@ class AppConfig {
   // 2. Find your computer's local IP address (e.g., 192.168.29.203).
   // 3. Start Django with:
   //      python manage.py runserver 0.0.0.0:8000
-  // 4. Set deviceBaseUrl to 'http://<your-ip>:8000/api'
-  // 5. Make sure CORS is enabled for your device.
+  // 4. Set the correct flags below.
+  // 5. Make sure CORS is enabled for your device and ngrok.
   // ===============================
 
-  // Use '10.0.2.2' for Android emulator, your local IP for real device
+  // URLs for different environments
   static const String emulatorBaseUrl = 'http://10.0.2.2:8000/api';
-  static const String deviceBaseUrl =
-      'http://192.168.29.203:8000/api'; // <-- replace with your local IP
+  static const String deviceBaseUrl = 'http://192.168.29.203:8000/api'; // Replace with your IP
+  static const String ngrokBaseUrl =
+      'https://be89-2405-201-27-518b-f85e-60cd-3a60-1eb9.ngrok-free.app/api';
 
-  // Change this to switch between emulator and device
-  static const bool useEmulator =
-      false; // Set to true if using emulator, false if using real device
+  // Environment flags
+  static const bool useEmulator = false; // Android Emulator
+  static const bool useNgrok = true;     // Ngrok Tunnel
 
-  static String get baseUrl => useEmulator ? emulatorBaseUrl : deviceBaseUrl;
+  // Select the correct base URL based on flags
+  static String get baseUrl {
+    if (useNgrok) {
+      return ngrokBaseUrl;
+    } else if (useEmulator) {
+      return emulatorBaseUrl;
+    } else {
+      return deviceBaseUrl;
+    }
+  }
 }
