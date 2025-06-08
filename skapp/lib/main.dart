@@ -4,6 +4,7 @@ import 'package:skapp/pages/settings_profile/settings_page.dart';
 import 'package:logging/logging.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:skapp/widgets/offline_banner.dart';
 
 class ProfileNotifier extends ChangeNotifier {
   String? name;
@@ -77,8 +78,21 @@ class MyApp extends StatelessWidget {
       title: 'SplitKar',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        useMaterial3: true,
       ),
-      home: AuthWrapper(),
+      home: Scaffold(
+        body: Stack(
+          children: [
+            AuthWrapper(),
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: OfflineBanner(),
+            ),
+          ],
+        ),
+      ),
       routes: {
         '/settings': (context) => SettingsPage(),
       },

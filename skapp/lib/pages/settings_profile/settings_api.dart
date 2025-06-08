@@ -15,6 +15,8 @@ class ProfileApi {
   static const String _emailKey = 'cached_email';
   static const String _nameKey = 'cached_name';
   static const String _usernameKey = 'cached_username';
+  static const String _cacheExpiryKey = 'profile_cache_expiry';
+  static const Duration _cacheValidity = Duration(hours: 24);
   static const int _minLoadingTime = 500; // milliseconds
 
   final AuthService _authService;
@@ -70,28 +72,74 @@ class ProfileApi {
       if (_cachedUsername != null) {
         await _prefs.setString(_usernameKey, _cachedUsername!);
       }
+      // Update cache expiry
+      await _prefs.setString(
+        _cacheExpiryKey,
+        DateTime.now().add(_cacheValidity).toIso8601String(),
+      );
     } catch (e) {
       _logger.severe('Error caching profile data: $e');
     }
   }
 
-  Future<bool> _handleTokenExpiration(BuildContext context) async {
+  Future<bool> _isCacheValid() async {
     try {
-      final newToken = await _authService.refreshToken();
-      if (newToken != null) {
-        return true;
+      final cacheExpiry = await _prefs.getString(_cacheExpiryKey);
+      if (cacheExpiry == null) return false;
+      return DateTime.now().isBefore(DateTime.parse(cacheExpiry));
+    } catch (e) {
+      _logger.warning('Error checking cache validity: $e');
+      return false;
+    }
+  }
+
+  Future<void> loadAllProfileData(BuildContext context) async {
+    final profileNotifier = Provider.of<ProfileNotifier>(context, listen: false);
+    profileNotifier.setLoading(true);
+    profileNotifier.setError(null);
+
+    try {
+      // First load cached data
+      await _initPrefs();
+      
+      // Update UI with cached data immediately if available
+      if (context.mounted && _cachedName != null) {
+        profileNotifier.updateProfile(
+          name: _cachedName,
+          email: _cachedEmail,
+          photoUrl: _cachedPhotoUrl,
+          username: _cachedUsername,
+        );
       }
 
-      if (context.mounted) {
-        await logout(context);
+      // Check if we need to fetch fresh data
+      final shouldFetchFresh = !await _isCacheValid() && await _authService.isOnline();
+
+      if (shouldFetchFresh) {
+        await Future.wait([
+          Future.delayed(Duration(milliseconds: _minLoadingTime)),
+          Future(() async {
+            final token = await _authService.getToken();
+            if (token == null) {
+              if (_cachedName == null) {  // Only show error if we have no cached data
+                profileNotifier.setError('No authentication token available');
+              }
+              return;
+            }
+
+            if (context.mounted) {
+              await _loadProfileDetails(token, context);
+            }
+          }),
+        ]);
       }
-      return false;
     } catch (e) {
-      _logger.severe('Error refreshing token: $e');
-      if (context.mounted) {
-        await logout(context);
+      _logger.severe('Error in loadAllProfileData: $e');
+      if (_cachedName == null) {  // Only show error if we have no cached data
+        profileNotifier.setError('Error loading profile data');
       }
-      return false;
+    } finally {
+      profileNotifier.setLoading(false);
     }
   }
 
@@ -100,7 +148,7 @@ class ProfileApi {
       final response = await http.get(
         Uri.parse('${AppConfig.baseUrl}/profile/'),
         headers: {'Authorization': 'Bearer $token'},
-      );
+      ).timeout(Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         _profileDetails = jsonDecode(response.body);
@@ -111,11 +159,21 @@ class ProfileApi {
         _cachedUsername = _profileDetails?['username'];
         await _cacheProfileData();
         _logger.info('Profile Details loaded successfully');
+
+        if (context.mounted) {
+          final profileNotifier = Provider.of<ProfileNotifier>(context, listen: false);
+          profileNotifier.updateProfile(
+            name: _cachedName,
+            email: _cachedEmail,
+            photoUrl: _cachedPhotoUrl,
+            username: _cachedUsername,
+          );
+        }
       } else if (response.statusCode == 401) {
         final responseBody = jsonDecode(response.body);
         if (responseBody['code'] == 'token_not_valid') {
           if (context.mounted) {
-            final success = await _handleTokenExpiration(context);
+            final success = await _authService.refreshToken() != null;
             if (success) {
               final newToken = await _authService.getToken();
               if (newToken != null && context.mounted) {
@@ -136,58 +194,6 @@ class ProfileApi {
     }
   }
 
-  Future<void> loadAllProfileData(BuildContext context) async {
-    final profileNotifier = Provider.of<ProfileNotifier>(context, listen: false);
-    profileNotifier.setLoading(true);
-    profileNotifier.setError(null);
-
-    try {
-      // Load cached data first
-      await _initPrefs();
-      
-      // Immediately update Provider with cached data
-      if (context.mounted) {
-        profileNotifier.updateProfile(
-          name: _cachedName,
-          email: _cachedEmail,
-          photoUrl: _cachedPhotoUrl,
-          username: _cachedUsername,
-        );
-      }
-
-      // Then fetch fresh data
-      await Future.wait([
-        Future.delayed(Duration(milliseconds: _minLoadingTime)),
-        Future(() async {
-          final token = await _authService.getToken();
-          if (token == null) {
-            profileNotifier.setError('No authentication token available');
-            return;
-          }
-
-          if (context.mounted) {
-            await _loadProfileDetails(token, context);
-          }
-        }),
-      ]);
-
-      // Update Provider with fresh data
-      if (context.mounted) {
-        profileNotifier.updateProfile(
-          name: _cachedName,
-          email: _cachedEmail,
-          photoUrl: _cachedPhotoUrl,
-          username: _cachedUsername,
-        );
-      }
-    } catch (e) {
-      _logger.severe('Error in loadAllProfileData: $e');
-      profileNotifier.setError('Error loading profile data');
-    } finally {
-      profileNotifier.setLoading(false);
-    }
-  }
-
   Future<void> logout(BuildContext context) async {
     final profileNotifier = Provider.of<ProfileNotifier>(context, listen: false);
     try {
@@ -195,10 +201,12 @@ class ProfileApi {
       
       _prefs = await SharedPreferences.getInstance();
       
+      // Clear all cached data
       await _prefs.remove(_photoUrlKey);
       await _prefs.remove(_emailKey);
       await _prefs.remove(_nameKey);
       await _prefs.remove(_usernameKey);
+      await _prefs.remove(_cacheExpiryKey);
 
       profileNotifier.clearProfile();
 

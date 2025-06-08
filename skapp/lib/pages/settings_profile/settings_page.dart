@@ -7,6 +7,7 @@ import 'package:skapp/widgets/custom_loader.dart';
 import 'package:provider/provider.dart';
 import 'package:skapp/main.dart'; // For ProfileNotifier
 import 'package:logging/logging.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -421,15 +422,27 @@ class _ProfilePhoto extends StatelessWidget {
           height: photoSize * 0.925,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            image: DecorationImage(
-              image: NetworkImage(photoUrl),
+            color: Colors.white,
+          ),
+          child: ClipOval(
+            child: CachedNetworkImage(
+              imageUrl: photoUrl,
               fit: BoxFit.cover,
-              alignment: Alignment.center,
-              onError: (exception, stackTrace) {
-                _logger.warning('Failed to load profile image', exception, stackTrace);
+              placeholder: (context, url) => Center(
+                child: CustomLoader(
+                  size: photoSize * 0.3,
+                  isButtonLoader: true,
+                ),
+              ),
+              errorWidget: (context, url, error) {
+                _logger.warning('Failed to load profile image: $error');
+                return Icon(
+                  Icons.person,
+                  size: photoSize * 0.4,
+                  color: Colors.grey[400],
+                );
               },
             ),
-            color: Colors.white,
           ),
         ),
       ],

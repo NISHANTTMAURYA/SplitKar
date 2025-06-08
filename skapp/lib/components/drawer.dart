@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../main.dart'; // For ProfileNotifier
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:skapp/widgets/custom_loader.dart';
 
 class AppDrawer extends StatelessWidget {
   final int selectedIndex;
@@ -55,13 +57,41 @@ class AppDrawer extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      CircleAvatar(
-                        radius: 44,
-                        backgroundImage: (profile.photoUrl != null && profile.photoUrl!.isNotEmpty)
-                            ? NetworkImage(profile.photoUrl!)
-                            : AssetImage('assets/images/profile_placeholder.png') as ImageProvider,
-                        backgroundColor: Colors.white,
-                      ),
+                      if (profile.photoUrl != null && profile.photoUrl!.isNotEmpty)
+                        CircleAvatar(
+                          radius: 44,
+                          backgroundColor: Colors.white,
+                          child: ClipOval(
+                            child: CachedNetworkImage(
+                              imageUrl: profile.photoUrl!,
+                              width: 88,
+                              height: 88,
+                              fit: BoxFit.cover,
+                              placeholder: (context, url) => Center(
+                                child: CustomLoader(
+                                  size: 30,
+                                  isButtonLoader: true,
+                                ),
+                              ),
+                              errorWidget: (context, url, error) => Icon(
+                                Icons.person,
+                                size: 44,
+                                color: Colors.grey[400],
+                              ),
+                            ),
+                          ),
+                        )
+                      else
+                        CircleAvatar(
+                          radius: 44,
+                          backgroundColor: Colors.white,
+                          child: Image.asset(
+                            'assets/images/profile_placeholder.png',
+                            width: 88,
+                            height: 88,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
                       SizedBox(height: 16),
                       Text(
                         profile.name ?? 'Your Name',

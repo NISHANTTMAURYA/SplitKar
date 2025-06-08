@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -10,6 +11,8 @@ class AuthService {
   static final _logger = Logger('AuthService');
   static const String _tokenKey = 'auth_token';
   static const String _refreshTokenKey = 'refresh_token';
+  static const String _tokenExpiryKey = 'token_expiry';
+  static const String _lastValidatedKey = 'last_validated';
 
   // Use the dynamic base URL
   static String get _baseUrl => AppConfig.baseUrl;
@@ -189,9 +192,111 @@ class AuthService {
     }
   }
 
+  Future<bool> isOnline() async {
+    try {
+      final result = await InternetAddress.lookup('google.com');
+      return result.isNotEmpty && result[0].rawAddress.isNotEmpty;
+    } on SocketException catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> isAuthenticated() async {
+    final token = await getToken();
+    if (token == null) return false;
+
+    // Check if token is expired based on stored expiry
+    final expiry = await _secureStorage.read(key: _tokenExpiryKey);
+    if (expiry != null) {
+      final expiryDate = DateTime.parse(expiry);
+      if (DateTime.now().isAfter(expiryDate)) {
+        _logger.info('Token expired, attempting refresh');
+        return await _handleTokenRefresh();
+      }
+    }
+
+    // Check last validation time
+    final lastValidated = await _secureStorage.read(key: _lastValidatedKey);
+    if (lastValidated != null) {
+      final lastValidatedDate = DateTime.parse(lastValidated);
+      // If validated within last 24 hours and we have a token, assume valid
+      if (DateTime.now().difference(lastValidatedDate).inHours < 24) {
+        return true;
+      }
+    }
+
+    // Try to validate token if we're online
+    if (await isOnline()) {
+      return await _validateTokenOnline(token);
+    }
+
+    // Offline fallback: if we have a token and it's not expired, assume valid
+    return true;
+  }
+
+  Future<bool> _validateTokenOnline(String token) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/auth/validate/'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({'token': token}),
+      ).timeout(Duration(seconds: 5));
+
+      if (response.statusCode == 200) {
+        // Update last validated timestamp
+        await _secureStorage.write(
+          key: _lastValidatedKey,
+          value: DateTime.now().toIso8601String(),
+        );
+        return true;
+      }
+      return false;
+    } catch (e) {
+      _logger.warning('Token validation failed: $e');
+      return false;
+    }
+  }
+
+  Future<bool> _handleTokenRefresh() async {
+    if (!await isOnline()) return false;
+    
+    try {
+      final newToken = await refreshToken();
+      if (newToken != null) {
+        // Update token expiry to match backend (1 day)
+        final expiry = DateTime.now().add(Duration(days: 1));
+        await _secureStorage.write(
+          key: _tokenExpiryKey,
+          value: expiry.toIso8601String(),
+        );
+        return true;
+      }
+      return false;
+    } catch (e) {
+      _logger.severe('Token refresh failed: $e');
+      return false;
+    }
+  }
+
   Future<void> _saveTokens(String accessToken, String refreshToken) async {
     await _secureStorage.write(key: _tokenKey, value: accessToken);
     await _secureStorage.write(key: _refreshTokenKey, value: refreshToken);
+    
+    // Set token expiry to match backend (1 day)
+    final expiry = DateTime.now().add(Duration(days: 1));
+    await _secureStorage.write(
+      key: _tokenExpiryKey,
+      value: expiry.toIso8601String(),
+    );
+    
+    // Set last validated timestamp
+    await _secureStorage.write(
+      key: _lastValidatedKey,
+      value: DateTime.now().toIso8601String(),
+    );
   }
 
   Future<String?> getToken() async {
@@ -202,32 +307,13 @@ class AuthService {
     return await _secureStorage.read(key: _refreshTokenKey);
   }
 
-  Future<bool> isAuthenticated() async {
-    final token = await getToken();
-    if (token == null) return false;
-    
-    try {
-      // Validate token with backend using POST
-      final response = await http.post(
-        Uri.parse('$_baseUrl/auth/validate/'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({'token': token}),
-      );
-      return response.statusCode == 200;
-    } catch (e) {
-      _logger.severe('Error validating token: $e');
-      return false;
-    }
-  }
-
   Future<void> signOut() async {
     try {
       await _googleSignIn.signOut();
       await _secureStorage.delete(key: _tokenKey);
       await _secureStorage.delete(key: _refreshTokenKey);
+      await _secureStorage.delete(key: _tokenExpiryKey);
+      await _secureStorage.delete(key: _lastValidatedKey);
     } catch (error) {
       _logger.severe('Error during sign out: $error');
     }
@@ -235,6 +321,12 @@ class AuthService {
 
   Future<String?> refreshToken() async {
     try {
+      // First check if we're online
+      if (!await isOnline()) {
+        _logger.info('Offline mode - skipping token refresh');
+        return await getToken();  // Return existing token
+      }
+
       final refreshToken = await getRefreshToken();
       if (refreshToken == null) {
         _logger.warning('No refresh token available');
@@ -245,22 +337,28 @@ class AuthService {
         Uri.parse('$_baseUrl/auth/token/refresh/'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'refresh': refreshToken}),
-      );
+      ).timeout(Duration(seconds: 5));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final newAccessToken = data['access'];
-        // Save the new access token
         await _secureStorage.write(key: _tokenKey, value: newAccessToken);
+        
+        // Update token expiry
+        final expiry = DateTime.now().add(Duration(days: 7));
+        await _secureStorage.write(
+          key: _tokenExpiryKey,
+          value: expiry.toIso8601String(),
+        );
+        
         return newAccessToken;
       } else {
         _logger.severe('Token refresh failed: ${response.statusCode}');
-        _logger.severe('Response body: ${response.body}');
-        return null;
+        return await getToken();  // Return existing token if refresh fails
       }
     } catch (e) {
-      _logger.severe('Error refreshing token: $e');
-      return null;
+      _logger.warning('Error refreshing token - using existing token: $e');
+      return await getToken();  // Return existing token on error
     }
   }
 } 
