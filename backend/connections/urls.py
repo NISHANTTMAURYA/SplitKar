@@ -8,4 +8,5 @@ urlpatterns = [
     path('friend-request/send/', views.send_friend_request, name='send-friend-request'),
     path('friend-request/accept/', views.accept_friend_request, name='accept-friend-request'),
     path('friend-request/decline/', views.decline_friend_request, name='decline-friend-request'),
+    path('friends/list/', views.get_friends_list, name='friends-list'),
 ]
