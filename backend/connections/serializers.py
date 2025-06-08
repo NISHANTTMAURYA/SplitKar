@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
-from .models import FriendRequest, Profile
+from .models import FriendRequest, Profile, Group, GroupInvitation
 
 class FriendRequestByCodeSerializer(serializers.Serializer):
     profile_code = serializers.CharField(required=True, max_length=20)
@@ -111,4 +111,164 @@ class FriendListSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = User
-        fields = ['id', 'username', 'profile_code', 'profile_picture_url'] 
+        fields = ['id', 'username', 'profile_code', 'profile_picture_url']
+
+class GroupCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Group
+        fields = ['name', 'description']
+        extra_kwargs = {
+            'description': {'required': False}
+        }
+    
+    def validate_name(self, value):
+        if len(value.strip()) == 0:
+            raise serializers.ValidationError("Group name cannot be empty")
+        return value
+    
+    def create(self, validated_data):
+        group = Group.objects.create(
+            created_by=self.context['request'].user,
+            **validated_data
+        )
+        # Add creator as a member
+        group.members.add(self.context['request'].user)
+        return group
+
+class GroupInviteSerializer(serializers.Serializer):
+    group_id = serializers.IntegerField(required=True)
+    profile_codes = serializers.ListField(
+        child=serializers.CharField(max_length=20),
+        required=True,
+        help_text="List of profile codes to invite to the group"
+    )
+    
+    def validate_group_id(self, value):
+        try:
+            group = Group.objects.get(id=value)
+            if group.created_by != self.context['request'].user:
+                raise serializers.ValidationError("You can only invite members to groups you created")
+            return value
+        except Group.DoesNotExist:
+            raise serializers.ValidationError("Group not found")
+    
+    def validate_profile_codes(self, value):
+        if not value:
+            raise serializers.ValidationError("At least one profile code must be specified")
+        
+        # Check if all profile codes exist
+        existing_profiles = Profile.objects.filter(profile_code__in=value)
+        existing_codes = set(existing_profiles.values_list('profile_code', flat=True))
+        invalid_codes = set(value) - existing_codes
+        if invalid_codes:
+            raise serializers.ValidationError(f"Invalid profile codes: {invalid_codes}")
+        
+        # Check if any users are already members
+        group = Group.objects.get(id=self.initial_data['group_id'])
+        existing_members = set(group.members.filter(profile__profile_code__in=value).values_list('profile__profile_code', flat=True))
+        if existing_members:
+            raise serializers.ValidationError(f"Users with profile codes {existing_members} are already members of this group")
+        
+        # Check if trying to invite yourself
+        current_user_profile_code = self.context['request'].user.profile.profile_code
+        if current_user_profile_code in value:
+            raise serializers.ValidationError("You cannot invite yourself to the group")
+        
+        return value
+    
+    def create(self, validated_data):
+        group = Group.objects.get(id=validated_data['group_id'])
+        profiles_to_invite = Profile.objects.filter(profile_code__in=validated_data['profile_codes'])
+        
+        invitations = []
+        for profile in profiles_to_invite:
+            invitation = GroupInvitation.objects.create(
+                group=group,
+                invited_user=profile.user,
+                invited_by=self.context['request'].user
+            )
+            invitations.append(invitation)
+        
+        return invitations
+
+class GroupInvitationAcceptSerializer(serializers.Serializer):
+    invitation_id = serializers.IntegerField(required=True)
+    
+    def validate_invitation_id(self, value):
+        try:
+            invitation = GroupInvitation.objects.get(id=value)
+            if invitation.invited_user != self.context['request'].user:
+                raise serializers.ValidationError("You can only accept invitations sent to you")
+            if invitation.status != 'pending':
+                raise serializers.ValidationError("This invitation is no longer pending")
+            if invitation.is_expired:
+                raise serializers.ValidationError("This invitation has expired")
+            self.instance = invitation  # Store for use in save()
+            return value
+        except GroupInvitation.DoesNotExist:
+            raise serializers.ValidationError("Invitation not found")
+    
+    def save(self, **kwargs):
+        if not hasattr(self, 'instance'):
+            raise serializers.ValidationError("Validator did not set instance")
+        
+        invitation = self.instance
+        invitation.status = 'accepted'
+        invitation.save()
+        
+        # Add user to group members
+        invitation.group.members.add(invitation.invited_user)
+        
+        return invitation
+
+class GroupInvitationDeclineSerializer(serializers.Serializer):
+    invitation_id = serializers.IntegerField(required=True)
+    
+    def validate_invitation_id(self, value):
+        try:
+            invitation = GroupInvitation.objects.get(id=value)
+            if invitation.invited_user != self.context['request'].user:
+                raise serializers.ValidationError("You can only decline invitations sent to you")
+            if invitation.status != 'pending':
+                raise serializers.ValidationError("This invitation is no longer pending")
+            if invitation.is_expired:
+                raise serializers.ValidationError("This invitation has expired")
+            self.instance = invitation  # Store for use in save()
+            return value
+        except GroupInvitation.DoesNotExist:
+            raise serializers.ValidationError("Invitation not found")
+    
+    def save(self, **kwargs):
+        if not hasattr(self, 'instance'):
+            raise serializers.ValidationError("Validator did not set instance")
+        
+        invitation = self.instance
+        invitation.status = 'declined'
+        invitation.save()
+        return invitation
+
+class PendingGroupInvitationSerializer(serializers.ModelSerializer):
+    invitation_id = serializers.IntegerField(source='id')
+    group_name = serializers.CharField(source='group.name')
+    group_id = serializers.IntegerField(source='group.id')
+    group_description = serializers.CharField(source='group.description')
+    invited_by_username = serializers.CharField(source='invited_by.username')
+    invited_by_profile_code = serializers.CharField(source='invited_by.profile.profile_code')
+    invited_user_username = serializers.CharField(source='invited_user.username')
+    invited_user_profile_code = serializers.CharField(source='invited_user.profile.profile_code')
+    
+    class Meta:
+        model = GroupInvitation
+        fields = [
+            'invitation_id',
+            'group_id',
+            'group_name',
+            'group_description',
+            'invited_by_username',
+            'invited_by_profile_code',
+            'invited_user_username',
+            'invited_user_profile_code',
+            'status',
+            'created_at',
+            'expires_at'
+        ] 

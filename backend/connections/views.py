@@ -4,12 +4,14 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
-from .models import Profile, FriendRequest, Friendship
+from .models import Profile, FriendRequest, Friendship, Group, GroupInvitation
 from .serializers import (
     ProfileLookupSerializer, FriendRequestByCodeSerializer, 
     FriendRequestAcceptSerializer, FriendRequestDeclineSerializer, 
     UserProfileListSerializer, PendingFriendRequestSerializer,
-    FriendListSerializer
+    FriendListSerializer, GroupCreateSerializer, GroupInviteSerializer,
+    GroupInvitationAcceptSerializer, GroupInvitationDeclineSerializer,
+    PendingGroupInvitationSerializer
 )
 
 # Create your views here.
@@ -152,3 +154,126 @@ def get_friends_list(request):
     friends = Friendship.objects.friends_of(request.user)
     serializer = FriendListSerializer(friends, many=True)
     return Response(serializer.data)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def create_group(request):
+    """
+    Create a new group.
+    The authenticated user will automatically be added as a member and creator.
+    Additional members can be added using member_ids in the request.
+    """
+    serializer = GroupCreateSerializer(data=request.data, context={'request': request})
+    if serializer.is_valid():
+        group = serializer.save()
+        return Response({
+            'id': group.id,
+            'name': group.name,
+            'description': group.description,
+            'created_by': group.created_by.username,
+            'member_count': group.member_count,
+            'created_at': group.created_at
+        }, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def invite_to_group(request):
+    """
+    Invite users to a group using their profile codes.
+    Only the group creator can invite members.
+    Returns a list of created invitations.
+    """
+    serializer = GroupInviteSerializer(data=request.data, context={'request': request})
+    if serializer.is_valid():
+        invitations = serializer.save()
+        return Response({
+            'message': f'Successfully sent {len(invitations)} invitation(s)',
+            'invitations': [
+                {
+                    'id': inv.id,
+                    'group': inv.group.name,
+                    'invited_user': inv.invited_user.username,
+                    'profile_code': inv.invited_user.profile.profile_code,
+                    'status': inv.status,
+                    'created_at': inv.created_at
+                }
+                for inv in invitations
+            ]
+        }, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def accept_group_invitation(request):
+    """
+    Accept a pending group invitation.
+    The user will be added to the group's members upon acceptance.
+    """
+    serializer = GroupInvitationAcceptSerializer(data=request.data, context={'request': request})
+    if serializer.is_valid():
+        invitation = serializer.save()
+        return Response({
+            'message': 'Successfully joined the group',
+            'group': {
+                'id': invitation.group.id,
+                'name': invitation.group.name,
+                'description': invitation.group.description,
+                'member_count': invitation.group.member_count,
+                'created_by': invitation.group.created_by.username
+            },
+            'invitation': {
+                'id': invitation.id,
+                'status': invitation.status,
+                'accepted_at': invitation.updated_at
+            }
+        }, status=status.HTTP_200_OK)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def decline_group_invitation(request):
+    """
+    Decline a pending group invitation.
+    """
+    serializer = GroupInvitationDeclineSerializer(data=request.data, context={'request': request})
+    if serializer.is_valid():
+        invitation = serializer.save()
+        return Response({
+            'message': 'Successfully declined the group invitation',
+            'invitation': {
+                'id': invitation.id,
+                'group': invitation.group.name,
+                'status': invitation.status,
+                'declined_at': invitation.updated_at
+            }
+        }, status=status.HTTP_200_OK)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def list_pending_group_invitations(request):
+    """
+    List all pending group invitations for the current user (both sent and received).
+    Returns a list of invitations with group details and user information.
+    """
+    # Get invitations sent by the current user
+    sent_invitations = GroupInvitation.objects.filter(
+        invited_by=request.user,
+        status='pending'
+    ).select_related('group', 'invited_user', 'invited_user__profile')
+    
+    # Get invitations received by the current user
+    received_invitations = GroupInvitation.objects.filter(
+        invited_user=request.user,
+        status='pending'
+    ).select_related('group', 'invited_by', 'invited_by__profile')
+    
+    # Serialize both querysets
+    sent_data = PendingGroupInvitationSerializer(sent_invitations, many=True).data
+    received_data = PendingGroupInvitationSerializer(received_invitations, many=True).data
+    
+    return Response({
+        'sent_invitations': sent_data,
+        'received_invitations': received_data,
+    })
