@@ -95,6 +95,80 @@
                 <div class="response-area" id="sentRequestsResponse"></div>
             </div>
         </div>
+
+        <!-- Create Group Section -->
+        <div class="api-section">
+            <h3>Create Group</h3>
+            <form id="createGroupForm" class="mb-3">
+                <div class="mb-3">
+                    <label for="groupName" class="form-label">Group Name</label>
+                    <input type="text" class="form-control" id="groupName" required>
+                </div>
+                <div class="mb-3">
+                    <label for="groupDescription" class="form-label">Description</label>
+                    <input type="text" class="form-control" id="groupDescription">
+                </div>
+                <button type="submit" class="btn btn-primary">Create Group</button>
+            </form>
+            <div class="response-area" id="createGroupResponse"></div>
+        </div>
+
+        <!-- Invite to Group Section -->
+        <div class="api-section">
+            <h3>Invite to Group</h3>
+            <form id="inviteToGroupForm" class="mb-3">
+                <div class="mb-3">
+                    <label for="inviteGroupId" class="form-label">Group ID</label>
+                    <input type="number" class="form-control" id="inviteGroupId" required>
+                </div>
+                <div class="mb-3">
+                    <label for="inviteProfileCodes" class="form-label">Profile Codes (comma separated)</label>
+                    <input type="text" class="form-control" id="inviteProfileCodes" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Invite</button>
+            </form>
+            <div class="response-area" id="inviteToGroupResponse"></div>
+        </div>
+
+        <!-- Accept Group Invitation Section -->
+        <div class="api-section">
+            <h3>Accept Group Invitation</h3>
+            <form id="acceptGroupInvitationForm" class="mb-3">
+                <div class="mb-3">
+                    <label for="acceptGroupInvitationId" class="form-label">Invitation ID</label>
+                    <input type="number" class="form-control" id="acceptGroupInvitationId" required>
+                </div>
+                <button type="submit" class="btn btn-success">Accept Invitation</button>
+            </form>
+            <div class="response-area" id="acceptGroupInvitationResponse"></div>
+        </div>
+
+        <!-- Decline Group Invitation Section -->
+        <div class="api-section">
+            <h3>Decline Group Invitation</h3>
+            <form id="declineGroupInvitationForm" class="mb-3">
+                <div class="mb-3">
+                    <label for="declineGroupInvitationId" class="form-label">Invitation ID</label>
+                    <input type="number" class="form-control" id="declineGroupInvitationId" required>
+                </div>
+                <button type="submit" class="btn btn-danger">Decline Invitation</button>
+            </form>
+            <div class="response-area" id="declineGroupInvitationResponse"></div>
+        </div>
+
+        <!-- Pending Group Invitations Section -->
+        <div class="api-section">
+            <h3>Pending Group Invitations</h3>
+            <button id="listPendingGroupInvitationsBtn" class="btn btn-primary">List Pending Group Invitations</button>
+            <div class="mt-3">
+                <h4>Received Invitations</h4>
+                <div class="response-area" id="receivedGroupInvitationsResponse"></div>
+            </div>
+            <div class="mt-3">
+                <h4>Sent Invitations</h4>
+                <div class="response-area" id="sentGroupInvitationsResponse"></div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -220,6 +294,96 @@
                 const errorMessage = 'Error: ' + error.message;
                 document.getElementById('receivedRequestsResponse').textContent = errorMessage;
                 document.getElementById('sentRequestsResponse').textContent = errorMessage;
+            }
+        });
+
+        // Create Group
+        document.getElementById('createGroupForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('groupName').value;
+            const description = document.getElementById('groupDescription').value;
+            try {
+                const response = await fetch('/api/group/create/', {
+                    method: 'POST',
+                    headers: getHeaders(),
+                    body: JSON.stringify({ name, description })
+                });
+                const data = await response.json();
+                document.getElementById('createGroupResponse').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('createGroupResponse').textContent = 'Error: ' + error.message;
+            }
+        });
+
+        // Invite to Group
+        document.getElementById('inviteToGroupForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const group_id = document.getElementById('inviteGroupId').value;
+            const profile_codes = document.getElementById('inviteProfileCodes').value.split(',').map(code => code.trim());
+            try {
+                const response = await fetch('/api/group/invite/', {
+                    method: 'POST',
+                    headers: getHeaders(),
+                    body: JSON.stringify({ group_id, profile_codes })
+                });
+                const data = await response.json();
+                document.getElementById('inviteToGroupResponse').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('inviteToGroupResponse').textContent = 'Error: ' + error.message;
+            }
+        });
+
+        // Accept Group Invitation
+        document.getElementById('acceptGroupInvitationForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const invitation_id = document.getElementById('acceptGroupInvitationId').value;
+            try {
+                const response = await fetch('/api/group/invitation/accept/', {
+                    method: 'POST',
+                    headers: getHeaders(),
+                    body: JSON.stringify({ invitation_id })
+                });
+                const data = await response.json();
+                document.getElementById('acceptGroupInvitationResponse').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('acceptGroupInvitationResponse').textContent = 'Error: ' + error.message;
+            }
+        });
+
+        // Decline Group Invitation
+        document.getElementById('declineGroupInvitationForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const invitation_id = document.getElementById('declineGroupInvitationId').value;
+            try {
+                const response = await fetch('/api/group/invitation/decline/', {
+                    method: 'POST',
+                    headers: getHeaders(),
+                    body: JSON.stringify({ invitation_id })
+                });
+                const data = await response.json();
+                document.getElementById('declineGroupInvitationResponse').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('declineGroupInvitationResponse').textContent = 'Error: ' + error.message;
+            }
+        });
+
+        // List Pending Group Invitations
+        document.getElementById('listPendingGroupInvitationsBtn').addEventListener('click', async () => {
+            try {
+                const response = await fetch('/api/group/invitation/pending/', {
+                    headers: getHeaders()
+                });
+                const data = await response.json();
+                
+                // Display received and sent invitations
+                document.getElementById('receivedGroupInvitationsResponse').textContent = 
+                    JSON.stringify(data.received_invitations, null, 2);
+                document.getElementById('sentGroupInvitationsResponse').textContent = 
+                    JSON.stringify(data.sent_invitations, null, 2);
+            } catch (error) {
+                const errorMessage = 'Error: ' + error.message;
+                document.getElementById('receivedGroupInvitationsResponse').textContent = errorMessage;
+                document.getElementById('sentGroupInvitationsResponse').textContent = errorMessage;
             }
         });
     </script>

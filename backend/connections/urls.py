@@ -9,4 +9,9 @@ urlpatterns = [
     path('friend-request/accept/', views.accept_friend_request, name='accept-friend-request'),
     path('friend-request/decline/', views.decline_friend_request, name='decline-friend-request'),
     path('friends/list/', views.get_friends_list, name='friends-list'),
+    path('group/create/', views.create_group, name='create-group'),
+    path('group/invite/', views.invite_to_group, name='invite-to-group'),
+    path('group/invitation/pending/', views.list_pending_group_invitations, name='pending-group-invitations'),
+    path('group/invitation/accept/', views.accept_group_invitation, name='accept-group-invitation'),
+    path('group/invitation/decline/', views.decline_group_invitation, name='decline-group-invitation'),
 ]

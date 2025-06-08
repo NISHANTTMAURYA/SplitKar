@@ -3,7 +3,7 @@ from .models import Profile, FriendRequest, Friendship, Group, GroupInvitation
 
 @admin.register(Profile)
 class ProfileAdmin(admin.ModelAdmin):
-    list_display = ('user', 'profile_code', 'is_active', 'created_at')
+    list_display = ('id', 'user', 'profile_code', 'is_active', 'created_at')
     list_filter = ('is_active', 'created_at')
     search_fields = ('user__username', 'profile_code')
     readonly_fields = ('profile_code',)
@@ -23,7 +23,7 @@ class FriendshipAdmin(admin.ModelAdmin):
 
 @admin.register(Group)
 class GroupAdmin(admin.ModelAdmin):
-    list_display = ('name', 'created_by', 'member_count', 'is_active', 'created_at')
+    list_display = ('id', 'name', 'created_by', 'member_count', 'is_active', 'created_at')
     list_filter = ('is_active', 'created_at')
     search_fields = ('name', 'created_by__username')
     filter_horizontal = ('members',)
