@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:skapp/main.dart'; // For ProfileNotifier
 import 'package:logging/logging.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:skapp/pages/settings_profile/edit_profile_page.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -55,7 +56,7 @@ class _SettingsPageState extends State<SettingsPage> {
     }
 
     // Show error if there is one
-    if (profile.error != null) {
+    if (profile.error != null && profile.error!.isNotEmpty) {
       return Scaffold(
         key: _scaffoldKey,
         appBar: CustomAppBar(scaffoldKey: _scaffoldKey, is_bottom_needed: false),
@@ -308,7 +309,10 @@ class _SettingsOptionsList extends StatelessWidget {
           context,
           Icons.edit,
           'Edit Profile Name',
-          () => print('Edit Profile Name pressed'),
+          () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => EditProfilePage()),
+          ),
         ),
         _buildOptionTile(
           context,

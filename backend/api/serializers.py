@@ -90,3 +90,24 @@ class UserSerializer(serializers.ModelSerializer):
         if hasattr(obj, 'profile') and obj.profile.profile_picture_url:
             return obj.profile.profile_picture_url
         return None
+
+class ProfileUpdateSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(
+        required=True,
+        min_length=3,
+        max_length=150
+    )
+
+    class Meta:
+        model = User
+        fields = ('username', 'first_name', 'last_name')
+        extra_kwargs = {
+            'first_name': {'required': False},
+            'last_name': {'required': False}
+        }
+
+    def validate_username(self, value):
+        user = self.context['request'].user
+        if User.objects.exclude(id=user.id).filter(username=value).exists():
+            raise serializers.ValidationError(_("A user with this username already exists."))
+        return value

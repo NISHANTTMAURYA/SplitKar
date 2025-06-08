@@ -131,36 +131,36 @@ class ProfileApi {
           photoUrl: _cachedPhotoUrl,
           username: _cachedUsername,
         );
+        profileNotifier.setError(null);
       }
 
-      // Check online status
+      // Check online status and cache validity
       final isOnline = await _authService.isOnline();
+      final isCacheValid = await _isCacheValid();
       _logger.info('Profile data loading decision:');
       _logger.info('- Online status: $isOnline');
+      _logger.info('- Cache valid: $isCacheValid');
 
       if (isOnline) {
-        // When online, always make API call in background
-        _logger.info('Online - making API call in background');
-        await Future.wait([
-          Future.delayed(Duration(milliseconds: _minLoadingTime)),
-          Future(() async {
-            final token = await _authService.getToken();
-            _logger.info('Token available: ${token != null}');
-            if (token == null) {
-              if (_cachedName == null) {
-                profileNotifier.setError('No authentication token available');
-              }
-              return;
+        // When online, check if we need to refresh data
+        if (!isCacheValid || _cachedName == null) {
+          _logger.info('Cache invalid or missing - making API call');
+          final token = await _authService.getToken();
+          if (token == null) {
+            if (_cachedName == null) {
+              profileNotifier.setError('No authentication token available');
             }
+            return;
+          }
 
-            if (context.mounted) {
-              await _loadProfileDetails(token, context);
-            }
-          }),
-        ]);
+          if (context.mounted) {
+            await _loadProfileDetails(token, context);
+          }
+        } else {
+          _logger.info('Using valid cached data');
+        }
       } else {
         // When offline, use cache if available
-        final isCacheValid = await _isCacheValid();
         _logger.info('Offline mode:');
         _logger.info('- Cache valid: $isCacheValid');
         _logger.info('- Has cached data: ${_cachedName != null}');
@@ -188,6 +188,7 @@ class ProfileApi {
       ).timeout(Duration(seconds: 10));
 
       _logger.info('Profile API response status: ${response.statusCode}');
+      _logger.info('Profile API response body: ${response.body}');
 
       if (response.statusCode == 200) {
         _profileDetails = jsonDecode(response.body);
@@ -196,21 +197,34 @@ class ProfileApi {
         _cachedEmail = _profileDetails?['email'];
         _cachedName = '${_profileDetails?['first_name'] ?? ''} ${_profileDetails?['last_name'] ?? ''}'.trim();
         _cachedUsername = _profileDetails?['username'];
+
+        _logger.info('Parsed profile details:');
+        _logger.info('- Photo URL: $_cachedPhotoUrl');
+        _logger.info('- Email: $_cachedEmail');
+        _logger.info('- Name: $_cachedName');
+        _logger.info('- Username: $_cachedUsername');
+
         await _cacheProfileData();
-        _logger.info('Profile Details loaded successfully');
+        _logger.info('Profile Details cached successfully');
 
         if (context.mounted) {
           final profileNotifier = Provider.of<ProfileNotifier>(context, listen: false);
+          _logger.info('Updating ProfileNotifier with new data...');
           profileNotifier.updateProfile(
             name: _cachedName,
             email: _cachedEmail,
             photoUrl: _cachedPhotoUrl,
             username: _cachedUsername,
+            firstName: _profileDetails?['first_name'],
+            lastName: _profileDetails?['last_name'],
           );
+          profileNotifier.setError(null);
+          _logger.info('ProfileNotifier updated successfully');
         }
       } else if (response.statusCode == 401) {
         final responseBody = jsonDecode(response.body);
         if (responseBody['code'] == 'token_not_valid') {
+          _logger.info('Token not valid, attempting refresh...');
           if (context.mounted) {
             final success = await _authService.refreshToken() != null;
             if (success) {
@@ -222,6 +236,7 @@ class ProfileApi {
           }
         } else {
           _error = 'Authentication failed';
+          _logger.warning('Authentication failed: ${response.body}');
         }
       } else {
         _error = 'Failed to load profile. Status code: ${response.statusCode}';
@@ -259,6 +274,26 @@ class ProfileApi {
     } catch (e) {
       _logger.severe('Error during logout: $e');
       profileNotifier.setError('Error during logout');
+    }
+  }
+
+  Future<void> reloadProfileData(BuildContext context) async {
+    final profileNotifier = Provider.of<ProfileNotifier>(context, listen: false);
+    try {
+      _logger.info('Starting profile data reload...');
+      final token = await _authService.getToken();
+      if (token == null) {
+        _logger.warning('No authentication token available for profile reload');
+        profileNotifier.setError('No authentication token available');
+        return;
+      }
+
+      _logger.info('Token available, loading profile details...');
+      await _loadProfileDetails(token, context);
+      _logger.info('Profile details loaded successfully');
+    } catch (e) {
+      _logger.severe('Error reloading profile data: $e');
+      profileNotifier.setError('Error reloading profile data');
     }
   }
 }

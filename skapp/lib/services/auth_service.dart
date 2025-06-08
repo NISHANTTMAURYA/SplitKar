@@ -388,4 +388,40 @@ class AuthService {
       return null;
     }
   }
+
+  Future<Map<String, dynamic>?> updateProfile({
+    required String username,
+    String? firstName,
+    String? lastName,
+  }) async {
+    try {
+      final token = await getToken();
+      if (token == null) {
+        throw 'Not authenticated';
+      }
+
+      final response = await http.patch(
+        Uri.parse('$_baseUrl/profile/update/'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'username': username,
+          'first_name': firstName,
+          'last_name': lastName,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        final errorMessage = _parseBackendError(response);
+        throw errorMessage;
+      }
+    } catch (e) {
+      _logger.severe('Error updating profile: $e');
+      rethrow;
+    }
+  }
 } 

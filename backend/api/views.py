@@ -7,7 +7,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 import os
-from .serializers import UserRegistrationSerializer, UserLoginSerializer, UserSerializer
+from .serializers import UserRegistrationSerializer, UserLoginSerializer, UserSerializer, ProfileUpdateSerializer
 from django.contrib.auth import authenticate
 from django.db.models import Q
 from django.core.exceptions import ValidationError
@@ -219,3 +219,37 @@ class CustomTokenRefreshView(TokenRefreshView):
                 {'error': 'Invalid or expired token. Please login again.'},
                 status=status.HTTP_401_UNAUTHORIZED
             )
+
+class ProfileUpdateAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = ProfileUpdateSerializer
+
+    def patch(self, request):
+        # Check if any changes were made
+        has_changes = False
+        for field in ['username', 'first_name', 'last_name']:
+            if field in request.data and request.data[field] != getattr(request.user, field):
+                has_changes = True
+                break
+
+        if not has_changes:
+            return Response({
+                'message': 'No changes detected',
+                'data': self.serializer_class(request.user).data
+            })
+
+        serializer = self.serializer_class(request.user, data=request.data, partial=True, context={'request': request})
+        if serializer.is_valid():
+            user = serializer.save()
+            
+            # Update profile code only if username changed
+            if 'username' in serializer.validated_data:
+                profile = user.profile
+                profile.profile_code = profile.generate_unique_code()
+                profile.save()
+            
+            return Response({
+                'message': 'Profile updated successfully',
+                'data': serializer.data
+            })
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
