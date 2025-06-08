@@ -16,6 +16,12 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.decorators import permission_classes, api_view
 from rest_framework.exceptions import AuthenticationFailed
 from connections.models import Profile
+from rest_framework_simplejwt.views import TokenRefreshView
+from rest_framework_simplejwt.exceptions import TokenError, InvalidToken
+from django.core.exceptions import ObjectDoesNotExist
+from django.core.cache import cache
+from django.conf import settings
+import time
 
 
 # Helper function to generate tokens and user data response
@@ -194,3 +200,22 @@ def ProfileDetailsAPIView(request):
     user = request.user
     serializer = UserSerializer(user)
     return Response(serializer.data)
+
+class CustomTokenRefreshView(TokenRefreshView):
+    def post(self, request, *args, **kwargs):
+        try:
+            response = super().post(request, *args, **kwargs)
+            return response
+        except (TokenError, InvalidToken) as e:
+            # Immediately return 401 for any token-related errors
+            return Response(
+                {'error': 'Invalid or expired token. Please login again.'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        except Exception as e:
+            # Log the error for debugging
+            print(f"Token refresh error: {str(e)}")
+            return Response(
+                {'error': 'Invalid or expired token. Please login again.'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )

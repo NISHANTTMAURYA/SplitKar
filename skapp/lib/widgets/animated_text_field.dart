@@ -40,15 +40,16 @@ class AnimatedTextField extends StatelessWidget {
         keyboardType: isEmail ? TextInputType.emailAddress : TextInputType.text,
         decoration: InputDecoration(
           labelText: label,
+          hintStyle: TextStyle(color: Colors.black54),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Colors.grey.shade400, width: 1),
+            borderSide: BorderSide(color: Colors.black, width: 1),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide(
-              color: Theme.of(context).primaryColor,
+              color: Colors.black,
               width: 2,
             ),
           ),
@@ -60,7 +61,7 @@ class AnimatedTextField extends StatelessWidget {
             child: Icon(
               prefixIcon,
               key: ValueKey<bool>(isFocused),
-              color: isFocused ? Theme.of(context).primaryColor : Colors.grey,
+              color: Colors.black,
             ),
           ),
           suffixIcon: isPassword
@@ -74,19 +75,17 @@ class AnimatedTextField extends StatelessWidget {
                     key: ValueKey<bool>(isFocused),
                     icon: Icon(
                       obscureText ? Icons.visibility : Icons.visibility_off,
-                      color: isFocused
-                          ? Theme.of(context).primaryColor
-                          : Colors.grey,
+                      color: Colors.black,
                     ),
                     onPressed: onTogglePassword,
                   ),
                 )
               : null,
           labelStyle: TextStyle(
-            color: isFocused ? Theme.of(context).primaryColor : Colors.grey,
+            color: Colors.black,
           ),
           floatingLabelStyle: TextStyle(
-            color: Theme.of(context).primaryColor,
+            color: Colors.black,
             fontSize: 16,
           ),
           contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
