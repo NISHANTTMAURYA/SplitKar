@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from .models import Profile, FriendRequest
-from .serializers import ProfileLookupSerializer, FriendRequestByCodeSerializer, FriendRequestAcceptSerializer, FriendRequestDeclineSerializer
+from .serializers import ProfileLookupSerializer, FriendRequestByCodeSerializer, FriendRequestAcceptSerializer, FriendRequestDeclineSerializer, UserProfileListSerializer, PendingFriendRequestSerializer
 
 # Create your views here.
 
@@ -93,3 +93,46 @@ def decline_friend_request(request):
                 status=status.HTTP_400_BAD_REQUEST
             )
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def list_users_with_profiles(request):
+    """
+    List all users with their profile codes.
+    Returns a list of users with their usernames and profile codes.
+    """
+    profiles = Profile.objects.select_related('user').all()
+    serializer = UserProfileListSerializer(profiles, many=True)
+    return Response(serializer.data)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def list_pending_friend_requests(request):
+    """
+    List all pending friend requests for the current user (both sent and received).
+    """
+    # Get requests sent by the current user
+    sent_requests = FriendRequest.objects.filter(
+        from_user=request.user,
+        status='pending'
+    ).select_related('to_user')
+    
+    # Get requests received by the current user
+    received_requests = FriendRequest.objects.filter(
+        to_user=request.user,
+        status='pending'
+    ).select_related('from_user')
+    
+    print(f"Current user: {request.user.username}")
+    print(f"Current user ID: {request.user.id}")
+    print(f"Sent requests count: {sent_requests.count()}")
+    print(f"Received requests count: {received_requests.count()}")
+    
+    # Combine both querysets
+    sent_data = PendingFriendRequestSerializer(sent_requests, many=True).data
+    received_data = PendingFriendRequestSerializer(received_requests, many=True).data
+    
+    return Response({
+        'sent_requests': sent_data,
+        'received_requests': received_data,
+    })

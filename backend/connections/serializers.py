@@ -86,4 +86,21 @@ class FriendRequestDeclineSerializer(serializers.Serializer):
             raise serializers.ValidationError("Validator did not set instance.")
         friend_request = self.instance
         friend_request.decline()
-        return friend_request 
+        return friend_request
+
+class UserProfileListSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source='user.username')
+    profile_code = serializers.CharField()
+    
+    class Meta:
+        model = Profile
+        fields = ['username', 'profile_code']
+
+class PendingFriendRequestSerializer(serializers.ModelSerializer):
+    from_username = serializers.CharField(source='from_user.username')
+    to_username = serializers.CharField(source='to_user.username')
+    request_id = serializers.IntegerField(source='id')
+    
+    class Meta:
+        model = FriendRequest
+        fields = ['request_id', 'from_username', 'to_username', 'created_at'] 

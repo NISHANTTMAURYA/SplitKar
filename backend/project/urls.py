@@ -17,6 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from . import views
+from django.contrib.auth import views as auth_views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -24,5 +25,9 @@ urlpatterns = [
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
     path('', include('social_django.urls', namespace='social')),
-    path('api/', include('api.urls')),
+    path('api/', include([
+        path('', include('api.urls')),
+        path('', include('connections.urls')),
+    ])),
+    path('api-tester/', include('api_tester.urls')),
 ]

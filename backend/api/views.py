@@ -59,19 +59,24 @@ class GoogleLoginAPIView(APIView):
             )
             print('Token verification succeeded. idinfo:', idinfo)
             print('Token audience (aud):', idinfo.get('aud'))
-            email = idinfo['email']
+            email = idinfo['email'].lower() # Normalize email to lowercase
             first_name = idinfo.get('given_name', '')
             last_name = idinfo.get('family_name', '')
             
             # Check if user with this email already exists
-            try:
-                user = User.objects.get(email=email)
+            # Using filter() and then checking count to handle potential duplicates or non-existence robustly
+            users_with_email = User.objects.filter(email=email)
+
+            if users_with_email.exists():
+                # If a user with this email exists, use the first one found
+                # This assumes email should be unique; if not, further logic needed to decide which user to link to
+                user = users_with_email.first()
                 # Update user info if needed
                 if user.first_name != first_name or user.last_name != last_name:
                     user.first_name = first_name
                     user.last_name = last_name
                     user.save()
-            except User.DoesNotExist:
+            else:
                 # Create new user
                 username = email.split('@')[0]  # Use part before @ as username
                 base_username = username
@@ -84,7 +89,7 @@ class GoogleLoginAPIView(APIView):
                 
                 user = User.objects.create_user(
                     username=username,
-                    email=email,
+                    email=email, # Store normalized email
                     first_name=first_name,
                     last_name=last_name
                 )
