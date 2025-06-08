@@ -231,9 +231,9 @@ class _FriendsListView extends StatelessWidget {
             int index,
           ) {
             return Padding(
-              padding: const EdgeInsets.fromLTRB(8, 0, 8, 0),
+              padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
               child: Card(
-                color: Colors.white.withOpacity(0.85),
+                color: Colors.white,
                 elevation: 2,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),

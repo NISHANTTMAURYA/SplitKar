@@ -5,6 +5,7 @@ import 'package:skapp/components/bottomNavbar.dart';
 import 'package:skapp/pages/groups.dart';
 import 'package:skapp/pages/freinds.dart';
 import 'package:skapp/pages/activity.dart';
+import 'package:skapp/pages/settings_profile/settings_api.dart';
 
 class MainPage extends StatefulWidget {
   final int? initialIndex;
@@ -27,6 +28,11 @@ class _MainPageState extends State<MainPage> {
     super.initState();
     _selectedIndex = widget.initialIndex ?? 1; // Use provided index or default to Friends
     _pageController = PageController(initialPage: _selectedIndex);
+
+    // Defer profile loading until after the first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ProfileApi().loadAllProfileData(context);
+    });
 
     // Initialize pages map here where we have access to _scaffoldKey
     pages = {
@@ -84,7 +90,7 @@ class _MainPageState extends State<MainPage> {
           ? CustomAppBar(
               scaffoldKey: _scaffoldKey,
               pageController: _pageController,
-              page_color_white: true,
+              is_bottom_needed: true,
             )
           : CustomAppBar(
               scaffoldKey: _scaffoldKey,

@@ -7,6 +7,8 @@ import 'dart:convert';
 import 'package:skapp/config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:logging/logging.dart';
+import 'package:provider/provider.dart';
+import 'package:skapp/main.dart'; // For ProfileNotifier
 
 class ProfileApi {
   static final _logger = Logger('ProfileApi');
@@ -168,8 +170,9 @@ class ProfileApi {
   }
 
   Future<void> loadAllProfileData(BuildContext context) async {
-    _isLoading = true;
-    _error = null;
+    final profileNotifier = Provider.of<ProfileNotifier>(context, listen: false);
+    profileNotifier.setLoading(true);
+    profileNotifier.setError(null);
 
     try {
       await _initPrefs();
@@ -183,7 +186,7 @@ class ProfileApi {
 
           final token = await _authService.getToken();
           if (token == null) {
-            _error = 'No authentication token available';
+            profileNotifier.setError('No authentication token available');
             return;
           }
 
@@ -192,21 +195,44 @@ class ProfileApi {
           }
         }),
       ]);
+
+      // Update Provider after loading profile data
+      if (context.mounted) {
+        String? username;
+        if (_profileDetails != null && _profileDetails!['username'] != null) {
+          username = _profileDetails!['username'];
+        }
+        
+        profileNotifier.updateProfile(
+          name: _cachedName,
+          email: _cachedEmail,
+          photoUrl: _cachedPhotoUrl,
+          username: username,
+        );
+      }
     } catch (e) {
       _logger.severe('Error in loadAllProfileData: $e');
-      _error = 'Error loading profile data';
+      profileNotifier.setError('Error loading profile data');
     } finally {
-      _isLoading = false;
+      profileNotifier.setLoading(false);
     }
   }
 
   Future<void> logout(BuildContext context) async {
+    final profileNotifier = Provider.of<ProfileNotifier>(context, listen: false);
     try {
       await _authService.signOut();
+      
+      // Initialize SharedPreferences before clearing
+      _prefs = await SharedPreferences.getInstance();
+      
       // Clear cached data
       await _prefs.remove(_photoUrlKey);
       await _prefs.remove(_emailKey);
       await _prefs.remove(_nameKey);
+
+      // Clear profile data from Provider
+      profileNotifier.clearProfile();
 
       if (context.mounted) {
         Navigator.pushAndRemoveUntil(
@@ -217,7 +243,7 @@ class ProfileApi {
       }
     } catch (e) {
       _logger.severe('Error during logout: $e');
-      _error = 'Error during logout';
+      profileNotifier.setError('Error during logout');
     }
   }
 }

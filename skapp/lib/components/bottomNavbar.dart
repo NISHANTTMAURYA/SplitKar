@@ -115,7 +115,7 @@ class _BottomNavbarState extends State<BottomNavbar>
     itemWidth = (MediaQuery.of(context).size.width - 40) / widget.labels.length;
     return Padding(
       padding: EdgeInsets.only(
-        bottom: 10 + MediaQuery.of(context).padding.bottom,
+        bottom: 3+ MediaQuery.of(context).padding.bottom,
       ),
       child: Container(
         color: Colors.transparent,

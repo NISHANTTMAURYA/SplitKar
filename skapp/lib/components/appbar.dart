@@ -5,13 +5,14 @@ import 'package:flutter/services.dart';
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
   final PageController? pageController;
-  final bool page_color_white;
+  final bool is_bottom_needed;
+
 
   const CustomAppBar({
     super.key,
     required this.scaffoldKey,
     this.pageController,
-    this.page_color_white=false
+    this.is_bottom_needed=true
   });
 
   @override
@@ -24,20 +25,22 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
 
     return AppBar(
       systemOverlayStyle: SystemUiOverlayStyle(
-        statusBarColor: page_color_white ? Colors.white : Colors.deepPurple,
-        statusBarIconBrightness: page_color_white ? Brightness.dark : Brightness.light,
-        statusBarBrightness: page_color_white ? Brightness.light : Brightness.dark,
+        statusBarColor: is_bottom_needed ? Colors.white : Colors.deepPurple,
+        statusBarIconBrightness: is_bottom_needed ? Brightness.dark : Brightness.light,
+        statusBarBrightness: is_bottom_needed ? Brightness.light : Brightness.dark,
       ),
-
-      backgroundColor: page_color_white?Theme.of(context).colorScheme.inversePrimary:Theme.of(context).colorScheme.inversePrimary,
+      elevation: 0,
+      shadowColor: Colors.transparent,
+      backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       centerTitle: true,
-      bottom: PreferredSize(
+
+      bottom: is_bottom_needed?PreferredSize(
         preferredSize: Size.fromHeight(1), // height of the line
         child: Container(
           color: Colors.deepPurple[400], // color of the line
           height: 0.8,
         ),
-      ),
+      ):null,
 
       leadingWidth: 80,
       leading: Padding(
