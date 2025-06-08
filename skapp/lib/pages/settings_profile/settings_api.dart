@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:skapp/services/auth_service.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:skapp/pages/login_page.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -8,21 +7,20 @@ import 'package:skapp/config.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:logging/logging.dart';
 import 'package:provider/provider.dart';
-import 'package:skapp/main.dart'; // For ProfileNotifier
+import 'package:skapp/main.dart';
 
 class ProfileApi {
   static final _logger = Logger('ProfileApi');
   static const String _photoUrlKey = 'cached_photo_url';
   static const String _emailKey = 'cached_email';
   static const String _nameKey = 'cached_name';
+  static const String _usernameKey = 'cached_username';
   static const int _minLoadingTime = 500; // milliseconds
 
   final AuthService _authService;
-  final GoogleSignIn _googleSignIn;
   late SharedPreferences _prefs;
 
   // Profile data
-  GoogleSignInAccount? _account;
   Map<String, dynamic>? _profileDetails;
   bool _isLoading = true;
   String? _error;
@@ -31,39 +29,19 @@ class ProfileApi {
   String? _cachedPhotoUrl;
   String? _cachedEmail;
   String? _cachedName;
+  String? _cachedUsername;
 
-  ProfileApi({AuthService? authService, GoogleSignIn? googleSignIn})
-    : _authService = authService ?? AuthService(),
-      _googleSignIn = googleSignIn ?? GoogleSignIn();
+  ProfileApi({AuthService? authService})
+    : _authService = authService ?? AuthService();
 
   // Getters
-  GoogleSignInAccount? get account => _account;
   Map<String, dynamic>? get profileDetails => _profileDetails;
   bool get isLoading => _isLoading;
   String? get error => _error;
   String? get photoUrl => _cachedPhotoUrl;
   String? get email => _cachedEmail;
   String? get name => _cachedName;
-
-  String _getHighResPhotoUrl(String? photoUrl) {
-    if (photoUrl == null) return '';
-    // Remove any existing size parameters and get base URL
-    final baseUrl = photoUrl.split('=')[0];
-    // Add size parameter for highest resolution (s999)
-    return '$baseUrl=s999';
-  }
-
-  // Get original image URL without any size restrictions
-  String getOriginalPhotoUrl() {
-    if (_account?.photoUrl == null) return '';
-    return _account!.photoUrl!;
-  }
-
-  // Get high resolution image URL
-  String getHighResPhotoUrl() {
-    if (_account?.photoUrl == null) return '';
-    return _getHighResPhotoUrl(_account!.photoUrl);
-  }
+  String? get username => _cachedUsername;
 
   Future<void> _initPrefs() async {
     try {
@@ -72,9 +50,9 @@ class ProfileApi {
       _cachedPhotoUrl = _prefs.getString(_photoUrlKey);
       _cachedEmail = _prefs.getString(_emailKey);
       _cachedName = _prefs.getString(_nameKey);
+      _cachedUsername = _prefs.getString(_usernameKey);
     } catch (e) {
       _logger.severe('Error initializing preferences: $e');
-      // Continue without cached data
     }
   }
 
@@ -89,36 +67,21 @@ class ProfileApi {
       if (_cachedName != null) {
         await _prefs.setString(_nameKey, _cachedName!);
       }
-    } catch (e) {
-      _logger.severe('Error caching profile data: $e');
-      // Continue without caching
-    }
-  }
-
-  Future<void> _loadGoogleAccount() async {
-    try {
-      _account = await _googleSignIn.signInSilently();
-      if (_account != null) {
-        _cachedPhotoUrl = _getHighResPhotoUrl(_account!.photoUrl);
-        _cachedEmail = _account!.email;
-        _cachedName = _account!.displayName;
-        await _cacheProfileData();
+      if (_cachedUsername != null) {
+        await _prefs.setString(_usernameKey, _cachedUsername!);
       }
     } catch (e) {
-      _logger.severe('Error loading Google account: $e');
-      _error = 'Failed to load Google account';
+      _logger.severe('Error caching profile data: $e');
     }
   }
 
   Future<bool> _handleTokenExpiration(BuildContext context) async {
     try {
-      // Try to refresh the token
       final newToken = await _authService.refreshToken();
       if (newToken != null) {
         return true;
       }
 
-      // If refresh fails, logout and redirect to login
       if (context.mounted) {
         await logout(context);
       }
@@ -141,15 +104,19 @@ class ProfileApi {
 
       if (response.statusCode == 200) {
         _profileDetails = jsonDecode(response.body);
+        // Update cached data from profile details
+        _cachedPhotoUrl = _profileDetails?['profile_picture_url'];
+        _cachedEmail = _profileDetails?['email'];
+        _cachedName = '${_profileDetails?['first_name'] ?? ''} ${_profileDetails?['last_name'] ?? ''}'.trim();
+        _cachedUsername = _profileDetails?['username'];
+        await _cacheProfileData();
         _logger.info('Profile Details loaded successfully');
       } else if (response.statusCode == 401) {
-        // Token expired or invalid
         final responseBody = jsonDecode(response.body);
         if (responseBody['code'] == 'token_not_valid') {
           if (context.mounted) {
             final success = await _handleTokenExpiration(context);
             if (success) {
-              // Retry with new token
               final newToken = await _authService.getToken();
               if (newToken != null && context.mounted) {
                 await _loadProfileDetails(newToken, context);
@@ -175,15 +142,23 @@ class ProfileApi {
     profileNotifier.setError(null);
 
     try {
+      // Load cached data first
       await _initPrefs();
+      
+      // Immediately update Provider with cached data
+      if (context.mounted) {
+        profileNotifier.updateProfile(
+          name: _cachedName,
+          email: _cachedEmail,
+          photoUrl: _cachedPhotoUrl,
+          username: _cachedUsername,
+        );
+      }
 
+      // Then fetch fresh data
       await Future.wait([
-        // Minimum loading time
         Future.delayed(Duration(milliseconds: _minLoadingTime)),
-        // Actual data loading
         Future(() async {
-          await _loadGoogleAccount();
-
           final token = await _authService.getToken();
           if (token == null) {
             profileNotifier.setError('No authentication token available');
@@ -196,18 +171,13 @@ class ProfileApi {
         }),
       ]);
 
-      // Update Provider after loading profile data
+      // Update Provider with fresh data
       if (context.mounted) {
-        String? username;
-        if (_profileDetails != null && _profileDetails!['username'] != null) {
-          username = _profileDetails!['username'];
-        }
-        
         profileNotifier.updateProfile(
           name: _cachedName,
           email: _cachedEmail,
           photoUrl: _cachedPhotoUrl,
-          username: username,
+          username: _cachedUsername,
         );
       }
     } catch (e) {
@@ -223,15 +193,13 @@ class ProfileApi {
     try {
       await _authService.signOut();
       
-      // Initialize SharedPreferences before clearing
       _prefs = await SharedPreferences.getInstance();
       
-      // Clear cached data
       await _prefs.remove(_photoUrlKey);
       await _prefs.remove(_emailKey);
       await _prefs.remove(_nameKey);
+      await _prefs.remove(_usernameKey);
 
-      // Clear profile data from Provider
       profileNotifier.clearProfile();
 
       if (context.mounted) {

@@ -7,7 +7,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 import os
-from .serializers import UserRegistrationSerializer, UserLoginSerializer,UserSerializer
+from .serializers import UserRegistrationSerializer, UserLoginSerializer, UserSerializer
 from django.contrib.auth import authenticate
 from django.db.models import Q
 from django.core.exceptions import ValidationError
@@ -15,6 +15,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.decorators import permission_classes, api_view
 from rest_framework.exceptions import AuthenticationFailed
+from connections.models import Profile
 
 
 # Helper function to generate tokens and user data response
@@ -29,6 +30,7 @@ def get_tokens_for_user(user):
             'email': user.email,
             'first_name': user.first_name,
             'last_name': user.last_name,
+            'profile_picture_url': user.profile.profile_picture_url
         }
     }
 
@@ -39,6 +41,7 @@ class GoogleLoginAPIView(APIView):
 
     def post(self, request):
         token = request.data.get('id_token')
+        profile_picture_url = request.data.get('profile_picture_url')
         print('Received id_token:', token[:40] + '...' if token else None)
         google_client_id = os.environ.get('GOOGLE_CLIENT_ID') or '7120580451-cmn9dcuv9eo0la2path3u1uppeegh37f.apps.googleusercontent.com'
         print('GOOGLE_CLIENT_ID used for verification:', google_client_id)
@@ -86,6 +89,10 @@ class GoogleLoginAPIView(APIView):
                     last_name=last_name
                 )
             
+            # Update profile picture if provided (for both new and existing users)
+            if profile_picture_url:
+                user.profile.update_profile_picture(profile_picture_url)
+            
             # Generate JWT and return response
             return Response(get_tokens_for_user(user))
 
@@ -110,6 +117,10 @@ class UserRegistrationAPIView(APIView):
             serializer = UserRegistrationSerializer(data=request.data)
             if serializer.is_valid():
                 user = serializer.save()
+                # Handle profile picture URL if provided
+                profile_picture_url = request.data.get('profile_picture_url')
+                if profile_picture_url:
+                    user.profile.update_profile_picture(profile_picture_url)
                 # Generate JWT and return response
                 return Response(get_tokens_for_user(user), status=status.HTTP_201_CREATED)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -145,6 +156,10 @@ class UserLoginAPIView(APIView):
                     user = authenticate(username=user.username, password=password)
                     
                     if user:
+                        # Handle profile picture URL if provided
+                        profile_picture_url = request.data.get('profile_picture_url')
+                        if profile_picture_url:
+                            user.profile.update_profile_picture(profile_picture_url)
                         # Generate JWT and return response
                         return Response(get_tokens_for_user(user))
                     

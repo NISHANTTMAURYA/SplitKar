@@ -22,7 +22,8 @@ class Profile(TimeStampedModel):
     user = models.OneToOneField(User, on_delete=models.CASCADE) 
     profile_code = models.CharField(max_length=20, unique=True, db_index=True) 
     is_active = models.BooleanField(default=True) 
-     
+    profile_picture_url = models.URLField(max_length=500, blank=True, null=True)
+    
     class Meta: 
         indexes = [ 
             models.Index(fields=['profile_code']), 
@@ -54,7 +55,27 @@ class Profile(TimeStampedModel):
         if not self.profile_code: 
             self.profile_code = self.generate_unique_code() 
         super().save(*args, **kwargs) 
- 
+
+    def get_high_res_photo_url(self, photo_url):
+        """Convert profile picture URL to highest resolution version"""
+        if not photo_url:
+            return ''
+        # Remove any existing size parameters and get base URL
+        base_url = photo_url.split('=')[0]
+        # Add size parameter for highest resolution (s999)
+        return f'{base_url}=s999'
+    
+    def update_profile_picture(self, photo_url):
+        """Update profile picture with high resolution URL only if different"""
+        if not photo_url:
+            return
+            
+        high_res_url = self.get_high_res_photo_url(photo_url)
+        # Only update if the URL is different
+        if self.profile_picture_url != high_res_url:
+            self.profile_picture_url = high_res_url
+            self.save()
+
 class FriendRequestManager(models.Manager): 
     def send_request(self, from_user, to_user): 
         """Send friend request, handling duplicates gracefully""" 

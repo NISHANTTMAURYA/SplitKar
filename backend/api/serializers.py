@@ -3,6 +3,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
+from connections.models import Profile
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(
@@ -79,7 +80,13 @@ class UserLoginSerializer(serializers.Serializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
+    profile_picture_url = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name']
-        
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'profile_picture_url']
+    
+    def get_profile_picture_url(self, obj):
+        if hasattr(obj, 'profile') and obj.profile.profile_picture_url:
+            return obj.profile.profile_picture_url
+        return None

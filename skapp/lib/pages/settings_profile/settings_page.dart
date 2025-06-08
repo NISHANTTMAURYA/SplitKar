@@ -6,6 +6,7 @@ import 'package:skapp/pages/settings_profile/settings_api.dart';
 import 'package:skapp/widgets/custom_loader.dart';
 import 'package:provider/provider.dart';
 import 'package:skapp/main.dart'; // For ProfileNotifier
+import 'package:logging/logging.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -229,11 +230,31 @@ class _ProfileHeader extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          if (photoUrl != null) ...[
+          if (photoUrl != null && photoUrl!.isNotEmpty) ...[
             _ProfilePhoto(
               photoUrl: photoUrl!,
               screenWidth: screenWidth,
               screenHeight: screenHeight,
+            ),
+            SizedBox(height: screenHeight * 0.018),
+          ] else ...[
+            // Show default avatar if no photo URL
+            Container(
+              width: screenWidth * 0.3,
+              height: screenWidth * 0.3,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.grey[300],
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.inversePrimary,
+                  width: 3,
+                ),
+              ),
+              child: Icon(
+                Icons.person,
+                size: screenWidth * 0.15,
+                color: Colors.grey[600],
+              ),
             ),
             SizedBox(height: screenHeight * 0.018),
           ],
@@ -363,8 +384,9 @@ class _ProfilePhoto extends StatelessWidget {
   final String photoUrl;
   final double screenWidth;
   final double screenHeight;
+  final _logger = Logger('_ProfilePhoto');
 
-  const _ProfilePhoto({
+  _ProfilePhoto({
     required this.photoUrl,
     required this.screenWidth,
     required this.screenHeight,
@@ -403,6 +425,9 @@ class _ProfilePhoto extends StatelessWidget {
               image: NetworkImage(photoUrl),
               fit: BoxFit.cover,
               alignment: Alignment.center,
+              onError: (exception, stackTrace) {
+                _logger.warning('Failed to load profile image', exception, stackTrace);
+              },
             ),
             color: Colors.white,
           ),

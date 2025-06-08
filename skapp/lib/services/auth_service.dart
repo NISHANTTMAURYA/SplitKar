@@ -63,6 +63,7 @@ class AuthService {
         body: jsonEncode({
           'username_or_email': usernameOrEmail,
           'password': password,
+          'profile_picture_url': 'https://lh3.googleusercontent.com/a/default-user=s999', // Default high-res profile picture
         }),
       );
 
@@ -100,6 +101,7 @@ class AuthService {
           'password2': password2,
           'first_name': firstName,
           'last_name': lastName,
+          'profile_picture_url': 'https://lh3.googleusercontent.com/a/default-user=s999', // Default high-res profile picture
         }),
       );
 
@@ -139,11 +141,24 @@ class AuthService {
         return null;
       }
 
+      // Get the user's photo URL and convert to high resolution
+      String? photoUrl = account.photoUrl;
+      if (photoUrl != null) {
+        // Convert to high resolution URL
+        photoUrl = photoUrl.split('=')[0] + '=s999';
+        _logger.info('Using high-res profile picture URL: $photoUrl');
+      } else {
+        _logger.info('No profile picture URL available from Google account');
+      }
+
       _logger.info('Making API call to: $_baseUrl/auth/google/');
       final response = await http.post(
         Uri.parse('$_baseUrl/auth/google/'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'id_token': idToken}),
+        body: jsonEncode({
+          'id_token': idToken,
+          'profile_picture_url': photoUrl,
+        }),
       );
       _logger.info('HTTP Response Status: ${response.statusCode}');
       _logger.info('HTTP Response Body: ${response.body}');
