@@ -271,4 +271,25 @@ class PendingGroupInvitationSerializer(serializers.ModelSerializer):
             'status',
             'created_at',
             'expires_at'
-        ] 
+        ]
+
+class UserGroupListSerializer(serializers.ModelSerializer):
+    created_by = serializers.SerializerMethodField()
+    member_count = serializers.SerializerMethodField()
+    is_creator = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Group
+        fields = ['id', 'name', 'description', 'created_by', 'member_count', 'created_at', 'is_creator']
+
+    def get_created_by(self, obj):
+        return obj.created_by.username
+
+    def get_member_count(self, obj):
+        return obj.members.count()
+
+    def get_is_creator(self, obj):
+        request = self.context.get('request')
+        if request and request.user:
+            return obj.created_by == request.user
+        return False 

@@ -11,7 +11,7 @@ from .serializers import (
     UserProfileListSerializer, PendingFriendRequestSerializer,
     FriendListSerializer, GroupCreateSerializer, GroupInviteSerializer,
     GroupInvitationAcceptSerializer, GroupInvitationDeclineSerializer,
-    PendingGroupInvitationSerializer
+    PendingGroupInvitationSerializer, UserGroupListSerializer
 )
 
 # Create your views here.
@@ -276,4 +276,27 @@ def list_pending_group_invitations(request):
     return Response({
         'sent_invitations': sent_data,
         'received_invitations': received_data,
+    })
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def list_user_groups(request):
+    """
+    List all groups that the authenticated user is a member of.
+    Returns a list of groups with their details including:
+    - Group ID, name, and description
+    - Creator's username
+    - Member count
+    - Creation date
+    - Whether the current user is the creator
+    """
+    # Get all groups where the user is a member
+    user_groups = Group.objects.filter(members=request.user).select_related('created_by')
+    
+    # Serialize the groups
+    serializer = UserGroupListSerializer(user_groups, many=True, context={'request': request})
+    
+    return Response({
+        'groups': serializer.data,
+        'total_groups': len(serializer.data)
     })
