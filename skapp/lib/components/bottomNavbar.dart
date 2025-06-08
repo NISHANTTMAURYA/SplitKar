@@ -117,7 +117,8 @@ class _BottomNavbarState extends State<BottomNavbar>
       padding: EdgeInsets.only(
         bottom: 10 + MediaQuery.of(context).padding.bottom,
       ),
-      child: SizedBox(
+      child: Container(
+        color: Colors.transparent,
         height: 70,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),

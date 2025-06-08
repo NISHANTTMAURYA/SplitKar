@@ -17,7 +17,7 @@ class AppConfig {
 
   // Change this to switch between emulator and device
   static const bool useEmulator =
-      true; // Set to true if using emulator, false if using real device
+      false; // Set to true if using emulator, false if using real device
 
   static String get baseUrl => useEmulator ? emulatorBaseUrl : deviceBaseUrl;
 }

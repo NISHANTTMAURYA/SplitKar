@@ -18,7 +18,8 @@ class AppDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Drawer(
-      backgroundColor: Colors.deepPurple[400],
+      elevation: 0,
+      backgroundColor: Colors.deepPurple[400]!.withOpacity(1),
       child: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

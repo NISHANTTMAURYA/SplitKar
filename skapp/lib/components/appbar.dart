@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter/services.dart';
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
@@ -7,7 +8,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final bool page_color_white;
 
   const CustomAppBar({
-    super.key, 
+    super.key,
     required this.scaffoldKey,
     this.pageController,
     this.page_color_white=false
@@ -22,6 +23,21 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     final height = MediaQuery.of(context).size.height;
 
     return AppBar(
+      systemOverlayStyle: SystemUiOverlayStyle(
+        statusBarColor: page_color_white ? Colors.white : Colors.deepPurple,
+        statusBarIconBrightness: page_color_white ? Brightness.dark : Brightness.light,
+        statusBarBrightness: page_color_white ? Brightness.light : Brightness.dark,
+      ),
+
+      backgroundColor: page_color_white?Theme.of(context).colorScheme.inversePrimary:Theme.of(context).colorScheme.inversePrimary,
+      centerTitle: true,
+      bottom: PreferredSize(
+        preferredSize: Size.fromHeight(1), // height of the line
+        child: Container(
+          color: Colors.deepPurple[400], // color of the line
+          height: 0.8,
+        ),
+      ),
 
       leadingWidth: 80,
       leading: Padding(
@@ -32,9 +48,9 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
             child: Material(
               child: Ink(
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.inversePrimary,
+                  color: Colors.deepPurple[400],
                   border: Border.all(
-                    color: Theme.of(context).colorScheme.inversePrimary,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -52,8 +68,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
           ),
         ),
       ),
-      backgroundColor: page_color_white?Colors.white:Colors.transparent,
-      centerTitle: true,
+
       title: Center(
         child: GestureDetector(
           onTap: () {
@@ -67,7 +82,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
             }
           },
           child: Padding(
-            padding: const EdgeInsets.only(left: 0),
+            padding: const EdgeInsets.only(right: 20),
             child: Container(
               // color: Colors.white.withOpacity(0.7),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -81,6 +96,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                     style: GoogleFonts.cabin(
                       fontSize: 40,
                       fontWeight: FontWeight.w500,
+
                     ),
                   ),
                   const SizedBox(width: 2),
