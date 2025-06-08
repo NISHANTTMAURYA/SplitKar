@@ -234,6 +234,7 @@ class _LoginPageState extends State<LoginPage>
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(12),
                                     ),
+                                    side: BorderSide(color: Colors.black, width: 1.5),
                                   ),
                                 ),
                                 SizedBox(height: 12),

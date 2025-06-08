@@ -109,7 +109,7 @@ class ProfileApi {
     }
   }
 
-  Future<void> loadAllProfileData(BuildContext context) async {
+  Future<void> loadAllProfileData(BuildContext context, {bool forceRefresh = false}) async {
     final profileNotifier = Provider.of<ProfileNotifier>(context, listen: false);
     profileNotifier.setLoading(true);
     profileNotifier.setError(null);
@@ -143,8 +143,8 @@ class ProfileApi {
 
       if (isOnline) {
         // When online, check if we need to refresh data
-        if (!isCacheValid || _cachedName == null) {
-          _logger.info('Cache invalid or missing - making API call');
+        if (forceRefresh || !isCacheValid || _cachedName == null) {
+          _logger.info('Cache invalid, missing, or force refresh - making API call');
           final token = await _authService.getToken();
           if (token == null) {
             if (_cachedName == null) {
@@ -189,6 +189,7 @@ class ProfileApi {
 
       _logger.info('Profile API response status: ${response.statusCode}');
       _logger.info('Profile API response body: ${response.body}');
+      _logger.info('Full profile API response: ${response.body}');
 
       if (response.statusCode == 200) {
         _profileDetails = jsonDecode(response.body);

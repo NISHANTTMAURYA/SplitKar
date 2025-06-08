@@ -118,7 +118,7 @@ class _SettingsPageState extends State<SettingsPage> {
       ),
       body: RefreshIndicator(
         onRefresh: () async {
-          await ProfileApi().loadAllProfileData(context);
+          await ProfileApi().loadAllProfileData(context, forceRefresh: true);
         },
         child: _ProfileContent(
           profile: profile,

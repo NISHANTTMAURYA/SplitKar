@@ -31,7 +31,7 @@ class _MainPageState extends State<MainPage> {
 
     // Defer profile loading until after the first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ProfileApi().loadAllProfileData(context);
+      ProfileApi().loadAllProfileData(context, forceRefresh: true);
     });
 
     // Initialize pages map here where we have access to _scaffoldKey
