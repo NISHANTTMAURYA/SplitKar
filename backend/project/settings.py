@@ -33,7 +33,9 @@ ALLOWED_HOSTS = [
     '127.0.0.1',
     '10.0.2.2',
     '192.168.29.203',
+    'be89-2405-201-27-518b-f85e-60cd-3a60-1eb9.ngrok-free.app',
 ]
+
 
 
 # Application definition
@@ -270,3 +272,6 @@ SIMPLE_JWT = {
 
 # CORS settings
 CORS_ALLOW_ALL_ORIGINS = True
+CSRF_TRUSTED_ORIGINS = [
+    'https://be89-2405-201-27-518b-f85e-60cd-3a60-1eb9.ngrok-free.app',
+]
