@@ -98,10 +98,10 @@ def decline_friend_request(request):
 @permission_classes([IsAuthenticated])
 def list_users_with_profiles(request):
     """
-    List all users with their profile codes.
+    List all users with their profile codes, excluding the current user.
     Returns a list of users with their usernames and profile codes.
     """
-    profiles = Profile.objects.select_related('user').all()
+    profiles = Profile.objects.select_related('user').exclude(user=request.user)
     serializer = UserProfileListSerializer(profiles, many=True)
     return Response(serializer.data)
 
