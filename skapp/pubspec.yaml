@@ -78,6 +78,8 @@ flutter:
     - assets/loaders/loader2.json
     - assets/images/loader3.json
     - assets/images/loader4.json
+    - assets/images/peeking.webp
+    - assets/images/peeking_crop.png
    
 
 

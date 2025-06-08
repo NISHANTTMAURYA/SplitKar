@@ -210,12 +210,13 @@ class AuthService {
     _logger.info('Token validation - Online status: $isOnline');
 
     if (isOnline) {
-      // When online, always validate token with backend first
+      // When online, validate token with backend
       final isValid = await _validateTokenOnline(token);
       if (!isValid) {
-        // If validation fails, try to refresh token
-        _logger.info('Token validation failed, attempting refresh');
-        return await _handleTokenRefresh();
+        // If validation fails, just logout immediately
+        _logger.info('Token validation failed - logging out');
+        await signOut();
+        return false;
       }
       return true;
     } else {
@@ -254,10 +255,14 @@ class AuthService {
         _logger.info('Token validated successfully with backend');
         return true;
       }
+      
+      // Any non-200 response means we should logout
       _logger.warning('Token validation failed with status: ${response.statusCode}');
+      await signOut();
       return false;
     } catch (e) {
       _logger.warning('Token validation failed: $e');
+      await signOut();
       return false;
     }
   }
@@ -290,6 +295,8 @@ class AuthService {
         );
         return true;
       }
+      // If refresh failed and returned null, we should sign out
+      await signOut();
       return false;
     } catch (e) {
       _logger.severe('Token refresh failed: $e');
@@ -346,6 +353,7 @@ class AuthService {
       final refreshToken = await getRefreshToken();
       if (refreshToken == null) {
         _logger.warning('No refresh token available');
+        await signOut(); // Clear all tokens if refresh token is missing
         return null;
       }
 
@@ -369,12 +377,15 @@ class AuthService {
         
         return newAccessToken;
       } else {
-        _logger.severe('Token refresh failed: ${response.statusCode}');
-        return await getToken();  // Return existing token if refresh fails
+        // Any non-200 response means we should logout
+        _logger.warning('Token refresh failed with status: ${response.statusCode}');
+        await signOut();
+        return null;
       }
     } catch (e) {
-      _logger.warning('Error refreshing token - using existing token: $e');
-      return await getToken();  // Return existing token on error
+      _logger.warning('Error refreshing token: $e');
+      await signOut();
+      return null;
     }
   }
 } 

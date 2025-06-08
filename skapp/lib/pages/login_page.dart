@@ -86,97 +86,189 @@ class _LoginPageState extends State<LoginPage>
 
   @override
   Widget build(BuildContext context) {
+    double height = MediaQuery.of(context).size.height;
+    final TextScaler textScaler = MediaQuery.of(context).textScaler;
+
     return Scaffold(
-      appBar: AppBar(title: Text('Login'), centerTitle: true),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.all(16.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  'Welcome Back!',
-                  style: Theme.of(context).textTheme.headlineMedium,
-                  textAlign: TextAlign.center,
-                ),
-                SizedBox(height: 32),
-                AnimatedTextField(
-                  controller: _usernameController,
-                  label: 'Username or Email',
-                  prefixIcon: Icons.person,
-                  focusNode: _usernameFocus,
-                  isEmail: true,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your username or email';
-                    }
-                    return null;
-                  },
-                ),
-                SizedBox(height: 16),
-                AnimatedTextField(
-                  controller: _passwordController,
-                  label: 'Password',
-                  prefixIcon: Icons.lock,
-                  focusNode: _passwordFocus,
-                  isPassword: true,
-                  obscureText: _obscurePassword,
-                  onTogglePassword: () =>
-                      setState(() => _obscurePassword = !_obscurePassword),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your password';
-                    }
-                    return null;
-                  },
-                ),
-                SizedBox(height: 24),
-                ElevatedButton(
-                  onPressed: isLoading ? null : _handleLogin,
-                  style: ElevatedButton.styleFrom(
-                    padding: EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+      resizeToAvoidBottomInset: true,
+      body: SingleChildScrollView(
+        child: SizedBox(
+          height: height,
+          child: Stack(
+            children: [
+              // Background sections
+              Column(
+                children: [
+                  // Top section (white/background)
+                  Expanded(
+                    flex: 1, // Reduced from 2
+                    child: Container(
+                      width: double.infinity,
+                      color: Theme.of(context).scaffoldBackgroundColor,
                     ),
                   ),
-                  child: isLoading
-                      ? CustomLoader(isButtonLoader: true)
-                      : Text('Login'),
-                ),
-                SizedBox(height: 16),
-                Text(
-                  'OR',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.grey,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                SizedBox(height: 16),
-                OutlinedButton.icon(
-                  onPressed: isLoading ? null : _handleGoogleSignIn,
-                  icon: Image.asset(
-                    'assets/images/google_logo.png',
-                    height: 24,
-                  ),
-                  label: Text('Sign in with Google'),
-                  style: OutlinedButton.styleFrom(
-                    padding: EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                  // Purple container - increased height
+                  Expanded(
+                    flex: 3, // Increased from 4
+                    child: Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: Colors.deepPurple[400],
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(150),
+                        ),
+                        border: Border.all(color: Colors.black, width: 2),
+                      ),
+                      child: SafeArea(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 22.0,
+                            vertical: 16.0,
+                          ),
+                          child: Form(
+                            key: _formKey,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                SizedBox(
+                                  height: 60,
+                                ), // Extra space for overlapping image
+                                Text(
+                                  'Welcome Back!',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .headlineMedium
+                                      ?.copyWith(
+                                        color: Colors.black,
+                                        fontSize: textScaler.scale(
+                                          Theme.of(context)
+                                                  .textTheme
+                                                  .headlineMedium
+                                                  ?.fontSize ??
+                                              24.0,
+                                        ),
+                                      ),
+                                  textAlign: TextAlign.center,
+                                ),
+                                SizedBox(height: 24),
+                                AnimatedTextField(
+                                  controller: _usernameController,
+                                  label: 'Username or Email',
+                                  prefixIcon: Icons.person,
+                                  focusNode: _usernameFocus,
+                                  isEmail: true,
+                                  validator: (value) {
+                                    if (value == null || value.isEmpty) {
+                                      return 'Please enter your username or email';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                                SizedBox(height: 12),
+                                AnimatedTextField(
+                                  controller: _passwordController,
+                                  label: 'Password',
+                                  prefixIcon: Icons.lock,
+                                  focusNode: _passwordFocus,
+                                  isPassword: true,
+                                  obscureText: _obscurePassword,
+                                  onTogglePassword: () => setState(
+                                    () => _obscurePassword = !_obscurePassword,
+                                  ),
+                                  validator: (value) {
+                                    if (value == null || value.isEmpty) {
+                                      return 'Please enter your password';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                                SizedBox(height: 20),
+                                ElevatedButton(
+                                  onPressed: isLoading ? null : _handleLogin,
+                                  style: ElevatedButton.styleFrom(
+                                    padding: EdgeInsets.symmetric(vertical: 14),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                  child: isLoading
+                                      ? CustomLoader(isButtonLoader: true)
+                                      : Text(
+                                          'Login',
+                                          style: TextStyle(
+                                            color: Colors.black,
+                                            fontSize: textScaler.scale(16.0),
+                                          ),
+                                        ),
+                                ),
+                                SizedBox(height: 12),
+                                Text(
+                                  'OR',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: textScaler.scale(14.0),
+                                  ),
+                                ),
+                                SizedBox(height: 12),
+                                OutlinedButton.icon(
+                                  onPressed: isLoading
+                                      ? null
+                                      : _handleGoogleSignIn,
+                                  icon: Image.asset(
+                                    'assets/images/google_logo.png',
+                                    height: 20,
+                                  ),
+                                  label: Text(
+                                    'Sign in with Google',
+                                    style: TextStyle(
+                                      color: Colors.black,
+                                      fontSize: textScaler.scale(14.0),
+                                    ),
+                                  ),
+                                  style: OutlinedButton.styleFrom(
+                                    padding: EdgeInsets.symmetric(vertical: 14),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(height: 12),
+                                TextButton(
+                                  onPressed: _navigateToRegister,
+                                  child: Text(
+                                    'Don\'t have an account? Register',
+                                    style: TextStyle(
+                                      color: Colors.black,
+                                      fontSize: textScaler.scale(14.0),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
                   ),
+                ],
+              ),
+              // Image positioned to overlap the purple container
+              Positioned(
+                top:
+                    height *
+                    0.092, // Moved up from 0.12 to bring hands above container
+                left: 120, // Adjust horizontal position
+                child: Image.asset(
+                  'assets/images/peeking_crop.png',
+                  height: height * 0.22, // Fixed height
+                  // Fixed width to prevent size changes
+                  fit: BoxFit.contain, // Maintain aspect ratio
                 ),
-                SizedBox(height: 24),
-                TextButton(
-                  onPressed: _navigateToRegister,
-                  child: Text('Don\'t have an account? Register'),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
