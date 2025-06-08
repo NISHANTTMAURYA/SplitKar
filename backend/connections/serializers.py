@@ -103,4 +103,12 @@ class PendingFriendRequestSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = FriendRequest
-        fields = ['request_id', 'from_username', 'to_username', 'created_at'] 
+        fields = ['request_id', 'from_username', 'to_username', 'created_at']
+
+class FriendListSerializer(serializers.ModelSerializer):
+    profile_code = serializers.CharField(source='profile.profile_code')
+    profile_picture_url = serializers.CharField(source='profile.profile_picture_url', allow_null=True)
+    
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'profile_code', 'profile_picture_url'] 

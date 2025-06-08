@@ -4,8 +4,13 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
-from .models import Profile, FriendRequest
-from .serializers import ProfileLookupSerializer, FriendRequestByCodeSerializer, FriendRequestAcceptSerializer, FriendRequestDeclineSerializer, UserProfileListSerializer, PendingFriendRequestSerializer
+from .models import Profile, FriendRequest, Friendship
+from .serializers import (
+    ProfileLookupSerializer, FriendRequestByCodeSerializer, 
+    FriendRequestAcceptSerializer, FriendRequestDeclineSerializer, 
+    UserProfileListSerializer, PendingFriendRequestSerializer,
+    FriendListSerializer
+)
 
 # Create your views here.
 
@@ -136,3 +141,14 @@ def list_pending_friend_requests(request):
         'sent_requests': sent_data,
         'received_requests': received_data,
     })
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_friends_list(request):
+    """
+    Get a list of all friends for the authenticated user.
+    Returns a list of friends with their usernames, profile codes, and profile pictures.
+    """
+    friends = Friendship.objects.friends_of(request.user)
+    serializer = FriendListSerializer(friends, many=True)
+    return Response(serializer.data)
