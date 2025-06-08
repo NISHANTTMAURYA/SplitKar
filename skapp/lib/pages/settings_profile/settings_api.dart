@@ -16,7 +16,7 @@ class ProfileApi {
   static const String _nameKey = 'cached_name';
   static const String _usernameKey = 'cached_username';
   static const String _cacheExpiryKey = 'profile_cache_expiry';
-  static const Duration _cacheValidity = Duration(hours: 24);
+  static const Duration _cacheValidity = Duration(minutes: 5);
   static const int _minLoadingTime = 500; // milliseconds
 
   final AuthService _authService;
@@ -72,11 +72,12 @@ class ProfileApi {
       if (_cachedUsername != null) {
         await _prefs.setString(_usernameKey, _cachedUsername!);
       }
-      // Update cache expiry
+      // Update cache expiry to 5 minutes from now
       await _prefs.setString(
         _cacheExpiryKey,
         DateTime.now().add(_cacheValidity).toIso8601String(),
       );
+      _logger.info('Cache expiry set to: ${DateTime.now().add(_cacheValidity).toIso8601String()}');
     } catch (e) {
       _logger.severe('Error caching profile data: $e');
     }
@@ -85,8 +86,23 @@ class ProfileApi {
   Future<bool> _isCacheValid() async {
     try {
       final cacheExpiry = await _prefs.getString(_cacheExpiryKey);
-      if (cacheExpiry == null) return false;
-      return DateTime.now().isBefore(DateTime.parse(cacheExpiry));
+      _logger.info('Cache expiry from storage: $cacheExpiry');
+      
+      if (cacheExpiry == null) {
+        _logger.info('No cache expiry found - cache is invalid');
+        return false;
+      }
+      
+      final expiryDate = DateTime.parse(cacheExpiry);
+      final now = DateTime.now();
+      final isValid = now.isBefore(expiryDate);
+      
+      _logger.info('Cache validation:');
+      _logger.info('- Current time: $now');
+      _logger.info('- Expiry time: $expiryDate');
+      _logger.info('- Is valid: $isValid');
+      
+      return isValid;
     } catch (e) {
       _logger.warning('Error checking cache validity: $e');
       return false;
@@ -101,6 +117,11 @@ class ProfileApi {
     try {
       // First load cached data
       await _initPrefs();
+      _logger.info('Loaded cached data:');
+      _logger.info('- Name: ${_cachedName != null ? 'Found' : 'Not found'}');
+      _logger.info('- Email: ${_cachedEmail != null ? 'Found' : 'Not found'}');
+      _logger.info('- Photo URL: ${_cachedPhotoUrl != null ? 'Found' : 'Not found'}');
+      _logger.info('- Username: ${_cachedUsername != null ? 'Found' : 'Not found'}');
       
       // Update UI with cached data immediately if available
       if (context.mounted && _cachedName != null) {
@@ -112,16 +133,21 @@ class ProfileApi {
         );
       }
 
-      // Check if we need to fetch fresh data
-      final shouldFetchFresh = !await _isCacheValid() && await _authService.isOnline();
+      // Check online status
+      final isOnline = await _authService.isOnline();
+      _logger.info('Profile data loading decision:');
+      _logger.info('- Online status: $isOnline');
 
-      if (shouldFetchFresh) {
+      if (isOnline) {
+        // When online, always make API call in background
+        _logger.info('Online - making API call in background');
         await Future.wait([
           Future.delayed(Duration(milliseconds: _minLoadingTime)),
           Future(() async {
             final token = await _authService.getToken();
+            _logger.info('Token available: ${token != null}');
             if (token == null) {
-              if (_cachedName == null) {  // Only show error if we have no cached data
+              if (_cachedName == null) {
                 profileNotifier.setError('No authentication token available');
               }
               return;
@@ -132,10 +158,20 @@ class ProfileApi {
             }
           }),
         ]);
+      } else {
+        // When offline, use cache if available
+        final isCacheValid = await _isCacheValid();
+        _logger.info('Offline mode:');
+        _logger.info('- Cache valid: $isCacheValid');
+        _logger.info('- Has cached data: ${_cachedName != null}');
+        
+        if (!isCacheValid && _cachedName == null) {
+          profileNotifier.setError('No cached data available');
+        }
       }
     } catch (e) {
       _logger.severe('Error in loadAllProfileData: $e');
-      if (_cachedName == null) {  // Only show error if we have no cached data
+      if (_cachedName == null) {
         profileNotifier.setError('Error loading profile data');
       }
     } finally {
@@ -145,10 +181,13 @@ class ProfileApi {
 
   Future<void> _loadProfileDetails(String token, BuildContext context) async {
     try {
+      _logger.info('Making API call to /profile/');
       final response = await http.get(
         Uri.parse('${AppConfig.baseUrl}/profile/'),
         headers: {'Authorization': 'Bearer $token'},
       ).timeout(Duration(seconds: 10));
+
+      _logger.info('Profile API response status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         _profileDetails = jsonDecode(response.body);

@@ -205,37 +205,35 @@ class AuthService {
     final token = await getToken();
     if (token == null) return false;
 
-    // Check if token is expired based on stored expiry
-    final expiry = await _secureStorage.read(key: _tokenExpiryKey);
-    if (expiry != null) {
-      final expiryDate = DateTime.parse(expiry);
-      if (DateTime.now().isAfter(expiryDate)) {
-        _logger.info('Token expired, attempting refresh');
+    // First check if we're online
+    final isOnline = await this.isOnline();
+    _logger.info('Token validation - Online status: $isOnline');
+
+    if (isOnline) {
+      // When online, always validate token with backend first
+      final isValid = await _validateTokenOnline(token);
+      if (!isValid) {
+        // If validation fails, try to refresh token
+        _logger.info('Token validation failed, attempting refresh');
         return await _handleTokenRefresh();
       }
-    }
-
-    // Check last validation time
-    final lastValidated = await _secureStorage.read(key: _lastValidatedKey);
-    if (lastValidated != null) {
-      final lastValidatedDate = DateTime.parse(lastValidated);
-      // If validated within last 24 hours and we have a token, assume valid
-      if (DateTime.now().difference(lastValidatedDate).inHours < 24) {
-        return true;
+      return true;
+    } else {
+      // When offline, only check if token exists and isn't expired
+      final expiry = await _secureStorage.read(key: _tokenExpiryKey);
+      if (expiry != null) {
+        final expiryDate = DateTime.parse(expiry);
+        final isValid = DateTime.now().isBefore(expiryDate);
+        _logger.info('Offline token check - Valid: $isValid');
+        return isValid;
       }
+      return false;
     }
-
-    // Try to validate token if we're online
-    if (await isOnline()) {
-      return await _validateTokenOnline(token);
-    }
-
-    // Offline fallback: if we have a token and it's not expired, assume valid
-    return true;
   }
 
   Future<bool> _validateTokenOnline(String token) async {
     try {
+      _logger.info('Validating token with backend...');
       final response = await http.post(
         Uri.parse('$_baseUrl/auth/validate/'),
         headers: {
@@ -245,19 +243,37 @@ class AuthService {
         body: jsonEncode({'token': token}),
       ).timeout(Duration(seconds: 5));
 
+      _logger.info('Token validation response status: ${response.statusCode}');
+      
       if (response.statusCode == 200) {
         // Update last validated timestamp
         await _secureStorage.write(
           key: _lastValidatedKey,
           value: DateTime.now().toIso8601String(),
         );
+        _logger.info('Token validated successfully with backend');
         return true;
       }
+      _logger.warning('Token validation failed with status: ${response.statusCode}');
       return false;
     } catch (e) {
       _logger.warning('Token validation failed: $e');
       return false;
     }
+  }
+
+  // Force token validation regardless of cache
+  Future<bool> forceTokenValidation() async {
+    final token = await getToken();
+    if (token == null) return false;
+
+    final isOnline = await this.isOnline();
+    if (!isOnline) {
+      _logger.info('Cannot force validate - device is offline');
+      return false;
+    }
+
+    return await _validateTokenOnline(token);
   }
 
   Future<bool> _handleTokenRefresh() async {
@@ -266,8 +282,8 @@ class AuthService {
     try {
       final newToken = await refreshToken();
       if (newToken != null) {
-        // Update token expiry to match backend (1 day)
-        final expiry = DateTime.now().add(Duration(days: 1));
+        // Update token expiry to match backend (5 minutes for JWT)
+        final expiry = DateTime.now().add(Duration(minutes: 5));
         await _secureStorage.write(
           key: _tokenExpiryKey,
           value: expiry.toIso8601String(),
@@ -285,8 +301,8 @@ class AuthService {
     await _secureStorage.write(key: _tokenKey, value: accessToken);
     await _secureStorage.write(key: _refreshTokenKey, value: refreshToken);
     
-    // Set token expiry to match backend (1 day)
-    final expiry = DateTime.now().add(Duration(days: 1));
+    // Set token expiry to match backend (5 minutes for JWT)
+    final expiry = DateTime.now().add(Duration(minutes: 5));
     await _secureStorage.write(
       key: _tokenExpiryKey,
       value: expiry.toIso8601String(),
@@ -345,7 +361,7 @@ class AuthService {
         await _secureStorage.write(key: _tokenKey, value: newAccessToken);
         
         // Update token expiry
-        final expiry = DateTime.now().add(Duration(days: 7));
+        final expiry = DateTime.now().add(Duration(minutes: 5));
         await _secureStorage.write(
           key: _tokenExpiryKey,
           value: expiry.toIso8601String(),

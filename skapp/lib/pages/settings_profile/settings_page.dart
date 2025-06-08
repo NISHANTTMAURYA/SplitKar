@@ -115,10 +115,15 @@ class _SettingsPageState extends State<SettingsPage> {
         labels: labels,
         icons: icons,
       ),
-      body: _ProfileContent(
-        profile: profile,
-        screenWidth: ScreenWidth,
-        screenHeight: ScreenHeight,
+      body: RefreshIndicator(
+        onRefresh: () async {
+          await ProfileApi().loadAllProfileData(context);
+        },
+        child: _ProfileContent(
+          profile: profile,
+          screenWidth: ScreenWidth,
+          screenHeight: ScreenHeight,
+        ),
       ),
     );
   }
@@ -137,7 +142,8 @@ class _ProfileContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return ListView(
+      physics: AlwaysScrollableScrollPhysics(), // Enable scrolling even when content is small
       children: [
         _ProfileHeader(
           photoUrl: profile.photoUrl,
@@ -147,53 +153,45 @@ class _ProfileContent extends StatelessWidget {
           screenWidth: screenWidth,
           screenHeight: screenHeight,
         ),
-        Expanded(
-          child: SingleChildScrollView(
-            child: Column(
-              children: [
-                SizedBox(height: screenHeight * 0.01),
-                Padding(
-                  padding: EdgeInsets.only(left: screenWidth * 0.07, top: screenHeight * 0.01, right: screenWidth * 0.07),
-                  child: Align(
-                    alignment: Alignment.center,
-                    child: Text(
-                      'Hi, ${profile.name ?? 'No Name'}!!!',
-                      style: TextStyle(
-                        fontSize: screenWidth * 0.06,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
-                    ),
-                  ),
-                ),
-                SizedBox(height: screenHeight * 0.025),
-                Container(
-                  margin: EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
-                  padding: EdgeInsets.symmetric(vertical: screenHeight * 0.01),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(18),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.deepPurple.withOpacity(0.06),
-                        blurRadius: 8,
-                        offset: Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: _SettingsOptionsList(
-                    onLogout: () async {
-                      await ProfileApi().logout(context);
-                    },
-                    screenWidth: screenWidth,
-                    screenHeight: screenHeight,
-                  ),
-                ),
-                SizedBox(height: 24),
-              ],
+        SizedBox(height: screenHeight * 0.01),
+        Padding(
+          padding: EdgeInsets.only(left: screenWidth * 0.07, top: screenHeight * 0.01, right: screenWidth * 0.07),
+          child: Align(
+            alignment: Alignment.center,
+            child: Text(
+              'Hi, ${profile.name ?? 'No Name'}!!!',
+              style: TextStyle(
+                fontSize: screenWidth * 0.06,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
             ),
           ),
         ),
+        SizedBox(height: screenHeight * 0.025),
+        Container(
+          margin: EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
+          padding: EdgeInsets.symmetric(vertical: screenHeight * 0.01),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.deepPurple.withOpacity(0.06),
+                blurRadius: 8,
+                offset: Offset(0, 2),
+              ),
+            ],
+          ),
+          child: _SettingsOptionsList(
+            onLogout: () async {
+              await ProfileApi().logout(context);
+            },
+            screenWidth: screenWidth,
+            screenHeight: screenHeight,
+          ),
+        ),
+        SizedBox(height: 24),
       ],
     );
   }
