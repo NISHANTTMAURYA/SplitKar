@@ -4,6 +4,8 @@ import 'package:skapp/pages/main_page.dart';
 import 'package:skapp/utils/async_action_mixin.dart';
 import 'package:skapp/widgets/animated_text_field.dart';
 import 'package:skapp/widgets/custom_loader.dart';
+import 'package:skapp/services/navigation_service.dart';
+import 'package:provider/provider.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -64,8 +66,9 @@ class _RegisterPageState extends State<RegisterPage>
   Future<void> _handleRegister() async {
     if (!_formKey.currentState!.validate()) return;
 
+    final navigationService = Provider.of<NavigationService>(context, listen: false);
     await handleAsyncAction(
-          () => _authService.register(
+      () => _authService.register(
         username: _usernameController.text.trim(),
         email: _emailController.text.trim(),
         password: _passwordController.text,
@@ -75,12 +78,13 @@ class _RegisterPageState extends State<RegisterPage>
       ),
       context,
       navigateOnSuccess: true,
-      successPage: MainPage(),
+      onSuccess: () => navigationService.navigateToMain(),
     );
   }
 
   void _navigateBack() {
-    Navigator.of(context).pop();
+    final navigationService = Provider.of<NavigationService>(context, listen: false);
+    navigationService.goBack();
   }
 
   @override

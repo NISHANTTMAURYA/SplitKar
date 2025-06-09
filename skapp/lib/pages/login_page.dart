@@ -6,6 +6,8 @@ import 'package:skapp/utils/async_action_mixin.dart';
 import 'package:skapp/widgets/animated_text_field.dart';
 import 'package:skapp/widgets/custom_loader.dart';
 import 'package:flutter/services.dart';
+import 'package:skapp/services/navigation_service.dart';
+import 'package:provider/provider.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -45,6 +47,7 @@ class _LoginPageState extends State<LoginPage>
   Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
 
+    final navigationService = Provider.of<NavigationService>(context, listen: false);
     await handleAsyncAction(
       () => _authService.loginWithEmailOrUsername(
         _usernameController.text.trim(),
@@ -52,20 +55,22 @@ class _LoginPageState extends State<LoginPage>
       ),
       context,
       navigateOnSuccess: true,
-      successPage: MainPage(),
+      onSuccess: () => navigationService.navigateToMain(),
     );
   }
 
   Future<void> _handleGoogleSignIn() async {
+    final navigationService = Provider.of<NavigationService>(context, listen: false);
     await handleAsyncAction(
       () => _authService.signInWithGoogle(),
       context,
       navigateOnSuccess: true,
-      successPage: MainPage(),
+      onSuccess: () => navigationService.navigateToMain(),
     );
   }
 
   void _navigateToRegister() {
+    final navigationService = Provider.of<NavigationService>(context, listen: false);
     Navigator.of(context).push(
       PageRouteBuilder(
         pageBuilder: (context, animation, secondaryAnimation) => RegisterPage(),

@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import '../main.dart'; // For ProfileNotifier
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:skapp/widgets/custom_loader.dart';
+import 'package:skapp/pages/main_page.dart';
+import 'package:skapp/services/navigation_service.dart';
 
 class AppDrawer extends StatelessWidget {
   final int selectedIndex;
@@ -22,6 +24,9 @@ class AppDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final profile = Provider.of<ProfileNotifier>(context);
+    final navigationService = Provider.of<NavigationService>(context, listen: false);
+    final currentRoute = ModalRoute.of(context)?.settings.name;
+
     return Drawer(
       elevation: 0,
       backgroundColor: Colors.deepPurple[400]!.withOpacity(1),
@@ -121,7 +126,7 @@ class AppDrawer extends StatelessWidget {
                         ),
                         onPressed: () {
                           Navigator.pop(context);
-                          Navigator.pushNamed(context, '/settings');
+                          navigationService.navigateToSettings();
                         },
                         icon: Icon(Icons.settings, color: Colors.white),
                         label: Text('Profile Settings', style: GoogleFonts.cabin()),
@@ -144,8 +149,18 @@ class AppDrawer extends StatelessWidget {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   contentPadding: EdgeInsets.symmetric(horizontal: 24, vertical: 2),
                   onTap: () {
-                    Navigator.pop(context);
-                    onItemSelected(index);
+                    Navigator.pop(context); // Close drawer
+                    
+                    if (currentRoute == '/settings') {
+                      // If we're on settings page, navigate to main with the selected index
+                      navigationService.navigateToMain(initialIndex: index);
+                    } else if (currentRoute == '/main') {
+                      // If we're already on main page, just switch tabs
+                      onItemSelected(index);
+                    } else {
+                      // For any other route, navigate to main with the selected index
+                      navigationService.navigateToMain(initialIndex: index);
+                    }
                   },
                   hoverColor: Colors.deepPurple[200]?.withOpacity(0.15),
                 );

@@ -9,6 +9,7 @@ import 'package:skapp/main.dart'; // For ProfileNotifier
 import 'package:logging/logging.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:skapp/pages/settings_profile/edit_profile_page.dart';
+import 'package:skapp/services/navigation_service.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -31,22 +32,24 @@ class _SettingsPageState extends State<SettingsPage> {
     final ScreenHeight = MediaQuery.of(context).size.height;
     final ScreenWidth = MediaQuery.of(context).size.width;
     final profile = Provider.of<ProfileNotifier>(context);
+    final navigationService = Provider.of<NavigationService>(context, listen: false);
 
     // Show loader if profile data is loading
     if (profile.isLoading) {
       return Scaffold(
         key: _scaffoldKey,
-        appBar: CustomAppBar(scaffoldKey: _scaffoldKey, is_bottom_needed: false),
+        appBar: CustomAppBar(
+          scaffoldKey: _scaffoldKey,
+          is_bottom_needed: false,
+          onBackPressed: () {
+            navigationService.popUntilMain();
+          },
+        ),
         drawer: AppDrawer(
           selectedIndex: -1,
           onItemSelected: (index) {
             _scaffoldKey.currentState?.closeDrawer();
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => MainPage(initialIndex: index),
-              ),
-            );
+            navigationService.navigateToMain(initialIndex: index);
           },
           labels: labels,
           icons: icons,
@@ -59,17 +62,18 @@ class _SettingsPageState extends State<SettingsPage> {
     if (profile.error != null && profile.error!.isNotEmpty) {
       return Scaffold(
         key: _scaffoldKey,
-        appBar: CustomAppBar(scaffoldKey: _scaffoldKey, is_bottom_needed: false),
+        appBar: CustomAppBar(
+          scaffoldKey: _scaffoldKey,
+          is_bottom_needed: false,
+          onBackPressed: () {
+            navigationService.popUntilMain();
+          },
+        ),
         drawer: AppDrawer(
           selectedIndex: -1,
           onItemSelected: (index) {
             _scaffoldKey.currentState?.closeDrawer();
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => MainPage(initialIndex: index),
-              ),
-            );
+            navigationService.navigateToMain(initialIndex: index);
           },
           labels: labels,
           icons: icons,
@@ -101,17 +105,18 @@ class _SettingsPageState extends State<SettingsPage> {
     // Show profile content if data is available
     return Scaffold(
       key: _scaffoldKey,
-      appBar: CustomAppBar(scaffoldKey: _scaffoldKey, is_bottom_needed: false),
+      appBar: CustomAppBar(
+        scaffoldKey: _scaffoldKey,
+        is_bottom_needed: false,
+        onBackPressed: () {
+          navigationService.popUntilMain();
+        },
+      ),
       drawer: AppDrawer(
         selectedIndex: -1,
         onItemSelected: (index) {
           _scaffoldKey.currentState?.closeDrawer();
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => MainPage(initialIndex: index),
-            ),
-          );
+          navigationService.navigateToMain(initialIndex: index);
         },
         labels: labels,
         icons: icons,

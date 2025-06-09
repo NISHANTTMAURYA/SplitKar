@@ -6,6 +6,8 @@ import 'package:skapp/pages/groups.dart';
 import 'package:skapp/pages/freinds.dart';
 import 'package:skapp/pages/activity.dart';
 import 'package:skapp/pages/settings_profile/settings_api.dart';
+import 'package:provider/provider.dart';
+import 'package:skapp/services/navigation_service.dart';
 
 class MainPage extends StatefulWidget {
   final int? initialIndex;

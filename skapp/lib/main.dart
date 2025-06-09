@@ -3,12 +3,14 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:skapp/components/auth_wrapper.dart';
+import 'package:skapp/pages/main_page.dart';
 import 'package:skapp/pages/settings_profile/settings_page.dart';
 import 'package:logging/logging.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:skapp/widgets/offline_banner.dart';
 import 'package:skapp/services/notification_service.dart';
+import 'package:skapp/services/navigation_service.dart';
 
 class ProfileNotifier extends ChangeNotifier {
   final _logger = Logger('ProfileNotifier');
@@ -106,12 +108,14 @@ void main() {
 
   // Create a singleton instance of NotificationService
   final notificationService = NotificationService();
+  final navigationService = NavigationService();
 
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider<ProfileNotifier>(create: (_) => ProfileNotifier()),
         ChangeNotifierProvider<NotificationService>.value(value: notificationService),
+        Provider<NavigationService>.value(value: navigationService),
       ],
       child: const MyApp(),
     ),
@@ -125,30 +129,59 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final display = ui.PlatformDispatcher.instance.displays.first;
-        print('Display refresh rate: ${display.refreshRate}');
+    print('Display refresh rate: ${display.refreshRate}');
+    final navigationService = Provider.of<NavigationService>(context, listen: false);
     
     return MaterialApp(
+      navigatorKey: navigationService.navigatorKey,
       debugShowCheckedModeBanner: false,
       title: 'SplitKar',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: Scaffold(
-        body: Stack(
-          children: [
-            AuthWrapper(),
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: OfflineBanner(),
-            ),
-          ],
-        ),
-      ),
-      routes: {
-        '/settings': (context) => const SettingsPage(),
+      initialRoute: '/',
+      onGenerateRoute: (settings) {
+        switch (settings.name) {
+          case '/':
+            return MaterialPageRoute(
+              settings: settings,
+              builder: (context) => Scaffold(
+                body: Stack(
+                  children: [
+                    AuthWrapper(),
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      child: OfflineBanner(),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          case '/main':
+            final args = settings.arguments as Map<String, dynamic>?;
+            return MaterialPageRoute(
+              settings: settings,
+              builder: (context) => MainPage(
+                initialIndex: args?['initialIndex'] as int? ?? 1,
+              ),
+            );
+          case '/settings':
+            return MaterialPageRoute(
+              settings: settings,
+              builder: (context) => const SettingsPage(),
+            );
+          default:
+            return MaterialPageRoute(
+              builder: (context) => Scaffold(
+                body: Center(
+                  child: Text('Route ${settings.name} not found'),
+                ),
+              ),
+            );
+        }
       },
     );
   }

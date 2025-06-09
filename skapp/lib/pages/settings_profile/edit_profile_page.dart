@@ -5,6 +5,7 @@ import 'package:skapp/services/auth_service.dart';
 import 'package:skapp/widgets/custom_loader.dart';
 import 'package:logging/logging.dart';
 import 'package:skapp/pages/settings_profile/settings_api.dart';
+import 'package:skapp/services/navigation_service.dart';
 
 class EditProfilePage extends StatefulWidget {
   const EditProfilePage({super.key});
@@ -145,13 +146,14 @@ class _EditProfilePageState extends State<EditProfilePage> {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
+    final navigationService = Provider.of<NavigationService>(context, listen: false);
 
     return Scaffold(
       appBar: AppBar(
         title: Text('Edit Profile'),
         leading: IconButton(
           icon: Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () => navigationService.goBack(),
         ),
       ),
       body: _isLoading

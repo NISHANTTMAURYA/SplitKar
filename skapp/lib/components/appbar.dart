@@ -6,13 +6,14 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
   final PageController? pageController;
   final bool is_bottom_needed;
-
+  final VoidCallback? onBackPressed;
 
   const CustomAppBar({
     super.key,
     required this.scaffoldKey,
     this.pageController,
-    this.is_bottom_needed=true
+    this.is_bottom_needed=true,
+    this.onBackPressed,
   });
 
   @override
@@ -34,13 +35,13 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       centerTitle: true,
 
-      bottom: is_bottom_needed?PreferredSize(
-        preferredSize: Size.fromHeight(1), // height of the line
+      bottom: is_bottom_needed ? PreferredSize(
+        preferredSize: Size.fromHeight(1),
         child: Container(
-          color: Colors.deepPurple[400], // color of the line
+          color: Colors.deepPurple[400],
           height: 0.8,
         ),
-      ):null,
+      ) : null,
 
       leadingWidth: 80,
       leading: Padding(
@@ -80,6 +81,8 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                 duration: const Duration(milliseconds: 300),
                 curve: Curves.easeInOut,
               );
+            } else if (onBackPressed != null) {
+              onBackPressed!();
             } else if (Navigator.of(context).canPop()) {
               Navigator.of(context).pop();
             }
@@ -87,7 +90,6 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
           child: Padding(
             padding: const EdgeInsets.only(right: 20),
             child: Container(
-              // color: Colors.white.withOpacity(0.7),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -99,7 +101,6 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                     style: GoogleFonts.cabin(
                       fontSize: 40,
                       fontWeight: FontWeight.w500,
-
                     ),
                   ),
                   const SizedBox(width: 2),
