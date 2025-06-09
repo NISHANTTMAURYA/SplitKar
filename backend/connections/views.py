@@ -11,7 +11,7 @@ from .serializers import (
     UserProfileListSerializer, PendingFriendRequestSerializer,
     FriendListSerializer, GroupCreateSerializer, GroupInviteSerializer,
     GroupInvitationAcceptSerializer, GroupInvitationDeclineSerializer,
-    PendingGroupInvitationSerializer, UserGroupListSerializer
+    PendingGroupInvitationSerializer, UserGroupListSerializer, RemoveFriendSerializer
 )
 
 # Create your views here.
@@ -154,6 +154,28 @@ def get_friends_list(request):
     friends = Friendship.objects.friends_of(request.user)
     serializer = FriendListSerializer(friends, many=True)
     return Response(serializer.data)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def remove_friend(request):
+    """
+    Remove a friend using their profile code.
+    This will delete the friendship between the authenticated user and the specified friend.
+    """
+    serializer = RemoveFriendSerializer(data=request.data, context={'request': request})
+    if serializer.is_valid():
+        try:
+            result = serializer.save()
+            return Response({
+                'message': 'Friend removed successfully',
+                'deleted_count': result['deleted_count']
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])

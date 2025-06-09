@@ -3,7 +3,8 @@ from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
-from .models import FriendRequest, Profile, Group, GroupInvitation
+from .models import FriendRequest, Profile, Group, GroupInvitation, Friendship
+
 
 class FriendRequestByCodeSerializer(serializers.Serializer):
     profile_code = serializers.CharField(required=True, max_length=20)
@@ -292,4 +293,30 @@ class UserGroupListSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         if request and request.user:
             return obj.created_by == request.user
-        return False 
+        return False
+
+class RemoveFriendSerializer(serializers.Serializer):
+    profile_code = serializers.CharField(required=True, max_length=20)
+    
+    def validate_profile_code(self, value):
+        try:
+            profile = Profile.objects.get(profile_code=value)
+            if profile.user == self.context['request'].user:
+                raise serializers.ValidationError(_("You cannot remove yourself as a friend."))
+            
+            # Check if they are actually friends
+            if not Friendship.objects.are_friends(self.context['request'].user, profile.user):
+                raise serializers.ValidationError(_("This user is not your friend."))
+            
+            return value
+        except Profile.DoesNotExist:
+            raise serializers.ValidationError(_("No user found with this profile code."))
+    
+    def save(self, **kwargs):
+        from .models import Friendship
+        from_user = self.context['request'].user
+        to_user = Profile.objects.get(profile_code=self.validated_data['profile_code']).user
+        
+        # Remove the friendship
+        deleted_count = Friendship.objects.delete_friendship(from_user, to_user)
+        return {'deleted_count': deleted_count} 
