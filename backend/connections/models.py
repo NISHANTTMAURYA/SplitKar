@@ -79,10 +79,21 @@ class Profile(TimeStampedModel):
 class FriendRequestManager(models.Manager): 
     def send_request(self, from_user, to_user): 
         """Send friend request, handling duplicates gracefully""" 
-        if self.filter(from_user=from_user, to_user=to_user).exists(): 
+        # Check if there's already a pending request in either direction
+        if self.filter(from_user=from_user, to_user=to_user, status='pending').exists(): 
             raise ValidationError("Friend request already sent") 
-        if self.filter(from_user=to_user, to_user=from_user).exists(): 
+        if self.filter(from_user=to_user, to_user=from_user, status='pending').exists(): 
             raise ValidationError("Friend request already received from this user") 
+        
+        # Check if they are already friends
+        if Friendship.objects.are_friends(from_user, to_user):
+            raise ValidationError("Users are already friends")
+        
+        # If there are any existing requests (accepted/declined), delete them to allow fresh requests
+        self.filter(
+            (Q(from_user=from_user, to_user=to_user) | Q(from_user=to_user, to_user=from_user))
+        ).delete()
+        
         return self.create(from_user=from_user, to_user=to_user) 
  
 class FriendRequest(TimeStampedModel): 
