@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-
+import 'package:skapp/services/friends_service.dart';
+import 'package:skapp/services/friends_service.dart';
 class FreindsPage extends StatefulWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
   final PageController? pageController;
@@ -15,7 +16,6 @@ class FreindsPage extends StatefulWidget {
 
   @override
   State<FreindsPage> createState() => _FreindsPageState();
-
   static Widget friendsImage(BuildContext context, {double? opacity}) {
     final double height = MediaQuery.of(context).size.height;
     final double width = MediaQuery.of(context).size.width;
@@ -104,6 +104,11 @@ class FreindsPage extends StatefulWidget {
 
 class _FreindsPageState extends State<FreindsPage> {
   // Example dynamic friends list (replace with your data source)
+  // @override
+  // void initState(){
+  //   super.initState();
+  //   FriendsService().getFriends();
+  // }
   final List<String> friends = const [
     "chaitu",
     "nishant",
@@ -156,7 +161,7 @@ class _FreindsPageState extends State<FreindsPage> {
             )
           : _NoFriendsView(
               onAddFriends: () {
-                /* TODO: Add friends logic */
+                FriendsService().getFriends();
               },
             ),
     );
@@ -409,7 +414,9 @@ class _FriendsHeaderDelegate extends SliverPersistentHeaderDelegate {
                       Flexible(
                         child: FreindsPage.addFriendsButton(
                           context,
-                          () {},
+                          () {
+                            FriendsService().getFriends();
+                          },
                           textStyle: headerTextStyle.copyWith(
                             fontSize: buttonFontSize,
                             fontWeight: FontWeight.w800,

@@ -17,5 +17,5 @@ urlpatterns = [
     path('auth/token/refresh/', CustomTokenRefreshView.as_view(), name='token-refresh'),
     path('profile/', ProfileDetailsAPIView, name='profile-details'),
     path('profile/update/', ProfileUpdateAPIView.as_view(), name='profile-update'),
-    path('connections/', include('connections.urls'), name='connections'),
+    
 ] 

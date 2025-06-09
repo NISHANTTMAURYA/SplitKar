@@ -105,6 +105,13 @@
                 <div class="response-area" id="sentRequestsResponse"></div>
             </div>
         </div>
+
+        <!-- Friends List Section -->
+        <div class="api-section">
+            <h3>Friends List</h3>
+            <button id="listFriendsBtn" class="btn btn-primary">List Friends</button>
+            <div class="response-area" id="listFriendsResponse"></div>
+        </div>
     </div>
 
     <script>
@@ -230,6 +237,19 @@
                 const errorMessage = 'Error: ' + error.message;
                 document.getElementById('receivedRequestsResponse').textContent = errorMessage;
                 document.getElementById('sentRequestsResponse').textContent = errorMessage;
+            }
+        });
+
+        // List Friends
+        document.getElementById('listFriendsBtn').addEventListener('click', async () => {
+            try {
+                const response = await fetch('/api/friends/list/', {
+                    headers: getHeaders()
+                });
+                const data = await response.json();
+                document.getElementById('listFriendsResponse').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('listFriendsResponse').textContent = 'Error: ' + error.message;
             }
         });
     </script>
