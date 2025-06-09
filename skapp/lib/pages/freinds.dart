@@ -172,14 +172,47 @@ class _FreindsPageState extends State<FreindsPage> {
 
 class _NoFriendsView extends StatelessWidget {
   final VoidCallback onAddFriends;
+  
+  TextStyle _getGreetingStyle(double width) => GoogleFonts.cabin(
+    fontSize: width * 0.055,  // Slightly smaller to handle long usernames better
+    fontWeight: FontWeight.w500,
+    color: Colors.white,
+  );
+
   const _NoFriendsView({required this.onAddFriends});
 
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
     return Column(
       mainAxisAlignment: MainAxisAlignment.start,
       children: [
-        SizedBox(height: MediaQuery.of(context).size.height * 0.08),
+        Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: Colors.deepPurple[400],
+          ),
+          padding: EdgeInsets.symmetric(
+            horizontal: width * 0.04,  // Responsive padding
+            vertical: width * 0.03,
+          ),
+          child: SafeArea(
+            bottom: false,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Heyyloo, ${context.watch<ProfileNotifier>().username ?? 'User'} !!',
+                    style: _getGreetingStyle(width),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        SizedBox(height: 20),
         FreindsPage.friendsImage(context),
         SizedBox(height: 20),
         FreindsPage.friendsText(context),
