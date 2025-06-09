@@ -13,6 +13,7 @@ from .serializers import (
     GroupInvitationAcceptSerializer, GroupInvitationDeclineSerializer,
     PendingGroupInvitationSerializer, UserGroupListSerializer, RemoveFriendSerializer, RemoveGroupMemberSerializer
 )
+from django.db.models import Q
 
 # Create your views here.
 
@@ -105,12 +106,46 @@ def decline_friend_request(request):
 @permission_classes([IsAuthenticated])
 def list_users_with_profiles(request):
     """
-    List all users with their profile codes, excluding the current user.
-    Returns a list of users with their usernames and profile codes.
+    List all users that are not friends with the current user.
+    Returns a list of users with their usernames, profile codes, and friend request status.
+    Excludes:
+    - Current user
+    - Users who are already friends
     """
-    profiles = Profile.objects.select_related('user').exclude(user=request.user)
-    serializer = UserProfileListSerializer(profiles, many=True)
-    return Response(serializer.data)
+    # Get IDs of current user's friends
+    friend_ids = set(friend.id for friend in Friendship.objects.friends_of(request.user))
+    friend_ids.add(request.user.id)  # Add current user's ID to exclusion set
+    
+    # Get all non-friend profiles in one efficient query
+    profiles = Profile.objects.select_related('user').exclude(
+        user_id__in=friend_ids
+    ).filter(
+        is_active=True  # Only show active profiles
+    )
+    
+    # Get pending friend requests in a single query
+    pending_requests = FriendRequest.objects.filter(
+        Q(from_user=request.user) | Q(to_user=request.user),
+        status='pending'
+    ).values_list('from_user_id', 'to_user_id')
+    
+    # Create sets for O(1) lookup
+    sent_requests = {to_id for from_id, to_id in pending_requests if from_id == request.user.id}
+    received_requests = {from_id for from_id, to_id in pending_requests if to_id == request.user.id}
+    
+    # Prepare response data efficiently
+    response_data = [{
+        'username': profile.user.username,
+        'profile_code': profile.profile_code,
+        'profile_picture_url': profile.profile_picture_url,
+        'friend_request_status': (
+            'sent' if profile.user.id in sent_requests
+            else 'received' if profile.user.id in received_requests
+            else 'none'
+        )
+    } for profile in profiles]
+    
+    return Response(response_data)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])

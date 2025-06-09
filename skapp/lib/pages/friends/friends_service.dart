@@ -167,4 +167,84 @@ class FriendsService {
       _logger.severe('Error clearing friends cache: $e');
     }
   }
+
+  Future<List<Map<String, dynamic>>> listOtherUsers() async {
+    try {
+      String? token = await _authService.getToken();
+      if (token == null) {
+        _logger.warning('No authentication token available');
+        throw 'Session expired. Please log in again.';
+      }
+
+      final response = await client.get(
+        Uri.parse('$baseUrl/profile/list-others/'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      _logger.info('Response status code from list-others API: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        final List<Map<String, dynamic>> users = List<Map<String, dynamic>>.from(
+          jsonDecode(response.body).map((x) => Map<String, dynamic>.from(x))
+        );
+        _logger.info('Fetched ${users.length} potential friends from API');
+        return users;
+      } else if (response.statusCode == 401) {
+        _logger.info('Token expired, attempting refresh...');
+        final refreshSuccess = await _authService.handleTokenRefresh();
+        if (refreshSuccess) {
+          return listOtherUsers(); // Retry with new token
+        }
+        throw 'Session expired. Please log in again.';
+      } else {
+        throw 'Failed to fetch users. Status: ${response.statusCode}';
+      }
+    } catch (e) {
+      _logger.severe('Error fetching other users: $e');
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> sendFriendRequest(String profileCode) async {
+    try {
+      String? token = await _authService.getToken();
+      if (token == null) {
+        _logger.warning('No authentication token available');
+        throw 'Session expired. Please log in again.';
+      }
+
+      final response = await client.post(
+        Uri.parse('$baseUrl/friend-request/send/'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({'profile_code': profileCode}),
+      );
+
+      _logger.info('Response status code from send friend request API: ${response.statusCode}');
+
+      if (response.statusCode == 201) {
+        final Map<String, dynamic> result = Map<String, dynamic>.from(jsonDecode(response.body));
+        _logger.info('Successfully sent friend request: $result');
+        return result;
+      } else if (response.statusCode == 401) {
+        _logger.info('Token expired, attempting refresh...');
+        final refreshSuccess = await _authService.handleTokenRefresh();
+        if (refreshSuccess) {
+          return sendFriendRequest(profileCode); // Retry with new token
+        }
+        throw 'Session expired. Please log in again.';
+      } else {
+        final errorData = jsonDecode(response.body);
+        throw errorData['error'] ?? 'Failed to send friend request';
+      }
+    } catch (e) {
+      _logger.severe('Error sending friend request: $e');
+      rethrow;
+    }
+  }
 }

@@ -7,6 +7,7 @@ import 'package:skapp/main.dart';
 import 'package:provider/provider.dart';
 import 'package:skapp/widgets/custom_loader.dart';
 import 'package:skapp/pages/friends/add_friends_sheet.dart';
+import 'package:skapp/pages/friends/friends_provider.dart';
 
 
 class FreindsPage extends StatefulWidget {
@@ -85,7 +86,10 @@ class FreindsPage extends StatefulWidget {
               initialChildSize: 0.9,
               minChildSize: 0.5,
               maxChildSize: 0.9,
-              builder: (_, controller) => const AddFriendsSheet(),
+              builder: (_, controller) => ChangeNotifierProvider(
+                create: (_) => FriendsProvider(),
+                child: const AddFriendsSheet(),
+              ),
             ),
           );
         },
