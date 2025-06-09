@@ -162,10 +162,10 @@ class FriendshipManager(models.Manager):
         return self.filter(user1=user1, user2=user2).exists() 
      
     def friends_of(self, user): 
-        """Get all friends of a user - optimized query""" 
+        """Get all friends of a user - optimized query with latest first""" 
         friendships = self.filter( 
             Q(user1=user) | Q(user2=user) 
-        ).select_related('user1', 'user2') 
+        ).select_related('user1', 'user2', 'user1__profile', 'user2__profile').order_by('-created_at')
          
         return [ 
             fs.user2 if fs.user1 == user else fs.user1  

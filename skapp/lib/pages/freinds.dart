@@ -5,6 +5,7 @@ import 'package:skapp/services/friends_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:skapp/main.dart';
 import 'package:provider/provider.dart';
+import 'package:skapp/widgets/custom_loader.dart';
 
 
 class FreindsPage extends StatefulWidget {
@@ -114,19 +115,40 @@ class FreindsPage extends StatefulWidget {
 
 class _FreindsPageState extends State<FreindsPage> {
   List<dynamic> _friends = [];
+  bool _isLoading = true;
+  String? _error;
+  final FriendsService _friendsService = FriendsService();
 
-  Future<void> callFriendsService() async {
-    final friends = await FriendsService().getFriends();
+  Future<void> _loadFriends() async {
+    if (!mounted) return;
+    
     setState(() {
-      _friends = friends;
+      _isLoading = true;
+      _error = null;
     });
+
+    try {
+      final friends = await _friendsService.getFriends();
+      if (mounted) {
+        setState(() {
+          _friends = friends;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
-    callFriendsService();
+    _loadFriends();
   }
 
   bool _isImagePreloaded = false;
@@ -153,11 +175,41 @@ class _FreindsPageState extends State<FreindsPage> {
       widget.onFriendsListStateChanged(hasFriends);
     });
 
+    // Show loader if loading
+    if (_isLoading) {
+      return Scaffold(
+        body: CustomLoader(),
+      );
+    }
+
+    // Show error if there is one
+    if (_error != null) {
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error_outline, size: 48, color: Colors.red),
+              SizedBox(height: 16),
+              Text(
+                _error!,
+                style: TextStyle(color: Colors.red),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _loadFriends,
+                child: Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       body: RefreshIndicator(
-        onRefresh:() async{
-      await callFriendsService();
-        },
+        onRefresh: _loadFriends,
         child: hasFriends
             ? _FriendsListView(
                 friends: _friends,
@@ -342,18 +394,17 @@ class _FriendsListView extends StatelessWidget {
                 margin: const EdgeInsets.symmetric(vertical: 6),
                 child: ListTile(
                   leading: CircleAvatar(
-                    radius: 20, // or whatever size you want
-                    backgroundColor: Theme.of(
-                      context,
-                    ).colorScheme.inversePrimary.withOpacity(0.7),
+                    radius: 20,
+                    backgroundColor: Theme.of(context).colorScheme.inversePrimary.withOpacity(0.7),
                     child: ClipOval(
                       child: CachedNetworkImage(
                         imageUrl: friends[index]['profile_picture_url'] ?? '',
-                        placeholder: (context, url) =>
-                            CircularProgressIndicator(strokeWidth: 1.5),
-                        errorWidget: (context, url, error) =>
-                            Icon(Icons.person),
-                        width: 50, // should match the CircleAvatar diameter
+                        placeholder: (context, url) => CustomLoader(
+                          size: 25,
+                          isButtonLoader: true,
+                        ),
+                        errorWidget: (context, url, error) => Icon(Icons.person),
+                        width: 50,
                         height: 50,
                         fit: BoxFit.cover,
                       ),

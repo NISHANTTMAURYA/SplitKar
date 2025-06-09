@@ -281,7 +281,7 @@ class AuthService {
     return await _validateTokenOnline(token);
   }
 
-  Future<bool> _handleTokenRefresh() async {
+  Future<bool> handleTokenRefresh() async {
     if (!await isOnline()) return false;
     
     try {

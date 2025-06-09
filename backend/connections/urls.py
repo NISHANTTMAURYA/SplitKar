@@ -1,4 +1,5 @@
 from django.urls import path
+from django.contrib.admin.views.autocomplete import AutocompleteJsonView
 from . import views
 
 app_name = 'connections'
@@ -17,4 +18,5 @@ urlpatterns = [
     path('group/invitation/accept/', views.accept_group_invitation, name='accept-group-invitation'),
     path('group/invitation/decline/', views.decline_group_invitation, name='decline-group-invitation'),
     path('group/list/', views.list_user_groups, name='list-user-groups'),
+    path('admin/user-lookup/', AutocompleteJsonView.as_view(), name='admin-user-lookup'),
 ]

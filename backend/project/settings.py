@@ -192,7 +192,7 @@ JAZZMIN_SETTINGS = {
     "default_icon_children": "fas fa-circle",
     
     # Use modals instead of popups
-    "related_modal_active": True,
+    "related_modal_active": False,
     
     # Whether to show the UI customizer on the sidebar
     "show_ui_builder": True,
