@@ -8,6 +8,7 @@ import 'package:logging/logging.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:skapp/widgets/offline_banner.dart';
+import 'package:skapp/services/notification_service.dart';
 
 class ProfileNotifier extends ChangeNotifier {
   final _logger = Logger('ProfileNotifier');
@@ -103,10 +104,14 @@ void main() {
     print('${record.level.name}: ${record.time}: ${record.message}');
   });
 
+  // Create a singleton instance of NotificationService
+  final notificationService = NotificationService();
+
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => ProfileNotifier()),
+        ChangeNotifierProvider<ProfileNotifier>(create: (_) => ProfileNotifier()),
+        ChangeNotifierProvider<NotificationService>.value(value: notificationService),
       ],
       child: const MyApp(),
     ),
@@ -121,6 +126,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final display = ui.PlatformDispatcher.instance.displays.first;
         print('Display refresh rate: ${display.refreshRate}');
+    
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'SplitKar',
@@ -142,7 +148,7 @@ class MyApp extends StatelessWidget {
         ),
       ),
       routes: {
-        '/settings': (context) => SettingsPage(),
+        '/settings': (context) => const SettingsPage(),
       },
     );
   }
