@@ -3,7 +3,7 @@ import 'package:skapp/components/appbar.dart';
 import 'package:skapp/components/drawer.dart';
 import 'package:skapp/components/bottomNavbar.dart';
 import 'package:skapp/pages/groups.dart';
-import 'package:skapp/pages/freinds.dart';
+import 'package:skapp/pages/friends/freinds.dart';
 import 'package:skapp/pages/activity.dart';
 import 'package:skapp/pages/settings_profile/settings_api.dart';
 import 'package:provider/provider.dart';

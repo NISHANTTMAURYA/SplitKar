@@ -59,7 +59,7 @@ class FreindsPage extends StatefulWidget {
   // Shared widget for the add friends button
   static Widget addFriendsButton(
     BuildContext context,
-    {
+    VoidCallback onAddFriends, {
     TextStyle? textStyle,
     double? iconSize,
   }) {
@@ -223,38 +223,39 @@ class _FreindsPageState extends State<FreindsPage> {
     return Scaffold(
       body: RefreshIndicator(
         onRefresh: _loadFriends,
-        edgeOffset: 0,
-        displacement: 40,
-        color: Theme.of(context).colorScheme.inversePrimary,
-        backgroundColor: Colors.white,
-        strokeWidth: 3,
-        triggerMode: RefreshIndicatorTriggerMode.anywhere,
         child: hasFriends
             ? _FriendsListView(
                 friends: _friends,
                 scaffoldKey: widget.scaffoldKey,
                 pageController: widget.pageController,
               )
-            : const _NoFriendsView(),
+            : _NoFriendsView(onAddFriends: () {}),
       ),
     );
   }
 }
 
-class _NoFriendsView extends StatelessWidget {
+class _NoFriendsView extends StatefulWidget {
+  final VoidCallback onAddFriends;
+  
+  const _NoFriendsView({required this.onAddFriends});
+
+  @override
+  State<_NoFriendsView> createState() => _NoFriendsViewState();
+}
+
+class _NoFriendsViewState extends State<_NoFriendsView> {
   TextStyle _getGreetingStyle(double width) => GoogleFonts.cabin(
     fontSize: width * 0.055,  // Slightly smaller to handle long usernames better
     fontWeight: FontWeight.w500,
     color: Colors.white,
   );
 
-  const _NoFriendsView();
-
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
-    return ListView(
-      physics: const AlwaysScrollableScrollPhysics(),
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.start,
       children: [
         Container(
           width: double.infinity,
@@ -286,18 +287,7 @@ class _NoFriendsView extends StatelessWidget {
         SizedBox(height: 20),
         FreindsPage.friendsText(context),
         SizedBox(height: 15),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          child: FreindsPage.addFriendsButton(
-            context,
-            textStyle: GoogleFonts.cabin(
-              color: Theme.of(context).colorScheme.inversePrimary,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ),
-        // Add extra space at bottom for better scroll feel
-        SizedBox(height: 100),
+        FreindsPage.addFriendsButton(context, widget.onAddFriends),
       ],
     );
   }
@@ -569,6 +559,7 @@ class _FriendsHeaderDelegate extends SliverPersistentHeaderDelegate {
                       Flexible(
                         child: FreindsPage.addFriendsButton(
                           context,
+                          () {},
                           textStyle: headerTextStyle.copyWith(
                             fontSize: buttonFontSize,
                             fontWeight: FontWeight.w800,
