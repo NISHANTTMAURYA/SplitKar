@@ -281,14 +281,14 @@ class AuthService {
     return await _validateTokenOnline(token);
   }
 
-  Future<bool> _handleTokenRefresh() async {
+  Future<bool> handleTokenRefresh() async {
     if (!await isOnline()) return false;
     
     try {
       final newToken = await refreshToken();
       if (newToken != null) {
-        // Update token expiry to match backend (5 minutes for JWT)
-        final expiry = DateTime.now().add(Duration(minutes: 5));
+        // Update token expiry to match backend (30 minutes for JWT)
+        final expiry = DateTime.now().add(Duration(minutes: 30));
         await _secureStorage.write(
           key: _tokenExpiryKey,
           value: expiry.toIso8601String(),
@@ -308,8 +308,8 @@ class AuthService {
     await _secureStorage.write(key: _tokenKey, value: accessToken);
     await _secureStorage.write(key: _refreshTokenKey, value: refreshToken);
     
-    // Set token expiry to match backend (5 minutes for JWT)
-    final expiry = DateTime.now().add(Duration(minutes: 5));
+    // Set token expiry to match backend (30 minutes for JWT)
+    final expiry = DateTime.now().add(Duration(minutes: 30));
     await _secureStorage.write(
       key: _tokenExpiryKey,
       value: expiry.toIso8601String(),
@@ -369,7 +369,7 @@ class AuthService {
         await _secureStorage.write(key: _tokenKey, value: newAccessToken);
         
         // Update token expiry
-        final expiry = DateTime.now().add(Duration(minutes: 5));
+        final expiry = DateTime.now().add(Duration(minutes: 30));
         await _secureStorage.write(
           key: _tokenExpiryKey,
           value: expiry.toIso8601String(),

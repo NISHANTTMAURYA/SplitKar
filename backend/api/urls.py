@@ -4,7 +4,8 @@ from .views import (
     UserRegistrationAPIView, 
     UserLoginAPIView, 
     ProfileDetailsAPIView,
-    CustomTokenRefreshView
+    CustomTokenRefreshView,
+    ProfileUpdateAPIView
 )
 from rest_framework_simplejwt.views import TokenVerifyView
 
@@ -15,5 +16,6 @@ urlpatterns = [
     path('auth/validate/', TokenVerifyView.as_view(), name='token-verify'),
     path('auth/token/refresh/', CustomTokenRefreshView.as_view(), name='token-refresh'),
     path('profile/', ProfileDetailsAPIView, name='profile-details'),
-    path('connections/', include('connections.urls'), name='connections'),
+    path('profile/update/', ProfileUpdateAPIView.as_view(), name='profile-update'),
+    
 ] 

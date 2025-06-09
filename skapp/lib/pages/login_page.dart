@@ -124,7 +124,7 @@ class _LoginPageState extends State<LoginPage>
                         child: Padding(
                           padding: EdgeInsets.symmetric(
                             horizontal: 22.0,
-                            vertical: 16.0,
+                            vertical: 20.0,
                           ),
                           child: Form(
                             key: _formKey,
@@ -133,7 +133,7 @@ class _LoginPageState extends State<LoginPage>
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
                                 SizedBox(
-                                  height: 60,
+                                  height: 20,
                                 ), // Extra space for overlapping image
                                 Text(
                                   'Welcome Back!',
@@ -234,6 +234,7 @@ class _LoginPageState extends State<LoginPage>
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(12),
                                     ),
+                                    side: BorderSide(color: Colors.black, width: 1.5),
                                   ),
                                 ),
                                 SizedBox(height: 12),

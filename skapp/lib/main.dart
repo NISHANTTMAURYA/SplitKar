@@ -8,16 +8,26 @@ import 'package:logging/logging.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:skapp/widgets/offline_banner.dart';
+import 'package:skapp/services/notification_service.dart';
 
 class ProfileNotifier extends ChangeNotifier {
-  String? name;
-  String? email;
-  String? photoUrl;
-  String? username;
+  final _logger = Logger('ProfileNotifier');
+  String? _name;
+  String? _email;
+  String? _photoUrl;
+  String? _username;
+  String? _firstName;
+  String? _lastName;
   bool _isLoading = false;
   String? _error;
 
   bool get isLoading => _isLoading;
+  String? get name => _name;
+  String? get email => _email;
+  String? get photoUrl => _photoUrl;
+  String? get username => _username;
+  String? get firstName => _firstName;
+  String? get lastName => _lastName;
   String? get error => _error;
 
   void setLoading(bool loading) {
@@ -26,24 +36,53 @@ class ProfileNotifier extends ChangeNotifier {
   }
 
   void setError(String? error) {
+    _logger.warning('Setting profile error: $error');
     _error = error;
     notifyListeners();
   }
 
-  void updateProfile({String? name, String? email, String? photoUrl, String? username}) {
-    this.name = name;
-    this.email = email;
-    this.photoUrl = photoUrl;
-    this.username = username;
-    _error = null; // Clear any previous errors
+  void updateProfile({
+    String? name,
+    String? email,
+    String? photoUrl,
+    String? username,
+    String? firstName,
+    String? lastName,
+  }) {
+    _logger.info('Updating profile state:');
+    _logger.info('- Current name: $_name');
+    _logger.info('- New name: $name');
+    _logger.info('- Current email: $_email');
+    _logger.info('- New email: $email');
+    _logger.info('- Current photoUrl: $_photoUrl');
+    _logger.info('- New photoUrl: $photoUrl');
+    _logger.info('- Current username: $_username');
+    _logger.info('- New username: $username');
+    _logger.info('- Current firstName: $_firstName');
+    _logger.info('- New firstName: $firstName');
+    _logger.info('- Current lastName: $_lastName');
+    _logger.info('- New lastName: $lastName');
+
+    _name = name;
+    _email = email;
+    _photoUrl = photoUrl;
+    _username = username;
+    _firstName = firstName;
+    _lastName = lastName;
+    _error = null;
+
+    _logger.info('Profile state updated successfully');
     notifyListeners();
   }
 
   void clearProfile() {
-    name = null;
-    email = null;
-    photoUrl = null;
-    username = null;
+    _logger.info('Clearing profile state');
+    _name = null;
+    _email = null;
+    _photoUrl = null;
+    _username = null;
+    _firstName = null;
+    _lastName = null;
     _error = null;
     notifyListeners();
   }
@@ -65,10 +104,14 @@ void main() {
     print('${record.level.name}: ${record.time}: ${record.message}');
   });
 
+  // Create a singleton instance of NotificationService
+  final notificationService = NotificationService();
+
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => ProfileNotifier()),
+        ChangeNotifierProvider<ProfileNotifier>(create: (_) => ProfileNotifier()),
+        ChangeNotifierProvider<NotificationService>.value(value: notificationService),
       ],
       child: const MyApp(),
     ),
@@ -83,6 +126,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final display = ui.PlatformDispatcher.instance.displays.first;
         print('Display refresh rate: ${display.refreshRate}');
+    
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'SplitKar',
@@ -104,7 +148,7 @@ class MyApp extends StatelessWidget {
         ),
       ),
       routes: {
-        '/settings': (context) => SettingsPage(),
+        '/settings': (context) => const SettingsPage(),
       },
     );
   }

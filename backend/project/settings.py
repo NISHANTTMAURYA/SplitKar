@@ -192,7 +192,7 @@ JAZZMIN_SETTINGS = {
     "default_icon_children": "fas fa-circle",
     
     # Use modals instead of popups
-    "related_modal_active": True,
+    "related_modal_active": False,
     
     # Whether to show the UI customizer on the sidebar
     "show_ui_builder": True,
@@ -263,7 +263,7 @@ REST_FRAMEWORK = {
 # JWT Settings
 from datetime import timedelta
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,

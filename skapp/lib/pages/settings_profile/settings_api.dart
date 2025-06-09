@@ -109,7 +109,7 @@ class ProfileApi {
     }
   }
 
-  Future<void> loadAllProfileData(BuildContext context) async {
+  Future<void> loadAllProfileData(BuildContext context, {bool forceRefresh = false}) async {
     final profileNotifier = Provider.of<ProfileNotifier>(context, listen: false);
     profileNotifier.setLoading(true);
     profileNotifier.setError(null);
@@ -131,36 +131,36 @@ class ProfileApi {
           photoUrl: _cachedPhotoUrl,
           username: _cachedUsername,
         );
+        profileNotifier.setError(null);
       }
 
-      // Check online status
+      // Check online status and cache validity
       final isOnline = await _authService.isOnline();
+      final isCacheValid = await _isCacheValid();
       _logger.info('Profile data loading decision:');
       _logger.info('- Online status: $isOnline');
+      _logger.info('- Cache valid: $isCacheValid');
 
       if (isOnline) {
-        // When online, always make API call in background
-        _logger.info('Online - making API call in background');
-        await Future.wait([
-          Future.delayed(Duration(milliseconds: _minLoadingTime)),
-          Future(() async {
-            final token = await _authService.getToken();
-            _logger.info('Token available: ${token != null}');
-            if (token == null) {
-              if (_cachedName == null) {
-                profileNotifier.setError('No authentication token available');
-              }
-              return;
+        // When online, check if we need to refresh data
+        if (forceRefresh || !isCacheValid || _cachedName == null) {
+          _logger.info('Cache invalid, missing, or force refresh - making API call');
+          final token = await _authService.getToken();
+          if (token == null) {
+            if (_cachedName == null) {
+              profileNotifier.setError('No authentication token available');
             }
+            return;
+          }
 
-            if (context.mounted) {
-              await _loadProfileDetails(token, context);
-            }
-          }),
-        ]);
+          if (context.mounted) {
+            await _loadProfileDetails(token, context);
+          }
+        } else {
+          _logger.info('Using valid cached data');
+        }
       } else {
         // When offline, use cache if available
-        final isCacheValid = await _isCacheValid();
         _logger.info('Offline mode:');
         _logger.info('- Cache valid: $isCacheValid');
         _logger.info('- Has cached data: ${_cachedName != null}');
@@ -188,6 +188,8 @@ class ProfileApi {
       ).timeout(Duration(seconds: 10));
 
       _logger.info('Profile API response status: ${response.statusCode}');
+      _logger.info('Profile API response body: ${response.body}');
+      _logger.info('Full profile API response: ${response.body}');
 
       if (response.statusCode == 200) {
         _profileDetails = jsonDecode(response.body);
@@ -196,21 +198,34 @@ class ProfileApi {
         _cachedEmail = _profileDetails?['email'];
         _cachedName = '${_profileDetails?['first_name'] ?? ''} ${_profileDetails?['last_name'] ?? ''}'.trim();
         _cachedUsername = _profileDetails?['username'];
+
+        _logger.info('Parsed profile details:');
+        _logger.info('- Photo URL: $_cachedPhotoUrl');
+        _logger.info('- Email: $_cachedEmail');
+        _logger.info('- Name: $_cachedName');
+        _logger.info('- Username: $_cachedUsername');
+
         await _cacheProfileData();
-        _logger.info('Profile Details loaded successfully');
+        _logger.info('Profile Details cached successfully');
 
         if (context.mounted) {
           final profileNotifier = Provider.of<ProfileNotifier>(context, listen: false);
+          _logger.info('Updating ProfileNotifier with new data...');
           profileNotifier.updateProfile(
             name: _cachedName,
             email: _cachedEmail,
             photoUrl: _cachedPhotoUrl,
             username: _cachedUsername,
+            firstName: _profileDetails?['first_name'],
+            lastName: _profileDetails?['last_name'],
           );
+          profileNotifier.setError(null);
+          _logger.info('ProfileNotifier updated successfully');
         }
       } else if (response.statusCode == 401) {
         final responseBody = jsonDecode(response.body);
         if (responseBody['code'] == 'token_not_valid') {
+          _logger.info('Token not valid, attempting refresh...');
           if (context.mounted) {
             final success = await _authService.refreshToken() != null;
             if (success) {
@@ -222,6 +237,7 @@ class ProfileApi {
           }
         } else {
           _error = 'Authentication failed';
+          _logger.warning('Authentication failed: ${response.body}');
         }
       } else {
         _error = 'Failed to load profile. Status code: ${response.statusCode}';
@@ -260,5 +276,142 @@ class ProfileApi {
       _logger.severe('Error during logout: $e');
       profileNotifier.setError('Error during logout');
     }
+  }
+
+  Future<void> reloadProfileData(BuildContext context) async {
+    final profileNotifier = Provider.of<ProfileNotifier>(context, listen: false);
+    try {
+      _logger.info('Starting profile data reload...');
+      final token = await _authService.getToken();
+      if (token == null) {
+        _logger.warning('No authentication token available for profile reload');
+        profileNotifier.setError('No authentication token available');
+        return;
+      }
+
+      _logger.info('Token available, loading profile details...');
+      await _loadProfileDetails(token, context);
+      _logger.info('Profile details loaded successfully');
+    } catch (e) {
+      _logger.severe('Error reloading profile data: $e');
+      profileNotifier.setError('Error reloading profile data');
+    }
+  }
+
+  /// Updates the user's profile information
+  /// 
+  /// This method sends a PATCH request to update the user's profile information
+  /// including username, first name, and last name. It handles token management,
+  /// error parsing, and response validation.
+  /// 
+  /// Parameters:
+  /// - [username] (required): The new username for the user
+  /// - [firstName] (optional): The user's first name
+  /// - [lastName] (optional): The user's last name
+  /// - [context] (optional): The BuildContext for logout navigation
+  /// 
+  /// Returns:
+  /// - A Map containing the updated profile data if successful
+  /// - Throws an error message if the update fails
+  Future<Map<String, dynamic>?> updateProfile({
+    required String username,
+    String? firstName,
+    String? lastName,
+    BuildContext? context, // Optional context for logout navigation
+  }) async {
+    try {
+      _logger.info('Starting profile update...');
+      _logger.info('Update data:');
+      _logger.info('- Username: $username');
+      _logger.info('- First Name: $firstName');
+      _logger.info('- Last Name: $lastName');
+
+      // Ensure token is valid, try to refresh if needed
+      String? token = await _authService.getToken();
+      if (token == null) {
+        _logger.warning('No authentication token available');
+        throw 'Session expired. Please log in again.';
+      }
+
+      // Try to refresh token if needed
+      final isAuthenticated = await _authService.isAuthenticated();
+      if (!isAuthenticated) {
+        final refreshed = await _authService.refreshToken();
+        if (refreshed == null) {
+          _logger.warning('Token refresh failed. Logging out.');
+          if (context != null) await _authService.signOut();
+          throw 'Session expired. Please log in again.';
+        }
+        token = refreshed;
+      }
+
+      final response = await http.patch(
+        Uri.parse('${AppConfig.baseUrl}/profile/update/'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'username': username,
+          'first_name': firstName,
+          'last_name': lastName,
+        }),
+      ).timeout(Duration(seconds: 10));
+
+      _logger.info('Profile update response status: ${response.statusCode}');
+      _logger.info('Profile update response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        _logger.info('Profile updated successfully');
+        return data;
+      } else {
+        // Check for token error in backend response
+        final errorBody = response.body;
+        if (errorBody.contains('token_not_valid') || errorBody.contains('Token is expired')) {
+          _logger.warning('Backend reports token is invalid or expired. Logging out.');
+          if (context != null) await _authService.signOut();
+          throw 'Session expired. Please log in again.';
+        }
+        final errorMessage = _parseBackendError(response);
+        _logger.warning('Profile update failed: $errorMessage');
+        throw errorMessage;
+      }
+    } catch (e) {
+      _logger.severe('Error updating profile: $e');
+      // Always show a user-friendly message for session issues
+      if (e.toString().contains('token') || e.toString().contains('expired')) {
+        throw 'Session expired. Please log in again.';
+      }
+      rethrow;
+    }
+  }
+
+  /// Helper method to parse backend error responses
+  String _parseBackendError(http.Response response) {
+    try {
+      final data = jsonDecode(response.body);
+      if (data is Map) {
+        if (data.containsKey('error') && data['error'] is String) {
+          return data['error'];
+        } else if (data.isNotEmpty) {
+          String messages = data.entries.map((entry) {
+            String field = entry.key;
+            dynamic errorList = entry.value;
+            if (errorList is List) {
+              return "$field: ${errorList.join(', ')}";
+            } else {
+              return "$field: $errorList";
+            }
+          }).join('; ');
+          return messages.isNotEmpty ? messages : 'Unknown validation error';
+        }
+      } else if (data is String) {
+        return data;
+      }
+    } catch (e) {
+      _logger.severe('Error parsing backend error response: $e');
+    }
+    return 'An unexpected error occurred';
   }
 }
