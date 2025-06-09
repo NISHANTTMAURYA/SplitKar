@@ -170,6 +170,17 @@ class GroupInviteSerializer(serializers.Serializer):
         if existing_members:
             raise serializers.ValidationError(f"Users with profile codes {existing_members} are already members of this group")
         
+        # Check if there are any pending invitations for these users
+        from .models import GroupInvitation
+        pending_invitations = GroupInvitation.objects.filter(
+            group=group,
+            invited_user__profile__profile_code__in=value,
+            status='pending'
+        )
+        if pending_invitations.exists():
+            pending_codes = set(pending_invitations.values_list('invited_user__profile__profile_code', flat=True))
+            raise serializers.ValidationError(f"Users with profile codes {pending_codes} already have pending invitations to this group")
+        
         # Check if trying to invite yourself
         current_user_profile_code = self.context['request'].user.profile.profile_code
         if current_user_profile_code in value:
@@ -183,6 +194,7 @@ class GroupInviteSerializer(serializers.Serializer):
         
         invitations = []
         for profile in profiles_to_invite:
+            # Create new invitation
             invitation = GroupInvitation.objects.create(
                 group=group,
                 invited_user=profile.user,
@@ -320,3 +332,67 @@ class RemoveFriendSerializer(serializers.Serializer):
         # Remove the friendship
         deleted_count = Friendship.objects.delete_friendship(from_user, to_user)
         return {'deleted_count': deleted_count} 
+
+class RemoveGroupMemberSerializer(serializers.Serializer):
+    group_id = serializers.IntegerField(required=True)
+    profile_codes = serializers.ListField(
+        child=serializers.CharField(max_length=20),
+        required=True,
+        help_text="List of profile codes to remove from the group"
+    )
+    
+    def validate_group_id(self, value):
+        try:
+            group = Group.objects.get(id=value)
+            if group.created_by != self.context['request'].user:
+                raise serializers.ValidationError("You can only remove members from groups you created")
+            return value
+        except Group.DoesNotExist:
+            raise serializers.ValidationError("Group not found")
+    
+    def validate_profile_codes(self, value):
+        if not value:
+            raise serializers.ValidationError("At least one profile code must be specified")
+        
+        # Check if all profile codes exist
+        existing_profiles = Profile.objects.filter(profile_code__in=value)
+        existing_codes = set(existing_profiles.values_list('profile_code', flat=True))
+        invalid_codes = set(value) - existing_codes
+        if invalid_codes:
+            raise serializers.ValidationError(f"Invalid profile codes: {invalid_codes}")
+        
+        # Check if any users are not members
+        group = Group.objects.get(id=self.initial_data['group_id'])
+        non_members = set(value) - set(group.members.filter(profile__profile_code__in=value).values_list('profile__profile_code', flat=True))
+        if non_members:
+            raise serializers.ValidationError(f"Users with profile codes {non_members} are not members of this group")
+        
+        # Check if trying to remove the group creator
+        current_user_profile_code = self.context['request'].user.profile.profile_code
+        if current_user_profile_code in value:
+            raise serializers.ValidationError("You cannot remove yourself from the group")
+        
+        return value
+    
+    def save(self, **kwargs):
+        group = Group.objects.get(id=self.validated_data['group_id'])
+        profiles_to_remove = Profile.objects.filter(profile_code__in=self.validated_data['profile_codes'])
+        users_to_remove = [profile.user for profile in profiles_to_remove]
+        
+        # Remove users from group
+        removed_count = group.members.remove(*users_to_remove)
+        
+        # Clean up any existing invitation records for these users to allow new invitations
+        from .models import GroupInvitation
+        GroupInvitation.objects.filter(
+            group=group,
+            invited_user__in=users_to_remove
+        ).delete()
+        
+        return {
+            'removed_count': removed_count,
+            'removed_users': [user.username for user in users_to_remove]
+        }
+
+
+    

@@ -11,7 +11,7 @@ from .serializers import (
     UserProfileListSerializer, PendingFriendRequestSerializer,
     FriendListSerializer, GroupCreateSerializer, GroupInviteSerializer,
     GroupInvitationAcceptSerializer, GroupInvitationDeclineSerializer,
-    PendingGroupInvitationSerializer, UserGroupListSerializer, RemoveFriendSerializer
+    PendingGroupInvitationSerializer, UserGroupListSerializer, RemoveFriendSerializer, RemoveGroupMemberSerializer
 )
 
 # Create your views here.
@@ -322,3 +322,27 @@ def list_user_groups(request):
         'groups': serializer.data,
         'total_groups': len(serializer.data)
     })
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def remove_group_member(request):
+    """
+    Remove members from a group using their profile codes.
+    Only the group creator can remove members.
+    Returns information about the removed members.
+    """
+    serializer = RemoveGroupMemberSerializer(data=request.data, context={'request': request})
+    if serializer.is_valid():
+        try:
+            result = serializer.save()
+            return Response({
+                'message': f'Successfully removed {result["removed_count"]} member(s) from the group',
+                'removed_count': result['removed_count'],
+                'removed_users': result['removed_users']
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

@@ -15,6 +15,7 @@ urlpatterns = [
     path('friends/remove/', views.remove_friend, name='remove-friend'),
     path('group/create/', views.create_group, name='create-group'),
     path('group/invite/', views.invite_to_group, name='invite-to-group'),
+    path('group/remove-member/', views.remove_group_member, name='remove-group-member'),
     path('group/invitation/pending/', views.list_pending_group_invitations, name='list-pending-group-invitations'),
     path('group/invitation/accept/', views.accept_group_invitation, name='accept-group-invitation'),
     path('group/invitation/decline/', views.decline_group_invitation, name='decline-group-invitation'),

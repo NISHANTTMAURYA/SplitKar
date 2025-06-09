@@ -76,6 +76,23 @@
             <div class="response-area" id="inviteToGroupResponse"></div>
         </div>
 
+        <!-- Remove Group Member Section -->
+        <div class="api-section">
+            <h3>Remove Group Member</h3>
+            <form id="removeGroupMemberForm" class="mb-3">
+                <div class="mb-3">
+                    <label for="removeGroupId" class="form-label">Group ID</label>
+                    <input type="number" class="form-control" id="removeGroupId" required>
+                </div>
+                <div class="mb-3">
+                    <label for="removeProfileCodes" class="form-label">Profile Codes to Remove (comma separated)</label>
+                    <input type="text" class="form-control" id="removeProfileCodes" required>
+                </div>
+                <button type="submit" class="btn btn-danger">Remove Members</button>
+            </form>
+            <div class="response-area" id="removeGroupMemberResponse"></div>
+        </div>
+
         <!-- Accept Group Invitation Section -->
         <div class="api-section">
             <h3>Accept Group Invitation</h3>
@@ -177,6 +194,24 @@
                 document.getElementById('inviteToGroupResponse').textContent = JSON.stringify(data, null, 2);
             } catch (error) {
                 document.getElementById('inviteToGroupResponse').textContent = 'Error: ' + error.message;
+            }
+        });
+
+        // Remove Group Member
+        document.getElementById('removeGroupMemberForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const group_id = document.getElementById('removeGroupId').value;
+            const profile_codes = document.getElementById('removeProfileCodes').value.split(',').map(code => code.trim());
+            try {
+                const response = await fetch('/api/group/remove-member/', {
+                    method: 'POST',
+                    headers: getHeaders(),
+                    body: JSON.stringify({ group_id, profile_codes })
+                });
+                const data = await response.json();
+                document.getElementById('removeGroupMemberResponse').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('removeGroupMemberResponse').textContent = 'Error: ' + error.message;
             }
         });
 
