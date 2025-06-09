@@ -258,41 +258,52 @@ class _NoFriendsViewState extends State<_NoFriendsView> {
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.start,
-      children: [
-        Container(
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: Colors.deepPurple[400],
-          ),
-          padding: EdgeInsets.symmetric(
-            horizontal: width * 0.04,  // Responsive padding
-            vertical: width * 0.03,
-          ),
-          child: SafeArea(
-            bottom: false,
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Heyyloo, ${context.watch<ProfileNotifier>().username ?? 'User'} !!',
-                    style: _getGreetingStyle(width),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
+    return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          Container(
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: Colors.deepPurple[400],
+            ),
+            padding: EdgeInsets.symmetric(
+              horizontal: width * 0.04,  // Responsive padding
+              vertical: width * 0.03,
+            ),
+            child: SafeArea(
+              bottom: false,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Heyyloo, ${context.watch<ProfileNotifier>().username ?? 'User'} !!',
+                      style: _getGreetingStyle(width),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
                   ),
-                ),
+                ],
+              ),
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.symmetric(vertical: width * 0.05),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                FreindsPage.friendsImage(context),
+                SizedBox(height: width * 0.05),
+                FreindsPage.friendsText(context),
+                SizedBox(height: width * 0.04),
+                FreindsPage.addFriendsButton(context, widget.onAddFriends),
+                SizedBox(height: width * 0.05),
               ],
             ),
           ),
-        ),
-        SizedBox(height: 20),
-        FreindsPage.friendsImage(context),
-        SizedBox(height: 20),
-        FreindsPage.friendsText(context),
-        SizedBox(height: 15),
-        FreindsPage.addFriendsButton(context, widget.onAddFriends),
-      ],
+        ],
+      ),
     );
   }
 }
