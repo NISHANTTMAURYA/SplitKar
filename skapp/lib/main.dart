@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:skapp/components/auth_wrapper.dart';
 import 'package:skapp/pages/main_page.dart';
 import 'package:skapp/pages/settings_profile/settings_page.dart';
@@ -91,6 +92,10 @@ class ProfileNotifier extends ChangeNotifier {
 }
 
 void main() {
+  // Initialize Flutter bindings first
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Now we can safely set system UI mode
   if (Platform.isAndroid || Platform.isIOS) {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   }
