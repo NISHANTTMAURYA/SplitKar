@@ -2,10 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:skapp/services/friends_service.dart';
 import 'package:skapp/services/friends_service.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:skapp/main.dart';
+import 'package:provider/provider.dart';
+
+
 class FreindsPage extends StatefulWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
   final PageController? pageController;
   final Function(bool) onFriendsListStateChanged;
+
+  // Define reusable text style
+  static TextStyle _getBaseTextStyle(double baseSize) => GoogleFonts.cabin(
+    fontSize: baseSize * 0.035,
+  );
 
   const FreindsPage({
     super.key,
@@ -39,7 +49,7 @@ class FreindsPage extends StatefulWidget {
     return Center(
       child: Text(
         'Kharcha share karo, dosti save karo!',
-        style: GoogleFonts.cabin(fontSize: baseSize * 0.035),
+        style: _getBaseTextStyle(baseSize),
       ),
     );
   }
@@ -103,30 +113,21 @@ class FreindsPage extends StatefulWidget {
 }
 
 class _FreindsPageState extends State<FreindsPage> {
-  // Example dynamic friends list (replace with your data source)
-  // @override
-  // void initState(){
-  //   super.initState();
-  //   FriendsService().getFriends();
-  // }
-  final List<String> friends = const [
-    "chaitu",
-    "nishant",
-    "arjun",
-    "meera",
-    "sana",
-    "rahul",
-    "zoya",
-    "amit",
-    "krish",
-    "riya",
-    "neha",
-    "kabir",
-    "tanvi",
-    "manav",
-    "isha",
-    "rohan",
-  ];
+  List<dynamic> _friends = [];
+
+  Future<void> callFriendsService() async {
+    final friends = await FriendsService().getFriends();
+    setState(() {
+      _friends = friends;
+    });
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    callFriendsService();
+  }
 
   bool _isImagePreloaded = false;
 
@@ -146,24 +147,25 @@ class _FreindsPageState extends State<FreindsPage> {
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
     final double height = MediaQuery.of(context).size.height;
-    final bool hasFriends = friends.isNotEmpty;
+    final bool hasFriends = _friends.isNotEmpty;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       widget.onFriendsListStateChanged(hasFriends);
     });
 
     return Scaffold(
-      body: hasFriends
-          ? _FriendsListView(
-              friends: friends,
-              scaffoldKey: widget.scaffoldKey,
-              pageController: widget.pageController,
-            )
-          : _NoFriendsView(
-              onAddFriends: () {
-                FriendsService().getFriends();
-              },
-            ),
+      body: RefreshIndicator(
+        onRefresh:() async{
+      await callFriendsService();
+        },
+        child: hasFriends
+            ? _FriendsListView(
+                friends: _friends,
+                scaffoldKey: widget.scaffoldKey,
+                pageController: widget.pageController,
+              )
+            : _NoFriendsView(onAddFriends: () {}),
+      ),
     );
   }
 }
@@ -189,9 +191,39 @@ class _NoFriendsView extends StatelessWidget {
 }
 
 class _FriendsListView extends StatelessWidget {
-  final List<String> friends;
+  final List<dynamic> friends;
   final GlobalKey<ScaffoldState> scaffoldKey;
   final PageController? pageController;
+
+  // Define reusable text styles
+  TextStyle _getFriendNameStyle(double width) => GoogleFonts.cabin(
+    fontSize: width * 0.045,
+  );
+
+  TextStyle _getHeaderStyle(double width) => GoogleFonts.cabin(
+    fontSize: width * 0.08,
+    fontWeight: FontWeight.bold,
+  );
+
+  TextStyle _getGreetingStyle(double width) => GoogleFonts.cabin(
+    fontSize: width * 0.07,
+    fontWeight: FontWeight.w600,
+  );
+
+  TextStyle _getFriendCountStyle(bool isBold) => GoogleFonts.cabin(
+    fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
+    fontSize: isBold ? 16 : 13,
+    color: Colors.deepPurple,
+    letterSpacing: isBold ? 0.5 : 0.2,
+    shadows: [
+      Shadow(
+        color: Colors.deepPurple.withOpacity(isBold ? 0.15 : 0.10),
+        blurRadius: isBold ? 2 : 1,
+        offset: Offset(0.5, 1),
+      ),
+    ],
+  );
+
   const _FriendsListView({
     required this.friends,
     required this.scaffoldKey,
@@ -203,13 +235,14 @@ class _FriendsListView extends StatelessWidget {
     final width = MediaQuery.of(context).size.width;
     final double height = MediaQuery.of(context).size.height;
     final double baseSize = width < height ? width : height;
-    final TextStyle friendNameStyle = GoogleFonts.cabin(
-      fontSize: width * 0.045,
-    );
-    final TextStyle headerTextStyle = GoogleFonts.cabin(
-      fontSize: width * 0.08,
-      fontWeight: FontWeight.bold,
-    );
+    
+    // Get the styles for this build context
+    final friendNameStyle = _getFriendNameStyle(width);
+    final headerTextStyle = _getHeaderStyle(width);
+    final greetingStyle = _getGreetingStyle(width);
+    final friendCountRegularStyle = _getFriendCountStyle(false);
+    final friendCountBoldStyle = _getFriendCountStyle(true);
+
     final double buttonFontSize = width * 0.04;
     final double buttonIconSize = width * 0.05;
 
@@ -227,7 +260,37 @@ class _FriendsListView extends StatelessWidget {
         ),
         SliverToBoxAdapter(
           child: SizedBox(
-            height: 10,
+            height: 5,
+          ), // <-- This adds vertical space (16 pixels)
+        ),
+        SliverAppBar(
+          snap: true,
+          floating: true,
+          expandedHeight: 40,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          flexibleSpace: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Heyyloo, ${context.watch<ProfileNotifier>().username ?? 'User'} !!',
+                      style: greetingStyle,
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+
+        SliverToBoxAdapter(
+          child: SizedBox(
+            height: 5,
           ), // <-- This adds vertical space (16 pixels)
         ),
         SliverList(
@@ -246,12 +309,28 @@ class _FriendsListView extends StatelessWidget {
                 margin: const EdgeInsets.symmetric(vertical: 6),
                 child: ListTile(
                   leading: CircleAvatar(
+                    radius: 20, // or whatever size you want
                     backgroundColor: Theme.of(
                       context,
                     ).colorScheme.inversePrimary.withOpacity(0.7),
-                    child: Text(friends[index][0]),
+                    child: ClipOval(
+                      child: CachedNetworkImage(
+                        imageUrl: friends[index]['profile_picture_url'] ?? '',
+                        placeholder: (context, url) =>
+                            CircularProgressIndicator(strokeWidth: 1.5),
+                        errorWidget: (context, url, error) =>
+                            Icon(Icons.person),
+                        width: 50, // should match the CircleAvatar diameter
+                        height: 50,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
                   ),
-                  title: Text(friends[index], style: friendNameStyle),
+
+                  title: Text(
+                    friends[index]['username']?.toString() ?? 'No Name',
+                    style: friendNameStyle,
+                  ),
                 ),
               ),
             );
@@ -283,51 +362,15 @@ class _FriendsListView extends StatelessWidget {
                   children: [
                     Text(
                       'You have ',
-                      style: GoogleFonts.cabin(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13,
-                        color: Colors.deepPurple,
-                        letterSpacing: 0.2,
-                        shadows: [
-                          Shadow(
-                            color: Colors.deepPurple.withOpacity(0.10),
-                            blurRadius: 1,
-                            offset: Offset(0.5, 1),
-                          ),
-                        ],
-                      ),
+                      style: friendCountRegularStyle,
                     ),
                     Text(
                       '${friends.length}',
-                      style: GoogleFonts.cabin(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        color: Colors.deepPurple,
-                        letterSpacing: 0.5,
-                        shadows: [
-                          Shadow(
-                            color: Colors.deepPurple.withOpacity(0.15),
-                            blurRadius: 2,
-                            offset: Offset(0.5, 1),
-                          ),
-                        ],
-                      ),
+                      style: friendCountBoldStyle,
                     ),
                     Text(
                       ' friends 🎉',
-                      style: GoogleFonts.cabin(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13,
-                        color: Colors.deepPurple,
-                        letterSpacing: 0.2,
-                        shadows: [
-                          Shadow(
-                            color: Colors.deepPurple.withOpacity(0.10),
-                            blurRadius: 1,
-                            offset: Offset(0.5, 1),
-                          ),
-                        ],
-                      ),
+                      style: friendCountRegularStyle,
                     ),
                   ],
                 ),
@@ -414,9 +457,7 @@ class _FriendsHeaderDelegate extends SliverPersistentHeaderDelegate {
                       Flexible(
                         child: FreindsPage.addFriendsButton(
                           context,
-                          () {
-                            FriendsService().getFriends();
-                          },
+                          () {},
                           textStyle: headerTextStyle.copyWith(
                             fontSize: buttonFontSize,
                             fontWeight: FontWeight.w800,
