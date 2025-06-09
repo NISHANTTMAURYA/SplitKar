@@ -168,7 +168,11 @@ class FriendsService {
     }
   }
 
-  Future<List<Map<String, dynamic>>> listOtherUsers() async {
+  Future<Map<String, dynamic>> listOtherUsers({
+    int page = 1,
+    int pageSize = 5,  // Smaller page size for testing
+    String? searchQuery,
+  }) async {
     try {
       String? token = await _authService.getToken();
       if (token == null) {
@@ -176,8 +180,20 @@ class FriendsService {
         throw 'Session expired. Please log in again.';
       }
 
+      // Build query parameters
+      final queryParams = {
+        'page': page.toString(),
+        'page_size': pageSize.toString(),
+        if (searchQuery != null && searchQuery.isNotEmpty)
+          'search': searchQuery,
+      };
+
+      final uri = Uri.parse('$baseUrl/profile/list-others/').replace(
+        queryParameters: queryParams,
+      );
+
       final response = await client.get(
-        Uri.parse('$baseUrl/profile/list-others/'),
+        uri,
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -187,16 +203,18 @@ class FriendsService {
       _logger.info('Response status code from list-others API: ${response.statusCode}');
 
       if (response.statusCode == 200) {
-        final List<Map<String, dynamic>> users = List<Map<String, dynamic>>.from(
-          jsonDecode(response.body).map((x) => Map<String, dynamic>.from(x))
-        );
-        _logger.info('Fetched ${users.length} potential friends from API');
-        return users;
+        final Map<String, dynamic> data = jsonDecode(response.body);
+        _logger.info('Fetched ${data['users'].length} potential friends from API (Page $page)');
+        return data;
       } else if (response.statusCode == 401) {
         _logger.info('Token expired, attempting refresh...');
         final refreshSuccess = await _authService.handleTokenRefresh();
         if (refreshSuccess) {
-          return listOtherUsers(); // Retry with new token
+          return listOtherUsers(
+            page: page,
+            pageSize: pageSize,
+            searchQuery: searchQuery,
+          ); // Retry with new token
         }
         throw 'Session expired. Please log in again.';
       } else {

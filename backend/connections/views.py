@@ -107,21 +107,42 @@ def decline_friend_request(request):
 def list_users_with_profiles(request):
     """
     List all users that are not friends with the current user.
-    Returns a list of users with their usernames, profile codes, and friend request status.
-    Excludes:
-    - Current user
-    - Users who are already friends
+    Returns a paginated list of users with their usernames, profile codes, and friend request status.
+    Supports:
+    - Pagination (page, page_size)
+    - Search query (search)
     """
+    # Get pagination parameters
+    page = int(request.GET.get('page', 1))
+    page_size = int(request.GET.get('page_size', 5))  # Smaller page size for testing
+    search_query = request.GET.get('search', '').strip()
+    
+    # Calculate offset
+    offset = (page - 1) * page_size
+    
     # Get IDs of current user's friends
     friend_ids = set(friend.id for friend in Friendship.objects.friends_of(request.user))
     friend_ids.add(request.user.id)  # Add current user's ID to exclusion set
     
-    # Get all non-friend profiles in one efficient query
+    # Base query for non-friend profiles
     profiles = Profile.objects.select_related('user').exclude(
         user_id__in=friend_ids
     ).filter(
         is_active=True  # Only show active profiles
     )
+    
+    # Apply search if provided
+    if search_query:
+        profiles = profiles.filter(
+            Q(user__username__icontains=search_query) |
+            Q(profile_code__icontains=search_query)
+        )
+    
+    # Get total count for pagination
+    total_count = profiles.count()
+    
+    # Apply pagination
+    profiles = profiles[offset:offset + page_size]
     
     # Get pending friend requests in a single query
     pending_requests = FriendRequest.objects.filter(
@@ -134,16 +155,26 @@ def list_users_with_profiles(request):
     received_requests = {from_id for from_id, to_id in pending_requests if to_id == request.user.id}
     
     # Prepare response data efficiently
-    response_data = [{
-        'username': profile.user.username,
-        'profile_code': profile.profile_code,
-        'profile_picture_url': profile.profile_picture_url,
-        'friend_request_status': (
-            'sent' if profile.user.id in sent_requests
-            else 'received' if profile.user.id in received_requests
-            else 'none'
-        )
-    } for profile in profiles]
+    response_data = {
+        'users': [{
+            'username': profile.user.username,
+            'profile_code': profile.profile_code,
+            'profile_picture_url': profile.profile_picture_url,
+            'friend_request_status': (
+                'sent' if profile.user.id in sent_requests
+                else 'received' if profile.user.id in received_requests
+                else 'none'
+            )
+        } for profile in profiles],
+        'pagination': {
+            'total_count': total_count,
+            'page': page,
+            'page_size': page_size,
+            'total_pages': (total_count + page_size - 1) // page_size,
+            'has_next': (offset + page_size) < total_count,
+            'has_previous': page > 1
+        }
+    }
     
     return Response(response_data)
 

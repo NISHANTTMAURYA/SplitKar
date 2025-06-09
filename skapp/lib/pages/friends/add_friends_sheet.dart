@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 import 'package:skapp/widgets/custom_loader.dart';
-import 'package:skapp/pages/friends/friends_provider.dart';
+import 'friends_provider.dart';
 
 class AddFriendsSheet extends StatefulWidget {
   // Allow both private and public construction
@@ -58,7 +58,7 @@ class _AddFriendsSheetState extends State<AddFriendsSheet> {
                     icon: const Icon(Icons.clear),
                     onPressed: () {
                       _searchController.clear();
-                      setState(() {});
+                      context.read<FriendsProvider>().searchUsers('');
                     },
                   )
                 : null,
@@ -82,9 +82,11 @@ class _AddFriendsSheetState extends State<AddFriendsSheet> {
               ),
             ),
             onChanged: (value) {
-              // Debounce the search to prevent too many rebuilds
-              Future.microtask(() {
-                if (mounted) setState(() {});
+              // Debounce the search
+              Future.delayed(const Duration(milliseconds: 300), () {
+                if (mounted && _searchController.text == value) {
+                  context.read<FriendsProvider>().searchUsers(value);
+                }
               });
             },
             keyboardType: TextInputType.text,
@@ -205,8 +207,8 @@ class _AddFriendsSheetState extends State<AddFriendsSheet> {
           );
         }
 
-        final filteredUsers = provider.filterUsers(_searchController.text);
-        if (filteredUsers.isEmpty) {
+        final users = provider.potentialFriends;
+        if (users.isEmpty) {
           return Center(
             child: Text(
               _searchController.text.isEmpty
@@ -218,9 +220,31 @@ class _AddFriendsSheetState extends State<AddFriendsSheet> {
           );
         }
 
-        return ListView.builder(
-          itemCount: filteredUsers.length,
-          itemBuilder: (context, index) => _buildUserTile(filteredUsers[index]),
+        return NotificationListener<ScrollNotification>(
+          onNotification: (ScrollNotification scrollInfo) {
+            if (!provider.isLoadingMore && provider.hasMore &&
+                scrollInfo.metrics.pixels == scrollInfo.metrics.maxScrollExtent) {
+              provider.loadMore();
+            }
+            return true;
+          },
+          child: ListView.builder(
+            itemCount: users.length + (provider.hasMore ? 1 : 0),
+            itemBuilder: (context, index) {
+              if (index == users.length) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16.0),
+                  child: Center(
+                    child: CustomLoader(
+                      size: 30,
+                      isButtonLoader: true,
+                    ),
+                  ),
+                );
+              }
+              return _buildUserTile(users[index]);
+            },
+          ),
         );
       },
     );
@@ -235,30 +259,33 @@ class _AddFriendsSheetState extends State<AddFriendsSheet> {
           top: Radius.circular(20),
         ),
       ),
-      child: Column(
-        children: [
-          const SizedBox(height: 8),
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: Colors.grey[300],
-              borderRadius: BorderRadius.circular(2),
+      child: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Add Friends',
-            style: GoogleFonts.cabin(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
+            const SizedBox(height: 16),
+            Text(
+              'Add Friends',
+              style: GoogleFonts.cabin(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-          ),
-          _buildSearchField(),
-          Expanded(
-            child: _buildContent(),
-          ),
-        ],
+            _buildSearchField(),
+            Expanded(
+              child: _buildContent(),
+            ),
+          ],
+        ),
       ),
     );
   }

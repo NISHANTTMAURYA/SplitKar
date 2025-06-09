@@ -7,26 +7,43 @@ class FriendsProvider extends ChangeNotifier {
   final FriendsService _service = FriendsService();
   final NotificationService _notificationService = NotificationService();
   
-  List<Map<String, dynamic>>? _potentialFriends;
+  List<Map<String, dynamic>> _potentialFriends = [];
   String? _error;
   bool _isLoading = false;
+  bool _isLoadingMore = false;
   final Set<String> _pendingRequests = {};
 
+  // Pagination state
+  int _currentPage = 1;
+  int _totalPages = 1;
+  bool _hasMore = true;
+  String _searchQuery = '';
+
   // Getters
-  List<Map<String, dynamic>> get potentialFriends => _potentialFriends ?? [];
+  List<Map<String, dynamic>> get potentialFriends => _potentialFriends;
   String? get error => _error;
   bool get isLoading => _isLoading;
+  bool get isLoadingMore => _isLoadingMore;
+  bool get hasMore => _hasMore;
   bool isPending(String profileCode) => _pendingRequests.contains(profileCode);
 
-  // Load potential friends
+  // Load initial potential friends
   Future<void> loadPotentialFriends() async {
+    if (_isLoading) return;
+
     try {
       _isLoading = true;
       _error = null;
+      _currentPage = 1;
       notifyListeners();
 
-      final users = await _service.listOtherUsers();
-      _potentialFriends = users;
+      final result = await _service.listOtherUsers(
+        page: _currentPage,
+        searchQuery: _searchQuery,
+      );
+      
+      _potentialFriends = List<Map<String, dynamic>>.from(result['users']);
+      _updatePaginationState(result['pagination']);
       _error = null;
     } catch (e) {
       _error = e.toString();
@@ -34,6 +51,45 @@ class FriendsProvider extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  // Load more users (for infinite scroll)
+  Future<void> loadMore() async {
+    if (_isLoadingMore || !_hasMore) return;
+
+    try {
+      _isLoadingMore = true;
+      notifyListeners();
+
+      final result = await _service.listOtherUsers(
+        page: _currentPage + 1,
+        searchQuery: _searchQuery,
+      );
+      
+      final newUsers = List<Map<String, dynamic>>.from(result['users']);
+      _potentialFriends.addAll(newUsers);
+      _updatePaginationState(result['pagination']);
+    } catch (e) {
+      _error = e.toString();
+    } finally {
+      _isLoadingMore = false;
+      notifyListeners();
+    }
+  }
+
+  // Update pagination state
+  void _updatePaginationState(Map<String, dynamic> pagination) {
+    _currentPage = pagination['page'];
+    _totalPages = pagination['total_pages'];
+    _hasMore = pagination['has_next'];
+  }
+
+  // Search users
+  Future<void> searchUsers(String query) async {
+    if (_searchQuery == query) return;
+    
+    _searchQuery = query;
+    await loadPotentialFriends(); // This will reset to page 1 with the new search
   }
 
   // Send friend request
@@ -49,11 +105,11 @@ class FriendsProvider extends ChangeNotifier {
       final result = await _service.sendFriendRequest(profileCode);
       
       // Update the user's status in the list
-      final index = _potentialFriends?.indexWhere(
+      final index = _potentialFriends.indexWhere(
         (u) => u['profile_code'] == profileCode
       );
-      if (index != null && index != -1) {
-        _potentialFriends![index]['friend_request_status'] = 'sent';
+      if (index != -1) {
+        _potentialFriends[index]['friend_request_status'] = 'sent';
       }
 
       // Show success notification
@@ -72,11 +128,11 @@ class FriendsProvider extends ChangeNotifier {
   // Filter users
   List<Map<String, dynamic>> filterUsers(String query) {
     if (_potentialFriends == null) return [];
-    if (query.isEmpty) return _potentialFriends!;
+    if (query.isEmpty) return _potentialFriends;
     
     final searchQuery = query.toLowerCase();
 
-    return _potentialFriends!.where((user) {
+    return _potentialFriends.where((user) {
       final username = user['username']?.toString().toLowerCase() ?? '';
       final profileCode = user['profile_code']?.toString().toLowerCase() ?? '';
 
@@ -106,10 +162,15 @@ class FriendsProvider extends ChangeNotifier {
 
   // Clear state (useful when navigating away)
   void clear() {
-    _potentialFriends = null;
+    _potentialFriends = [];
     _error = null;
     _isLoading = false;
+    _isLoadingMore = false;
     _pendingRequests.clear();
+    _currentPage = 1;
+    _totalPages = 1;
+    _hasMore = true;
+    _searchQuery = '';
     notifyListeners();
   }
 } 
