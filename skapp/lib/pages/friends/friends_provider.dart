@@ -110,6 +110,7 @@ class FriendsProvider extends ChangeNotifier {
       notifyListeners();
 
       final result = await _service.sendFriendRequest(profileCode);
+      final requestId = result['request_id'].toString();
 
       // Update the user's status in the list
       final index = _potentialFriends.indexWhere(
@@ -121,18 +122,21 @@ class FriendsProvider extends ChangeNotifier {
 
       // Create alert for sent friend request
       final alertService = Provider.of<AlertService>(context, listen: false);
-      alertService.addAlert(
-        AlertItem(
-          title: 'Pending Friend Request',
-          subtitle: 'Waiting for $username to respond',
-          icon: Icons.pending_outlined,
-          type: 'friend_request_sent_${result['request_id']}',
-          timestamp: DateTime.now(),
-          category: AlertCategory.friendRequest,
-          requiresResponse: false,
-          actions: [],
-        ),
+
+      // Create the alert item
+      final alertItem = AlertItem(
+        title: 'Pending Friend Request',
+        subtitle: 'Waiting for $username to respond',
+        icon: Icons.pending_outlined,
+        type: 'friend_request_sent_$requestId',
+        timestamp: DateTime.now(),
+        category: AlertCategory.friendRequest,
+        requiresResponse: false,
+        actions: [],
       );
+
+      // Add the alert
+      alertService.addAlert(alertItem);
 
       // Show success notification
       _notificationService.showAppNotification(
@@ -141,6 +145,9 @@ class FriendsProvider extends ChangeNotifier {
         message: 'Friend request sent to $username',
         icon: Icons.person_add,
       );
+
+      // Force refresh the alerts to ensure they appear
+      await loadPendingRequests(context);
     } finally {
       _pendingRequests.remove(profileCode);
       notifyListeners();
