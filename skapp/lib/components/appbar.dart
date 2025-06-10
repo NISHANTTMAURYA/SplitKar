@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import 'package:skapp/services/alert_service.dart';
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
@@ -23,6 +25,12 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
     final height = MediaQuery.of(context).size.height;
+    final alertCount = context.watch<AlertService>().totalCount;
+    
+    // Calculate responsive sizes
+    final titleFontSize = width * 0.09; // Increased from 0.07 to 0.09
+    final logoWidth = width * 0.19; // Increased from 0.08 to 0.1
+    final logoHeight = height * 0.1; // Increased from 0.04 to 0.05
 
     return AppBar(
       systemOverlayStyle: SystemUiOverlayStyle(
@@ -73,6 +81,69 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
         ),
       ),
 
+      actions: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(5, 6, 20, 6),
+          child: SafeArea(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Material(
+                child: Ink(
+                  decoration: BoxDecoration(
+                    color: Colors.deepPurple[400],
+                    border: Border.all(
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: InkWell(
+                    splashColor: Colors.deepPurple.withOpacity(0.3),
+                    highlightColor: Colors.deepPurple.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () {
+                      context.read<AlertService>().showAlertSheet(context);
+                    },
+                    child: Stack(
+                      children: [
+                        const Padding(
+                          padding: EdgeInsets.all(8.0),
+                          child: Icon(Icons.notifications_active_outlined, color: Colors.black, size: 26),
+                        ),
+                        if (alertCount > 0)
+                          Positioned(
+                            right: 0,
+                            top: 0,
+                            child: Container(
+                              padding: const EdgeInsets.all(2),
+                              decoration: BoxDecoration(
+                                color: Colors.red,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              constraints: const BoxConstraints(
+                                minWidth: 20,
+                                minHeight: 20,
+                              ),
+                              child: Text(
+                                alertCount > 99 ? '99+' : alertCount.toString(),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+
       title: Center(
         child: GestureDetector(
           onTap: () {
@@ -87,31 +158,30 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
               Navigator.of(context).pop();
             }
           },
-          child: Padding(
-            padding: const EdgeInsets.only(right: 20),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Text(
-                    "SplitKar",
-                    style: GoogleFonts.cabin(
-                      fontSize: 40,
-                      fontWeight: FontWeight.w500,
-                    ),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(
+                  "SplitKar",
+                  style: GoogleFonts.cabin(
+                    fontSize: titleFontSize.clamp(32.0, 40.0), // Increased clamp range
+                    fontWeight: FontWeight.w500,
                   ),
-                  const SizedBox(width: 2),
-                  Container(
-                    padding: const EdgeInsets.only(bottom: 5),
-                    width: width * 0.13,
-                    height: height * 0.9,
-                    child: Image.asset('assets/images/wallet.png'),
+                ),
+                SizedBox(width: width * 0.015), // Slightly increased spacing
+                SizedBox(
+                  width: logoWidth.clamp(32.0, 40.0), // Increased clamp range
+                  height: logoHeight.clamp(32.0, 40.0), // Increased clamp range
+                  child: Image.asset(
+                    'assets/images/wallet.png',
+                    fit: BoxFit.contain,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),

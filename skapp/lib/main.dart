@@ -12,6 +12,7 @@ import 'package:provider/provider.dart';
 import 'package:skapp/widgets/offline_banner.dart';
 import 'package:skapp/services/notification_service.dart';
 import 'package:skapp/services/navigation_service.dart';
+import 'package:skapp/services/alert_service.dart';
 
 class ProfileNotifier extends ChangeNotifier {
   final _logger = Logger('ProfileNotifier');
@@ -111,9 +112,10 @@ void main() {
     print('${record.level.name}: ${record.time}: ${record.message}');
   });
 
-  // Create a singleton instance of NotificationService
+  // Create singleton instances
   final notificationService = NotificationService();
   final navigationService = NavigationService();
+  final alertService = AlertService();
 
   runApp(
     MultiProvider(
@@ -121,6 +123,7 @@ void main() {
         ChangeNotifierProvider<ProfileNotifier>(create: (_) => ProfileNotifier()),
         ChangeNotifierProvider<NotificationService>.value(value: notificationService),
         Provider<NavigationService>.value(value: navigationService),
+        ChangeNotifierProvider<AlertService>.value(value: alertService),
       ],
       child: const MyApp(),
     ),
