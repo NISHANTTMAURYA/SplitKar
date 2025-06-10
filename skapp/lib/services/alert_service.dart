@@ -63,6 +63,53 @@ class AlertService extends ChangeNotifier {
     notifyListeners();
   }
 
+  // Add alert with server check
+  Future<void> addAlert(AlertItem alert) async {
+    try {
+      // First check if alert exists and is read on server
+      String? token = await _authService.getToken();
+      if (token == null) throw 'Session expired. Please log in again.';
+
+      final response = await client.get(
+        Uri.parse('$baseUrl/alerts/read-status/'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final serverReadAlerts = Set<String>.from(data['read_alerts']);
+
+        // Update local read status
+        _readAlerts = serverReadAlerts;
+
+        // Only add alert if it's not read on server
+        if (!serverReadAlerts.contains(_getAlertId(alert))) {
+          final existingIndex = _alerts.indexWhere((a) => a.type == alert.type);
+          if (existingIndex != -1) {
+            _alerts[existingIndex] = alert;
+          } else {
+            _alerts.insert(0, alert);
+          }
+          notifyListeners();
+        }
+      } else if (response.statusCode == 401) {
+        final refreshSuccess = await _authService.handleTokenRefresh();
+        if (refreshSuccess) {
+          return addAlert(alert); // Retry with new token
+        }
+        throw 'Session expired. Please log in again.';
+      } else {
+        throw 'Failed to check alert status. Status: ${response.statusCode}';
+      }
+    } catch (e) {
+      _logger.severe('Error adding alert: $e');
+      rethrow;
+    }
+  }
+
   // Initialize alerts and read status
   Future<void> initialize() async {
     if (_isInitialized) return;
@@ -73,6 +120,9 @@ class AlertService extends ChangeNotifier {
 
       // Fetch read status from API
       await _fetchReadStatus();
+
+      // Clear any alerts that are marked as read on server
+      _alerts.removeWhere((alert) => _readAlerts.contains(_getAlertId(alert)));
 
       _isInitialized = true;
     } catch (e) {
@@ -195,17 +245,6 @@ class AlertService extends ChangeNotifier {
       _logger.severe('Error marking all alerts as read: $e');
       rethrow;
     }
-  }
-
-  // Add alert with read status check
-  void addAlert(AlertItem alert) {
-    final existingIndex = _alerts.indexWhere((a) => a.type == alert.type);
-    if (existingIndex != -1) {
-      _alerts[existingIndex] = alert;
-    } else {
-      _alerts.insert(0, alert);
-    }
-    notifyListeners();
   }
 
   // Check if alert is read
