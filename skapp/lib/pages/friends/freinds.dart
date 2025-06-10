@@ -9,19 +9,18 @@ import 'package:skapp/widgets/custom_loader.dart';
 import 'package:skapp/pages/friends/add_friends_sheet.dart';
 import 'package:skapp/pages/friends/friends_provider.dart';
 
-
 class FreindsPage extends StatefulWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
   final PageController? pageController;
   final Function(bool) onFriendsListStateChanged;
-  
+
   // Add a global key for the state
-  static final GlobalKey<_FreindsPageState> freindsKey = GlobalKey<_FreindsPageState>();
+  static final GlobalKey<_FreindsPageState> freindsKey =
+      GlobalKey<_FreindsPageState>();
 
   // Define reusable text style
-  static TextStyle _getBaseTextStyle(double baseSize) => GoogleFonts.cabin(
-    fontSize: baseSize * 0.035,
-  );
+  static TextStyle _getBaseTextStyle(double baseSize) =>
+      GoogleFonts.cabin(fontSize: baseSize * 0.035);
 
   const FreindsPage({
     super.key,
@@ -148,14 +147,16 @@ class _FreindsPageState extends State<FreindsPage> {
   // Make _loadFriends public so it can be called from FriendsProvider
   Future<void> _loadFriends() async {
     if (!mounted) return;
-    
+
     setState(() {
       _isLoading = true;
       _error = null;
     });
 
     try {
-      final friends = await _friendsService.getFriends(forceRefresh: true); // Always force refresh
+      final friends = await _friendsService.getFriends(
+        forceRefresh: true,
+      ); // Always force refresh
       if (mounted) {
         setState(() {
           _friends = friends;
@@ -196,17 +197,16 @@ class _FreindsPageState extends State<FreindsPage> {
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
     final double height = MediaQuery.of(context).size.height;
-    final bool hasFriends = _friends.isNotEmpty;
+    final double baseSize = width < height ? width : height;
+    final double statusBarHeight = MediaQuery.of(context).padding.top;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      widget.onFriendsListStateChanged(hasFriends);
+      widget.onFriendsListStateChanged(_friends.isNotEmpty);
     });
 
     // Show loader if loading
     if (_isLoading) {
-      return Scaffold(
-        body: CustomLoader(),
-      );
+      return Scaffold(body: CustomLoader());
     }
 
     // Show error if there is one
@@ -224,10 +224,7 @@ class _FreindsPageState extends State<FreindsPage> {
                 textAlign: TextAlign.center,
               ),
               SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: _loadFriends,
-                child: Text('Retry'),
-              ),
+              ElevatedButton(onPressed: _loadFriends, child: Text('Retry')),
             ],
           ),
         ),
@@ -237,7 +234,7 @@ class _FreindsPageState extends State<FreindsPage> {
     return Scaffold(
       body: RefreshIndicator(
         onRefresh: _loadFriends,
-        child: hasFriends
+        child: _friends.isNotEmpty
             ? _FriendsListView(
                 friends: _friends,
                 scaffoldKey: widget.scaffoldKey,
@@ -251,7 +248,7 @@ class _FreindsPageState extends State<FreindsPage> {
 
 class _NoFriendsView extends StatefulWidget {
   final VoidCallback onAddFriends;
-  
+
   const _NoFriendsView({required this.onAddFriends});
 
   @override
@@ -260,7 +257,7 @@ class _NoFriendsView extends StatefulWidget {
 
 class _NoFriendsViewState extends State<_NoFriendsView> {
   TextStyle _getGreetingStyle(double width) => GoogleFonts.cabin(
-    fontSize: width * 0.055,  // Slightly smaller to handle long usernames better
+    fontSize: width * 0.055, // Slightly smaller to handle long usernames better
     fontWeight: FontWeight.w500,
     color: Colors.white,
   );
@@ -275,11 +272,9 @@ class _NoFriendsViewState extends State<_NoFriendsView> {
         children: [
           Container(
             width: double.infinity,
-            decoration: BoxDecoration(
-              color: Colors.deepPurple[400],
-            ),
+            decoration: BoxDecoration(color: Colors.deepPurple[400]),
             padding: EdgeInsets.symmetric(
-              horizontal: width * 0.04,  // Responsive padding
+              horizontal: width * 0.04, // Responsive padding
               vertical: width * 0.03,
             ),
             child: SafeArea(
@@ -318,39 +313,10 @@ class _NoFriendsViewState extends State<_NoFriendsView> {
   }
 }
 
-class _FriendsListView extends StatelessWidget {
+class _FriendsListView extends StatefulWidget {
   final List<dynamic> friends;
   final GlobalKey<ScaffoldState> scaffoldKey;
   final PageController? pageController;
-
-  // Define reusable text styles
-  TextStyle _getFriendNameStyle(double width) => GoogleFonts.cabin(
-    fontSize: width * 0.045,
-  );
-
-  TextStyle _getHeaderStyle(double width) => GoogleFonts.cabin(
-    fontSize: width * 0.08,
-    fontWeight: FontWeight.bold,
-  );
-
-  TextStyle _getGreetingStyle(double width) => GoogleFonts.cabin(
-    fontSize: width * 0.07,
-    fontWeight: FontWeight.w600,
-  );
-
-  TextStyle _getFriendCountStyle(bool isBold) => GoogleFonts.cabin(
-    fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
-    fontSize: isBold ? 16 : 13,
-    color: Colors.deepPurple,
-    letterSpacing: isBold ? 0.5 : 0.2,
-    shadows: [
-      Shadow(
-        color: Colors.deepPurple.withOpacity(isBold ? 0.15 : 0.10),
-        blurRadius: isBold ? 2 : 1,
-        offset: Offset(0.5, 1),
-      ),
-    ],
-  );
 
   const _FriendsListView({
     required this.friends,
@@ -359,31 +325,107 @@ class _FriendsListView extends StatelessWidget {
   });
 
   @override
+  State<_FriendsListView> createState() => _FriendsListViewState();
+}
+
+class _FriendsListViewState extends State<_FriendsListView> {
+  final ScrollController _scrollController = ScrollController();
+  double _scrollOffset = 0;
+
+  // Define reusable text styles
+  TextStyle _getFriendNameStyle(double width) =>
+      GoogleFonts.cabin(fontSize: width * 0.045);
+
+  TextStyle _getHeaderStyle(double width) =>
+      GoogleFonts.cabin(fontSize: width * 0.08, fontWeight: FontWeight.bold);
+
+  TextStyle _getGreetingStyle(double width) =>
+      GoogleFonts.cabin(fontSize: width * 0.07, fontWeight: FontWeight.w600);
+
+  TextStyle _getFriendCountStyle(bool isBold, double width) =>
+      GoogleFonts.cabin(
+        fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
+        fontSize: isBold ? width * 0.04 : width * 0.035,
+        color: Colors.deepPurple,
+        letterSpacing: isBold ? 0.5 : 0.2,
+        shadows: [
+          Shadow(
+            color: Colors.deepPurple.withOpacity(isBold ? 0.15 : 0.10),
+            blurRadius: isBold ? 2 : 1,
+            offset: Offset(0.5, 1),
+          ),
+        ],
+      );
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(() {
+      setState(() {
+        _scrollOffset = _scrollController.offset;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
     final double height = MediaQuery.of(context).size.height;
     final double baseSize = width < height ? width : height;
-    
+    final double statusBarHeight = MediaQuery.of(context).padding.top;
+
     // Get the styles for this build context
     final friendNameStyle = _getFriendNameStyle(width);
     final headerTextStyle = _getHeaderStyle(width);
     final greetingStyle = _getGreetingStyle(width);
-    final friendCountRegularStyle = _getFriendCountStyle(false);
-    final friendCountBoldStyle = _getFriendCountStyle(true);
+    final friendCountRegularStyle = _getFriendCountStyle(false, width);
+    final friendCountBoldStyle = _getFriendCountStyle(true, width);
 
     final double buttonFontSize = width * 0.04;
     final double buttonIconSize = width * 0.05;
 
     return CustomScrollView(
+      controller: _scrollController,
       slivers: [
+        // Image Header
         SliverPersistentHeader(
-          floating: true,
           pinned: false,
-          delegate: _FriendsHeaderDelegate(
-            context,
-            headerTextStyle: headerTextStyle,
-            buttonFontSize: buttonFontSize,
-            buttonIconSize: buttonIconSize,
+          floating: true,
+          delegate: _ImageHeaderDelegate(
+            statusBarHeight: statusBarHeight,
+            scrollOffset: _scrollOffset,
+          ),
+        ),
+        // Purple container with animation
+        SliverAppBar(
+          pinned: true,
+          floating: false,
+          expandedHeight: 60,
+          toolbarHeight: 60,
+          backgroundColor: Colors.transparent,
+          flexibleSpace: LayoutBuilder(
+            builder: (context, constraints) {
+              print('Debug - Scroll Values:');
+              print('scrollOffset: $_scrollOffset');
+
+              return _FriendsHeaderDelegate(
+                context,
+                headerTextStyle: headerTextStyle,
+                buttonFontSize: buttonFontSize,
+                buttonIconSize: buttonIconSize,
+                scrollOffset: _scrollOffset,
+              ).build(
+                context,
+                constraints.maxHeight - constraints.minHeight,
+                constraints.maxHeight != constraints.minHeight,
+              );
+            },
           ),
         ),
         SliverToBoxAdapter(
@@ -399,7 +441,10 @@ class _FriendsListView extends StatelessWidget {
           elevation: 0,
           flexibleSpace: SafeArea(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 20.0,
+                vertical: 10.0,
+              ),
               child: Row(
                 children: [
                   Expanded(
@@ -426,61 +471,82 @@ class _FriendsListView extends StatelessWidget {
             BuildContext context,
             int index,
           ) {
+            final double width = MediaQuery.of(context).size.width;
+            final double avatarSize = width * 0.12; // Responsive avatar size
+            final double imageSize =
+                width * 0.13; // Slightly larger for the image
+
             return Padding(
-              padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
+              padding: EdgeInsets.symmetric(
+                horizontal: width * 0.025, // 2.5% of screen width
+                vertical: width * 0.015, // 1.5% of screen width
+              ),
               child: Card(
                 color: Colors.white,
                 elevation: 2,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(
+                    width * 0.025,
+                  ), // Responsive border radius
                 ),
-                margin: const EdgeInsets.symmetric(vertical: 6),
+                margin: EdgeInsets.symmetric(vertical: width * 0.015),
                 child: ListTile(
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: width * 0.03,
+                    vertical: width * 0.015,
+                  ),
                   leading: CircleAvatar(
-                    radius: 20,
-                    backgroundColor: Theme.of(context).colorScheme.inversePrimary.withOpacity(0.7),
+                    radius: avatarSize / 2.2,
+                    backgroundColor: Theme.of(
+                      context,
+                    ).colorScheme.inversePrimary.withOpacity(0.7),
                     child: ClipOval(
                       child: CachedNetworkImage(
-                        imageUrl: friends[index]['profile_picture_url'] ?? '',
+                        imageUrl:
+                            widget.friends[index]['profile_picture_url'] ?? '',
                         placeholder: (context, url) => CustomLoader(
-                          size: 25,
+                          size: avatarSize * 0.6,
                           isButtonLoader: true,
                         ),
-                        errorWidget: (context, url, error) => Icon(Icons.person),
-                        width: 50,
-                        height: 50,
+                        errorWidget: (context, url, error) =>
+                            Icon(Icons.person, size: avatarSize * 0.6),
+                        width: imageSize,
+                        height: imageSize,
                         fit: BoxFit.cover,
                       ),
                     ),
                   ),
-
                   title: Text(
-                    friends[index]['username']?.toString() ?? 'No Name',
+                    widget.friends[index]['username']?.toString() ?? 'No Name',
                     style: friendNameStyle,
                   ),
                 ),
               ),
             );
-          }, childCount: friends.length),
+          }, childCount: widget.friends.length),
         ),
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12),
+            padding: EdgeInsets.symmetric(
+              vertical: MediaQuery.of(context).size.width * 0.03,
+            ),
             child: Center(
               child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 6,
+                padding: EdgeInsets.symmetric(
+                  horizontal: MediaQuery.of(context).size.width * 0.035,
+                  vertical: MediaQuery.of(context).size.width * 0.015,
                 ),
                 decoration: BoxDecoration(
                   color: Colors.deepPurple.withOpacity(0.06),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(
+                    MediaQuery.of(context).size.width * 0.025,
+                  ),
                   border: Border.all(color: Colors.deepPurple, width: 1),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.deepPurple.withOpacity(0.08),
                       blurRadius: 4,
-                      offset: Offset(0, 2),
+                      offset: Offset(0.5, 1),
                     ),
                   ],
                 ),
@@ -489,15 +555,15 @@ class _FriendsListView extends StatelessWidget {
                   children: [
                     Text(
                       'You have ',
-                      style: friendCountRegularStyle,
+                      style: _getFriendCountStyle(false, width),
                     ),
                     Text(
-                      '${friends.length}',
-                      style: friendCountBoldStyle,
+                      '${widget.friends.length}',
+                      style: _getFriendCountStyle(true, width),
                     ),
                     Text(
                       ' friends 🎉',
-                      style: friendCountRegularStyle,
+                      style: _getFriendCountStyle(false, width),
                     ),
                   ],
                 ),
@@ -515,12 +581,14 @@ class _FriendsHeaderDelegate extends SliverPersistentHeaderDelegate {
   final TextStyle headerTextStyle;
   final double buttonFontSize;
   final double buttonIconSize;
+  final double scrollOffset;
 
   const _FriendsHeaderDelegate(
     this.context, {
     required this.headerTextStyle,
     required this.buttonFontSize,
     required this.buttonIconSize,
+    required this.scrollOffset,
   });
 
   @override
@@ -529,73 +597,59 @@ class _FriendsHeaderDelegate extends SliverPersistentHeaderDelegate {
     double shrinkOffset,
     bool overlapsContent,
   ) {
-    // ANIMATION LOGIC EXPLANATION:
-    // 1. Base Gap Calculation:
-    //    - Starts at 16px (minimum gap)
-    //    - Ends at 160px (maximum gap - increased for more spread)
-    //    - Takes 300px of scroll to complete (much slower animation)
-    //    - Formula: minGap + (scrollProgress * (maxGap - minGap) / scrollDistance)
-    final double gap = 16 + (shrinkOffset * (160 - 16) / 300).clamp(0, 144);
+    print('Debug - Animation Values:');
+    print('scrollOffset: $scrollOffset');
 
-    // 2. Easing Function:
-    //    - Creates non-linear animation for natural feel
-    //    - As gap approaches max (160px), movement slows down
-    //    - 0.4 is the easing factor (higher = stronger easing)
-    //    - Formula: gap * (1 - (gap/maxGap) * easingFactor)
-    final double easedGap = gap * (1 - (gap / 160) * 0.4);
+    // Calculate gap based on overall scroll position with increased range
+    final double rawGap =
+        16 + (scrollOffset * (170 - 16) / 300); // Increased from 160 to 300
+    final double clampedGap = rawGap.clamp(16.0, 140.0); // Increased max gap
+    final double easedGap =
+        clampedGap * (1 - (clampedGap / 300) * 0.3); // Adjusted easing
+
+    print('Debug - Gap Calculation:');
+    print('rawGap: $rawGap');
+    print('clampedGap: $clampedGap');
+    print('easedGap: $easedGap');
 
     return Container(
       decoration: BoxDecoration(
-        image: DecorationImage(
-          image: AssetImage('assets/images/freinds_scroll.jpg'),
-          fit: BoxFit.cover,
-        ),
+        color: Colors.deepPurple[400],
+        borderRadius: BorderRadius.circular(3),
       ),
       child: SizedBox(
         height: maxExtent,
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.end,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
               width: double.infinity,
-              decoration: BoxDecoration(
-                color: Colors.deepPurple[400],
-                borderRadius: BorderRadius.circular(3),
-              ),
               padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  return Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // 3. Layout Structure:
-                      //    - Flexible widgets allow content to shrink if needed
-                      //    - SizedBox with easedGap creates the animated spacing
-                      //    - Text and button maintain their relative positions
-                      Flexible(
-                        child: Text(
-                          'Friends',
-                          style: headerTextStyle,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Text(
+                      'Friends',
+                      style: headerTextStyle.copyWith(color: Colors.white),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  SizedBox(width: easedGap),
+                  Flexible(
+                    child: FreindsPage.addFriendsButton(
+                      context,
+                      () {},
+                      textStyle: headerTextStyle.copyWith(
+                        fontSize: buttonFontSize,
+                        fontWeight: FontWeight.w800,
+                        color: Theme.of(context).colorScheme.inversePrimary,
                       ),
-                      SizedBox(width: gap),
-                      Flexible(
-                        child: FreindsPage.addFriendsButton(
-                          context,
-                          () {},
-                          textStyle: headerTextStyle.copyWith(
-                            fontSize: buttonFontSize,
-                            fontWeight: FontWeight.w800,
-                            color: Theme.of(context).colorScheme.inversePrimary,
-                          ),
-                          iconSize: buttonIconSize,
-                        ),
-                      ),
-                    ],
-                  );
-                },
+                      iconSize: buttonIconSize,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -605,13 +659,79 @@ class _FriendsHeaderDelegate extends SliverPersistentHeaderDelegate {
   }
 
   @override
-  double get maxExtent => 200.0;
+  double get maxExtent => 60.0;
 
   @override
-  double get minExtent => 200.0;
+  double get minExtent => 60.0;
 
   @override
-  bool shouldRebuild(SliverPersistentHeaderDelegate oldDelegate) {
-    return false;
+  bool shouldRebuild(covariant _FriendsHeaderDelegate oldDelegate) {
+    return true;
+  }
+}
+
+class _ImageHeaderDelegate extends SliverPersistentHeaderDelegate {
+  final double statusBarHeight;
+  final double scrollOffset;
+
+  const _ImageHeaderDelegate({
+    required this.statusBarHeight,
+    required this.scrollOffset,
+  });
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    final double visibleHeight = maxExtent - shrinkOffset;
+
+    return Container(
+      height: visibleHeight,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned(
+            top: -shrinkOffset,
+            left: 0,
+            right: 0,
+            height: maxExtent,
+            child: Image.asset(
+              'assets/images/freinds_scroll.jpg',
+              fit: BoxFit.cover,
+            ),
+          ),
+          // Gradient overlay
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: 4,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.transparent, Colors.deepPurple[400]!],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  double get maxExtent => 200 + statusBarHeight;
+
+  @override
+  double get minExtent => 0;
+
+  @override
+  bool shouldRebuild(covariant _ImageHeaderDelegate oldDelegate) {
+    return oldDelegate.statusBarHeight != statusBarHeight ||
+        oldDelegate.scrollOffset != scrollOffset;
   }
 }
