@@ -231,6 +231,12 @@ class AlertService extends ChangeNotifier {
 
       if (response.statusCode == 200) {
         _readAlerts.addAll(unreadAlerts);
+        // Remove all static alerts that were just marked as read
+        _alerts.removeWhere(
+          (alert) =>
+              !alert.requiresResponse &&
+              unreadAlerts.contains(_getAlertId(alert)),
+        );
         notifyListeners();
       } else if (response.statusCode == 401) {
         final refreshSuccess = await _authService.handleTokenRefresh();

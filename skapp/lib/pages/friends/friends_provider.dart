@@ -6,6 +6,7 @@ import 'package:skapp/services/alert_service.dart';
 import 'package:skapp/components/alert_sheet.dart';
 import 'package:provider/provider.dart';
 import 'package:skapp/pages/friends/freinds.dart';
+import 'package:skapp/main.dart';
 
 class FriendsProvider extends ChangeNotifier {
   final FriendsService _service = FriendsService();
@@ -212,6 +213,9 @@ class FriendsProvider extends ChangeNotifier {
       final result = await _service.getPendingFriendRequests();
       final alertService = Provider.of<AlertService>(context, listen: false);
 
+      print('sent_requests: $result["sent_requests"]');
+      print('received_requests: $result["received_requests"]');
+
       /*
        * Example of Dynamic Alert System Usage
        * -----------------------------------
@@ -265,23 +269,27 @@ class FriendsProvider extends ChangeNotifier {
         );
       }
 
-      // Process sent requests - These are informational only
-      for (var request in result['sent_requests']) {
-        final username = request['to_username'];
-        final requestId = request['request_id'].toString();
+      final currentUsername = Provider.of<ProfileNotifier>(
+        context,
+        listen: false,
+      ).username;
 
-        alertService.addAlert(
-          AlertItem(
-            title: 'Pending Friend Request',
-            subtitle: 'Waiting for $username to respond',
-            icon: Icons.pending_outlined,
-            type: 'friend_request_sent_${requestId}',
-            timestamp: DateTime.parse(request['created_at']),
-            category: AlertCategory.friendRequest, // Same category as received
-            requiresResponse: false, // No action needed
-            actions: [], // No actions for sent requests
-          ),
-        );
+      // For sent requests (show only if current user is the sender)
+      for (var request in result['sent_requests']) {
+        if (request['from_username'] == currentUsername) {
+          alertService.addAlert(
+            AlertItem(
+              title: 'Pending Friend Request',
+              subtitle: 'Waiting for ${request['to_username']} to respond',
+              icon: Icons.pending_outlined,
+              type: 'friend_request_sent_${request['request_id']}',
+              timestamp: DateTime.parse(request['created_at']),
+              category: AlertCategory.friendRequest,
+              requiresResponse: false,
+              actions: [],
+            ),
+          );
+        }
       }
 
       notifyListeners();
