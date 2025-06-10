@@ -184,7 +184,27 @@ class FriendsProvider extends ChangeNotifier {
       final result = await _service.getPendingFriendRequests();
       final alertService = Provider.of<AlertService>(context, listen: false);
 
-      // Process received requests
+      /*
+       * Example of Dynamic Alert System Usage
+       * -----------------------------------
+       * Here we create two types of friend request alerts:
+       * 1. Received Requests:
+       *    - Category: AlertCategory.friendRequest
+       *    - requiresResponse: true (needs user action)
+       *    - Actions: Accept/Decline buttons
+       * 
+       * 2. Sent Requests:
+       *    - Category: AlertCategory.friendRequest
+       *    - requiresResponse: false (no action needed)
+       *    - Actions: None (waiting for other user)
+       * 
+       * To add new alert types in the future:
+       * 1. Use appropriate AlertCategory (add new one if needed)
+       * 2. Set requiresResponse based on if user action is needed
+       * 3. Add relevant actions with callbacks
+       */
+
+      // Process received requests - These require user response
       for (var request in result['received_requests']) {
         final username = request['from_username'];
         final requestId = request['request_id'].toString();
@@ -194,8 +214,10 @@ class FriendsProvider extends ChangeNotifier {
             title: 'Friend Request',
             subtitle: '$username wants to be your friend',
             icon: Icons.person_add,
-            type: 'friend_request_${requestId}', // Add unique identifier
+            type: 'friend_request_${requestId}',
             timestamp: DateTime.parse(request['created_at']),
+            category: AlertCategory.friendRequest,  // Categorize as friend request
+            requiresResponse: true,                 // User needs to accept/decline
             actions: [
               AlertAction(
                 label: 'Accept',
@@ -212,7 +234,7 @@ class FriendsProvider extends ChangeNotifier {
         );
       }
 
-      // Process sent requests
+      // Process sent requests - These are informational only
       for (var request in result['sent_requests']) {
         final username = request['to_username'];
         final requestId = request['request_id'].toString();
@@ -222,8 +244,10 @@ class FriendsProvider extends ChangeNotifier {
             title: 'Pending Friend Request',
             subtitle: 'Waiting for $username to respond',
             icon: Icons.pending_outlined,
-            type: 'friend_request_sent_${requestId}', // Add unique identifier
+            type: 'friend_request_sent_${requestId}',
             timestamp: DateTime.parse(request['created_at']),
+            category: AlertCategory.friendRequest,  // Same category as received
+            requiresResponse: false,                // No action needed
             actions: [], // No actions for sent requests
           ),
         );
