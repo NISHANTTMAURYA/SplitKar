@@ -1,3 +1,66 @@
+/*
+ * Alert Service
+ * ------------
+ * This service manages the application's alert system, handling both local and server-side alerts.
+ * 
+ * Key Features:
+ * 1. Server Synchronization: Keeps alert read status in sync with server
+ * 2. Local State Management: Manages alert state locally for immediate UI updates
+ * 3. Batch Operations: Supports batch marking alerts as read
+ * 
+ * Example Usage:
+ * ```dart
+ * // Initialize the service
+ * final alertService = Provider.of<AlertService>(context, listen: false);
+ * await alertService.initialize();
+ * 
+ * // Add a new alert
+ * await alertService.addAlert(
+ *   AlertItem(
+ *     title: 'New Message',
+ *     subtitle: 'You have a new message from John',
+ *     icon: Icons.message,
+ *     type: 'message_123',
+ *     timestamp: DateTime.now(),
+ *     category: AlertCategory.general,
+ *     requiresResponse: false,
+ *   ),
+ * );
+ * 
+ * // Mark an alert as read
+ * await alertService.markAsRead(alertItem);
+ * 
+ * // Mark all alerts as read
+ * await alertService.markAllAsRead();
+ * ```
+ * 
+ * Optimization Notes
+ * -----------------
+ * 1. Caching Implementation Needed:
+ *    - Add in-memory cache for read status to reduce API calls
+ *    - Cache timeout: 5 minutes
+ *    - Clear cache on logout
+ * 
+ * 2. Batch Operations:
+ *    - Implement batch marking as read instead of individual calls
+ *    - Reduces server load and network requests
+ * 
+ * 3. Pagination Support:
+ *    - Add page size limit (e.g., 20 items per page)
+ *    - Implement infinite scroll in UI
+ *    - Cache paginated results
+ * 
+ * 4. Error Handling:
+ *    - Add retry mechanism for failed API calls
+ *    - Implement proper error recovery
+ *    - Add offline support with local storage
+ * 
+ * 5. Performance:
+ *    - Add debouncing for frequent operations
+ *    - Implement request cancellation for pending calls
+ *    - Add request timeout handling
+ */
+
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -17,6 +80,11 @@ class AlertService extends ChangeNotifier {
   Set<String> _readAlerts = {};
   bool _isLoading = false;
   bool _isInitialized = false;
+
+  // TODO: Add caching implementation
+  // final Map<String, bool> _readStatusCache = {};
+  // final Map<String, AlertItem> _alertCache = {};
+  // static const int CACHE_TIMEOUT = 300; // 5 minutes
 
   // Getters
   List<AlertItem> get alerts => _alerts.where((alert) {
@@ -264,5 +332,21 @@ class AlertService extends ChangeNotifier {
     _readAlerts.clear();
     _isInitialized = false;
     notifyListeners();
+  }
+
+  // TODO: Implement batch operations for better performance
+  Future<void> markMultipleAsRead(List<String> alertTypes) async {
+    // Implementation needed
+  }
+
+  // TODO: Add pagination support
+  Future<List<AlertItem>> getAlerts({int page = 1, int limit = 20}) async {
+    // Implementation needed
+    return []; // Return empty list as default implementation
+  }
+
+  // TODO: Add proper error recovery
+  Future<void> _handleApiError(dynamic error) async {
+    // Implementation needed
   }
 }

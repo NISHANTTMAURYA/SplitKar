@@ -30,6 +30,32 @@
  *   ),
  * );
  * ```
+ * 
+ * Optimization Notes:
+ * 1. Performance Improvements Needed:
+ *    - Implement virtual scrolling for large lists
+ *    - Add lazy loading for images
+ *    - Implement proper list item recycling
+ * 
+ * 2. UI/UX Improvements:
+ *    - Add pull-to-refresh functionality
+ *    - Implement smooth animations for state changes
+ *    - Add proper loading states
+ * 
+ * 3. Memory Management:
+ *    - Implement proper disposal of resources
+ *    - Add memory leak prevention
+ *    - Optimize image caching
+ * 
+ * 4. State Management:
+ *    - Implement proper state restoration
+ *    - Add offline support
+ *    - Optimize rebuilds
+ * 
+ * 5. Accessibility:
+ *    - Add proper screen reader support
+ *    - Implement keyboard navigation
+ *    - Add proper contrast ratios
  */
 
 import 'package:flutter/material.dart';
@@ -51,8 +77,8 @@ class AlertItem {
   final List<AlertAction> actions;
   final DateTime timestamp;
   final String type;
-  final AlertCategory category;    // Category for grouping alerts
-  final bool requiresResponse;     // Indicates if user action is required
+  final AlertCategory category; // Category for grouping alerts
+  final bool requiresResponse; // Indicates if user action is required
 
   AlertItem({
     required this.title,
@@ -73,11 +99,7 @@ class AlertAction {
   final VoidCallback onPressed;
   final Color? color;
 
-  AlertAction({
-    required this.label,
-    required this.onPressed,
-    this.color,
-  });
+  AlertAction({required this.label, required this.onPressed, this.color});
 }
 
 // Enum for alert categories
@@ -115,14 +137,30 @@ enum AlertCategory {
 }
 
 class AlertSheet extends StatefulWidget {
+  /*
+   * Alert Sheet Widget
+   * ----------------
+   * Optimization Notes:
+   * 1. Current Implementation:
+   *    - Basic list view with grouping
+   *    - Simple state management
+   * 
+   * 2. Needed Improvements:
+   *    - Add virtual scrolling
+   *    - Implement proper image caching
+   *    - Add pull-to-refresh
+   *    - Optimize rebuilds
+   * 
+   * 3. Performance:
+   *    - Implement proper list item recycling
+   *    - Add lazy loading
+   *    - Optimize animations
+   */
+
   final List<AlertItem> alerts;
   final VoidCallback? onClose;
 
-  const AlertSheet({
-    super.key,
-    required this.alerts,
-    this.onClose,
-  });
+  const AlertSheet({super.key, required this.alerts, this.onClose});
 
   static Future<void> show(
     BuildContext context, {
@@ -133,13 +171,13 @@ class AlertSheet extends StatefulWidget {
       context: context,
       child: Builder(
         builder: (context) {
-          final friendsProvider = Provider.of<FriendsProvider>(context, listen: false);
-          friendsProvider.loadPendingRequests(context);
-          
-          return AlertSheet(
-            alerts: alerts,
-            onClose: onClose,
+          final friendsProvider = Provider.of<FriendsProvider>(
+            context,
+            listen: false,
           );
+          friendsProvider.loadPendingRequests(context);
+
+          return AlertSheet(alerts: alerts, onClose: onClose);
         },
       ),
     );
@@ -149,7 +187,28 @@ class AlertSheet extends StatefulWidget {
   State<AlertSheet> createState() => _AlertSheetState();
 }
 
-class _AlertSheetState extends State<AlertSheet> with SingleTickerProviderStateMixin {
+class _AlertSheetState extends State<AlertSheet>
+    with SingleTickerProviderStateMixin {
+  /*
+   * Alert Sheet State
+   * ---------------
+   * Optimization Notes:
+   * 1. State Management:
+   *    - Implement proper state restoration
+   *    - Add offline support
+   *    - Optimize state updates
+   * 
+   * 2. Performance:
+   *    - Add proper disposal of resources
+   *    - Implement memory leak prevention
+   *    - Optimize rebuilds
+   * 
+   * 3. UI/UX:
+   *    - Add smooth animations
+   *    - Implement proper loading states
+   *    - Add error handling
+   */
+
   late TabController _tabController;
   AlertCategory? _selectedFilter;
 
@@ -164,27 +223,26 @@ class _AlertSheetState extends State<AlertSheet> with SingleTickerProviderStateM
     final categories = widget.alerts.map((a) => a.category).toSet().toList()
       ..sort((a, b) {
         // Sort categories: actionable first, then by enum order
-        final aHasResponse = widget.alerts.any((alert) => 
-          alert.category == a && alert.requiresResponse);
-        final bHasResponse = widget.alerts.any((alert) => 
-          alert.category == b && alert.requiresResponse);
+        final aHasResponse = widget.alerts.any(
+          (alert) => alert.category == a && alert.requiresResponse,
+        );
+        final bHasResponse = widget.alerts.any(
+          (alert) => alert.category == b && alert.requiresResponse,
+        );
         if (aHasResponse != bHasResponse) {
           return aHasResponse ? -1 : 1;
         }
         return a.index.compareTo(b.index);
       });
-    
+
     // Add 1 for the "All" tab
-    _tabController = TabController(
-      length: categories.length + 1,
-      vsync: this,
-    );
+    _tabController = TabController(length: categories.length + 1, vsync: this);
 
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) {
         setState(() {
-          _selectedFilter = _tabController.index == 0 
-              ? null 
+          _selectedFilter = _tabController.index == 0
+              ? null
               : categories[_tabController.index - 1];
         });
       }
@@ -214,16 +272,18 @@ class _AlertSheetState extends State<AlertSheet> with SingleTickerProviderStateM
         ),
       ),
       // Category specific tabs
-      ...categories.map((category) => Tab(
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(category.icon, size: 16),
-            const SizedBox(width: 4),
-            Text(category.displayName),
-          ],
+      ...categories.map(
+        (category) => Tab(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(category.icon, size: 16),
+              const SizedBox(width: 4),
+              Text(category.displayName),
+            ],
+          ),
         ),
-      )),
+      ),
     ];
   }
 
@@ -232,9 +292,7 @@ class _AlertSheetState extends State<AlertSheet> with SingleTickerProviderStateM
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).scaffoldBackgroundColor,
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(20),
-        ),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: Column(
         children: [
@@ -302,9 +360,7 @@ class _AlertSheetState extends State<AlertSheet> with SingleTickerProviderStateM
             ),
 
           // Alert list
-          Expanded(
-            child: _buildAlertList(context),
-          ),
+          Expanded(child: _buildAlertList(context)),
         ],
       ),
     );
@@ -316,11 +372,7 @@ class _AlertSheetState extends State<AlertSheet> with SingleTickerProviderStateM
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.notifications_none,
-              size: 64,
-              color: Colors.grey[400],
-            ),
+            Icon(Icons.notifications_none, size: 64, color: Colors.grey[400]),
             const SizedBox(height: 16),
             Text(
               'No new activity',
@@ -333,10 +385,7 @@ class _AlertSheetState extends State<AlertSheet> with SingleTickerProviderStateM
             const SizedBox(height: 8),
             Text(
               'You\'re all caught up!',
-              style: GoogleFonts.cabin(
-                fontSize: 14,
-                color: Colors.grey[500],
-              ),
+              style: GoogleFonts.cabin(fontSize: 14, color: Colors.grey[500]),
             ),
           ],
         ),
@@ -363,8 +412,12 @@ class _AlertSheetState extends State<AlertSheet> with SingleTickerProviderStateM
     final sortedCategories = groupedAlerts.keys.toList()
       ..sort((a, b) {
         // First, prioritize categories with items requiring response
-        final aHasResponse = groupedAlerts[a]!.any((item) => item.requiresResponse);
-        final bHasResponse = groupedAlerts[b]!.any((item) => item.requiresResponse);
+        final aHasResponse = groupedAlerts[a]!.any(
+          (item) => item.requiresResponse,
+        );
+        final bHasResponse = groupedAlerts[b]!.any(
+          (item) => item.requiresResponse,
+        );
         if (aHasResponse != bHasResponse) {
           return aHasResponse ? -1 : 1;
         }
@@ -376,10 +429,7 @@ class _AlertSheetState extends State<AlertSheet> with SingleTickerProviderStateM
       return Center(
         child: Text(
           'No alerts in this category',
-          style: GoogleFonts.cabin(
-            fontSize: 16,
-            color: Colors.grey[600],
-          ),
+          style: GoogleFonts.cabin(fontSize: 16, color: Colors.grey[600]),
         ),
       );
     }
@@ -400,7 +450,11 @@ class _AlertSheetState extends State<AlertSheet> with SingleTickerProviderStateM
                 padding: const EdgeInsets.symmetric(vertical: 8.0),
                 child: Row(
                   children: [
-                    Icon(category.icon, size: 20, color: Theme.of(context).colorScheme.primary),
+                    Icon(
+                      category.icon,
+                      size: 20,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       category.displayName,
@@ -415,7 +469,9 @@ class _AlertSheetState extends State<AlertSheet> with SingleTickerProviderStateM
               ),
             ],
             // Category alerts
-            ...categoryAlerts.map((alert) => _buildAlertCard(context, alert, alertService)),
+            ...categoryAlerts.map(
+              (alert) => _buildAlertCard(context, alert, alertService),
+            ),
             if (categoryIndex < sortedCategories.length - 1)
               const Divider(height: 32),
           ],
@@ -424,7 +480,11 @@ class _AlertSheetState extends State<AlertSheet> with SingleTickerProviderStateM
     );
   }
 
-  Widget _buildAlertCard(BuildContext context, AlertItem alert, AlertService alertService) {
+  Widget _buildAlertCard(
+    BuildContext context,
+    AlertItem alert,
+    AlertService alertService,
+  ) {
     final isRead = alertService.isRead(alert);
 
     return Hero(
@@ -432,9 +492,7 @@ class _AlertSheetState extends State<AlertSheet> with SingleTickerProviderStateM
       child: Card(
         margin: const EdgeInsets.only(bottom: 16),
         elevation: isRead ? 1 : 2,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: InkWell(
           onTap: () => alertService.markAsRead(alert),
           borderRadius: BorderRadius.circular(12),
@@ -442,7 +500,7 @@ class _AlertSheetState extends State<AlertSheet> with SingleTickerProviderStateM
             duration: const Duration(milliseconds: 300),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
-              color: isRead 
+              color: isRead
                   ? Theme.of(context).cardColor
                   : Theme.of(context).colorScheme.primary.withOpacity(0.05),
             ),
@@ -453,10 +511,9 @@ class _AlertSheetState extends State<AlertSheet> with SingleTickerProviderStateM
                   leading: Stack(
                     children: [
                       CircleAvatar(
-                        backgroundColor: Theme.of(context)
-                            .colorScheme
-                            .primary
-                            .withOpacity(0.1),
+                        backgroundColor: Theme.of(
+                          context,
+                        ).colorScheme.primary.withOpacity(0.1),
                         child: alert.imageUrl != null
                             ? ClipOval(
                                 child: CachedNetworkImage(
@@ -470,7 +527,9 @@ class _AlertSheetState extends State<AlertSheet> with SingleTickerProviderStateM
                                   ),
                                   errorWidget: (context, url, error) => Icon(
                                     alert.icon,
-                                    color: Theme.of(context).colorScheme.primary,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
                                   ),
                                 ),
                               )
@@ -490,7 +549,9 @@ class _AlertSheetState extends State<AlertSheet> with SingleTickerProviderStateM
                               color: Theme.of(context).colorScheme.primary,
                               shape: BoxShape.circle,
                               border: Border.all(
-                                color: Theme.of(context).scaffoldBackgroundColor,
+                                color: Theme.of(
+                                  context,
+                                ).scaffoldBackgroundColor,
                                 width: 2,
                               ),
                             ),
@@ -510,7 +571,7 @@ class _AlertSheetState extends State<AlertSheet> with SingleTickerProviderStateM
                       Text(
                         alert.subtitle,
                         style: GoogleFonts.cabin(
-                          color: isRead 
+                          color: isRead
                               ? Colors.grey[600]
                               : Theme.of(context).colorScheme.onBackground,
                         ),
@@ -581,4 +642,4 @@ class _AlertSheetState extends State<AlertSheet> with SingleTickerProviderStateM
       return 'Just now';
     }
   }
-} 
+}

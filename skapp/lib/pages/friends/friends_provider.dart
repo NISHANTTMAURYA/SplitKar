@@ -1,3 +1,27 @@
+/*
+ * Friends Provider Optimization Notes
+ * --------------------------------
+ * 1. State Management:
+ *    - Current: Basic ChangeNotifier implementation
+ *    - Needed: Better state organization and caching
+ *    - Consider: Using a more robust state management solution
+ * 
+ * 2. API Calls:
+ *    - Current: Individual API calls for each operation
+ *    - Needed: Batch operations and proper caching
+ *    - Consider: Implementing request queuing
+ * 
+ * 3. Performance:
+ *    - Add proper error handling and retry mechanism
+ *    - Implement request cancellation
+ *    - Add proper loading states
+ * 
+ * 4. Memory Management:
+ *    - Implement proper resource cleanup
+ *    - Add memory leak prevention
+ *    - Optimize data structures
+ */
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:skapp/pages/friends/friends_service.dart';
@@ -9,6 +33,10 @@ import 'package:skapp/pages/friends/freinds.dart';
 import 'package:skapp/main.dart';
 
 class FriendsProvider extends ChangeNotifier {
+  // TODO: Add caching implementation
+  // final Map<String, dynamic> _cache = {};
+  // static const int CACHE_TIMEOUT = 300; // 5 minutes
+
   final FriendsService _service = FriendsService();
   final NotificationService _notificationService = NotificationService();
 
@@ -31,6 +59,9 @@ class FriendsProvider extends ChangeNotifier {
   bool get isLoadingMore => _isLoadingMore;
   bool get hasMore => _hasMore;
   bool isPending(String profileCode) => _pendingRequests.contains(profileCode);
+
+  // TODO: Add request cancellation
+  bool _isRequestCancelled = false;
 
   // Load initial potential friends
   Future<void> loadPotentialFriends() async {
@@ -207,8 +238,36 @@ class FriendsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Friend request handling
+  // TODO: Implement batch operations
+  Future<void> batchProcessFriendRequests(List<String> profileCodes) async {
+    // Implementation needed
+  }
+
+  // TODO: Add proper error recovery
+  Future<void> _handleApiError(dynamic error) async {
+    // Implementation needed
+  }
+
   Future<void> loadPendingRequests(BuildContext context) async {
+    /*
+     * Load Pending Requests
+     * -------------------
+     * Optimization Notes:
+     * 1. Current Implementation:
+     *    - Basic API call to fetch requests
+     *    - Simple state updates
+     * 
+     * 2. Needed Improvements:
+     *    - Add proper caching
+     *    - Implement request cancellation
+     *    - Add proper error handling
+     * 
+     * 3. Performance:
+     *    - Add batch processing
+     *    - Implement proper loading states
+     *    - Optimize state updates
+     */
+
     try {
       final result = await _service.getPendingFriendRequests();
       final alertService = Provider.of<AlertService>(context, listen: false);
