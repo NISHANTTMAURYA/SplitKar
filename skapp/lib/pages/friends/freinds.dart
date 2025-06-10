@@ -478,18 +478,18 @@ class _FriendsListViewState extends State<_FriendsListView> {
 
             return Padding(
               padding: EdgeInsets.symmetric(
-                horizontal: width * 0.025, // 2.5% of screen width
-                vertical: width * 0.015, // 1.5% of screen width
+                horizontal: width * 0.04, // 2.5% of screen width
+                vertical: width * 0.01, // 1.5% of screen width
               ),
               child: Card(
                 color: Colors.white,
                 elevation: 2,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(
-                    width * 0.025,
+                    width * 0.04,
                   ), // Responsive border radius
                 ),
-                margin: EdgeInsets.symmetric(vertical: width * 0.015),
+                margin: EdgeInsets.symmetric(vertical: width * 0.01),
                 child: ListTile(
                   contentPadding: EdgeInsets.symmetric(
                     horizontal: width * 0.03,
