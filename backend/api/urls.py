@@ -5,7 +5,10 @@ from .views import (
     UserLoginAPIView, 
     ProfileDetailsAPIView,
     CustomTokenRefreshView,
-    ProfileUpdateAPIView
+    ProfileUpdateAPIView,
+    AlertReadStatusView,
+    MarkAlertReadView,
+    MarkAllAlertsReadView
 )
 from rest_framework_simplejwt.views import TokenVerifyView
 
@@ -17,5 +20,7 @@ urlpatterns = [
     path('auth/token/refresh/', CustomTokenRefreshView.as_view(), name='token-refresh'),
     path('profile/', ProfileDetailsAPIView, name='profile-details'),
     path('profile/update/', ProfileUpdateAPIView.as_view(), name='profile-update'),
-    
+    path('alerts/read-status/', AlertReadStatusView.as_view(), name='alert-read-status'),
+    path('alerts/mark-read/', MarkAlertReadView.as_view(), name='mark-alert-read'),
+    path('alerts/mark-all-read/', MarkAllAlertsReadView.as_view(), name='mark-all-read'),
 ] 

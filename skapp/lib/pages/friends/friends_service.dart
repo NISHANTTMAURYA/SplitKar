@@ -27,7 +27,7 @@ class FriendsService {
       final cachedData = _prefs.getString(_friendsCacheKey);
       if (cachedData != null) {
         _cachedFriends = List<Map<String, dynamic>>.from(
-          jsonDecode(cachedData).map((x) => Map<String, dynamic>.from(x))
+          jsonDecode(cachedData).map((x) => Map<String, dynamic>.from(x)),
         );
         _logger.info('Loaded ${_cachedFriends?.length} friends from cache');
       }
@@ -40,21 +40,21 @@ class FriendsService {
     try {
       final cacheExpiry = _prefs.getString(_friendsCacheExpiryKey);
       _logger.info('Cache expiry from storage: $cacheExpiry');
-      
+
       if (cacheExpiry == null) {
         _logger.info('No cache expiry found - cache is invalid');
         return false;
       }
-      
+
       final expiryDate = DateTime.parse(cacheExpiry);
       final now = DateTime.now();
       final isValid = now.isBefore(expiryDate);
-      
+
       _logger.info('Cache validation:');
       _logger.info('- Current time: $now');
       _logger.info('- Expiry time: $expiryDate');
       _logger.info('- Is valid: $isValid');
-      
+
       return isValid;
     } catch (e) {
       _logger.warning('Error checking cache validity: $e');
@@ -91,14 +91,19 @@ class FriendsService {
         },
       );
 
-      _logger.info('Response status code from friends API: ${response.statusCode}');
+      _logger.info(
+        'Response status code from friends API: ${response.statusCode}',
+      );
 
       if (response.statusCode == 200) {
-        final List<Map<String, dynamic>> friends = List<Map<String, dynamic>>.from(
-          jsonDecode(response.body).map((x) => Map<String, dynamic>.from(x))
-        );
+        final List<Map<String, dynamic>> friends =
+            List<Map<String, dynamic>>.from(
+              jsonDecode(
+                response.body,
+              ).map((x) => Map<String, dynamic>.from(x)),
+            );
         _logger.info('Fetched ${friends.length} friends from API');
-        
+
         // Cache the fresh data
         await _cacheFriendsData(friends);
         return friends;
@@ -119,7 +124,9 @@ class FriendsService {
     }
   }
 
-  Future<List<Map<String, dynamic>>> getFriends({bool forceRefresh = false}) async {
+  Future<List<Map<String, dynamic>>> getFriends({
+    bool forceRefresh = false,
+  }) async {
     try {
       // Initialize preferences and load cached data
       await _initPrefs();
@@ -131,7 +138,9 @@ class FriendsService {
       if (isOnline) {
         // When online and force refresh is true or no cache exists, fetch fresh data
         if (forceRefresh || _cachedFriends == null) {
-          _logger.info('Fetching fresh friends data. Force refresh: $forceRefresh');
+          _logger.info(
+            'Fetching fresh friends data. Force refresh: $forceRefresh',
+          );
           try {
             final freshFriends = await _fetchFriendsFromApi();
             return freshFriends;
@@ -187,7 +196,7 @@ class FriendsService {
 
   Future<Map<String, dynamic>> listOtherUsers({
     int page = 1,
-    int pageSize = 5,  // Smaller page size for testing
+    int pageSize = 10, // Smaller page size for testing
     String? searchQuery,
   }) async {
     try {
@@ -205,9 +214,9 @@ class FriendsService {
           'search': searchQuery,
       };
 
-      final uri = Uri.parse('$baseUrl/profile/list-others/').replace(
-        queryParameters: queryParams,
-      );
+      final uri = Uri.parse(
+        '$baseUrl/profile/list-others/',
+      ).replace(queryParameters: queryParams);
 
       final response = await client.get(
         uri,
@@ -217,11 +226,15 @@ class FriendsService {
         },
       );
 
-      _logger.info('Response status code from list-others API: ${response.statusCode}');
+      _logger.info(
+        'Response status code from list-others API: ${response.statusCode}',
+      );
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = jsonDecode(response.body);
-        _logger.info('Fetched ${data['users'].length} potential friends from API (Page $page)');
+        _logger.info(
+          'Fetched ${data['users'].length} potential friends from API (Page $page)',
+        );
         return data;
       } else if (response.statusCode == 401) {
         _logger.info('Token expired, attempting refresh...');
@@ -260,10 +273,14 @@ class FriendsService {
         body: jsonEncode({'profile_code': profileCode}),
       );
 
-      _logger.info('Response status code from send friend request API: ${response.statusCode}');
+      _logger.info(
+        'Response status code from send friend request API: ${response.statusCode}',
+      );
 
       if (response.statusCode == 201) {
-        final Map<String, dynamic> result = Map<String, dynamic>.from(jsonDecode(response.body));
+        final Map<String, dynamic> result = Map<String, dynamic>.from(
+          jsonDecode(response.body),
+        );
         _logger.info('Successfully sent friend request: $result');
         return result;
       } else if (response.statusCode == 401) {
@@ -299,10 +316,14 @@ class FriendsService {
         },
       );
 
-      _logger.info('Response status code from pending requests API: ${response.statusCode}');
+      _logger.info(
+        'Response status code from pending requests API: ${response.statusCode}',
+      );
 
       if (response.statusCode == 200) {
-        final Map<String, dynamic> result = Map<String, dynamic>.from(jsonDecode(response.body));
+        final Map<String, dynamic> result = Map<String, dynamic>.from(
+          jsonDecode(response.body),
+        );
         _logger.info('Fetched pending requests: ${result.toString()}');
         return result;
       } else if (response.statusCode == 401) {
@@ -321,7 +342,10 @@ class FriendsService {
     }
   }
 
-  Future<Map<String, dynamic>> respondToFriendRequest(String requestId, bool accept) async {
+  Future<Map<String, dynamic>> respondToFriendRequest(
+    String requestId,
+    bool accept,
+  ) async {
     try {
       String? token = await _authService.getToken();
       if (token == null) {
@@ -339,22 +363,32 @@ class FriendsService {
         body: jsonEncode({'request_id': int.parse(requestId)}),
       );
 
-      _logger.info('Response status code from friend request $endpoint API: ${response.statusCode}');
+      _logger.info(
+        'Response status code from friend request $endpoint API: ${response.statusCode}',
+      );
 
       if (response.statusCode == 200) {
-        final Map<String, dynamic> result = Map<String, dynamic>.from(jsonDecode(response.body));
-        _logger.info('Successfully ${accept ? 'accepted' : 'declined'} friend request: $result');
+        final Map<String, dynamic> result = Map<String, dynamic>.from(
+          jsonDecode(response.body),
+        );
+        _logger.info(
+          'Successfully ${accept ? 'accepted' : 'declined'} friend request: $result',
+        );
         return result;
       } else if (response.statusCode == 401) {
         _logger.info('Token expired, attempting refresh...');
         final refreshSuccess = await _authService.handleTokenRefresh();
         if (refreshSuccess) {
-          return respondToFriendRequest(requestId, accept); // Retry with new token
+          return respondToFriendRequest(
+            requestId,
+            accept,
+          ); // Retry with new token
         }
         throw 'Session expired. Please log in again.';
       } else {
         final errorData = jsonDecode(response.body);
-        throw errorData['error'] ?? 'Failed to ${accept ? 'accept' : 'decline'} friend request';
+        throw errorData['error'] ??
+            'Failed to ${accept ? 'accept' : 'decline'} friend request';
       }
     } catch (e) {
       _logger.severe('Error responding to friend request: $e');

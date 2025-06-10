@@ -10,7 +10,7 @@ import 'package:skapp/pages/friends/freinds.dart';
 class FriendsProvider extends ChangeNotifier {
   final FriendsService _service = FriendsService();
   final NotificationService _notificationService = NotificationService();
-  
+
   List<Map<String, dynamic>> _potentialFriends = [];
   String? _error;
   bool _isLoading = false;
@@ -45,7 +45,7 @@ class FriendsProvider extends ChangeNotifier {
         page: _currentPage,
         searchQuery: _searchQuery,
       );
-      
+
       _potentialFriends = List<Map<String, dynamic>>.from(result['users']);
       _updatePaginationState(result['pagination']);
       _error = null;
@@ -69,7 +69,7 @@ class FriendsProvider extends ChangeNotifier {
         page: _currentPage + 1,
         searchQuery: _searchQuery,
       );
-      
+
       final newUsers = List<Map<String, dynamic>>.from(result['users']);
       _potentialFriends.addAll(newUsers);
       _updatePaginationState(result['pagination']);
@@ -91,13 +91,16 @@ class FriendsProvider extends ChangeNotifier {
   // Search users
   Future<void> searchUsers(String query) async {
     if (_searchQuery == query) return;
-    
+
     _searchQuery = query;
     await loadPotentialFriends(); // This will reset to page 1 with the new search
   }
 
   // Send friend request
-  Future<void> sendFriendRequest(BuildContext context, Map<String, dynamic> user) async {
+  Future<void> sendFriendRequest(
+    BuildContext context,
+    Map<String, dynamic> user,
+  ) async {
     final profileCode = user['profile_code'] as String;
     final username = user['username'] as String;
     if (_pendingRequests.contains(profileCode)) return;
@@ -107,14 +110,29 @@ class FriendsProvider extends ChangeNotifier {
       notifyListeners();
 
       final result = await _service.sendFriendRequest(profileCode);
-      
+
       // Update the user's status in the list
       final index = _potentialFriends.indexWhere(
-        (u) => u['profile_code'] == profileCode
+        (u) => u['profile_code'] == profileCode,
       );
       if (index != -1) {
         _potentialFriends[index]['friend_request_status'] = 'sent';
       }
+
+      // Create alert for sent friend request
+      final alertService = Provider.of<AlertService>(context, listen: false);
+      alertService.addAlert(
+        AlertItem(
+          title: 'Pending Friend Request',
+          subtitle: 'Waiting for $username to respond',
+          icon: Icons.pending_outlined,
+          type: 'friend_request_sent_${result['request_id']}',
+          timestamp: DateTime.now(),
+          category: AlertCategory.friendRequest,
+          requiresResponse: false,
+          actions: [],
+        ),
+      );
 
       // Show success notification
       _notificationService.showAppNotification(
@@ -133,7 +151,7 @@ class FriendsProvider extends ChangeNotifier {
   List<Map<String, dynamic>> filterUsers(String query) {
     if (_potentialFriends == null) return [];
     if (query.isEmpty) return _potentialFriends;
-    
+
     final searchQuery = query.toLowerCase();
 
     return _potentialFriends.where((user) {
@@ -145,12 +163,13 @@ class FriendsProvider extends ChangeNotifier {
         // Split the profile code into parts (before and after @)
         final parts = profileCode.split('@');
         final searchParts = searchQuery.split('@');
-        
+
         // Match either part of the profile code
         if (searchParts.length > 1) {
           // If search has @, match the parts accordingly
-          return (parts[0].contains(searchParts[0].trim()) && 
-                 (searchParts[1].isEmpty || parts[1].contains(searchParts[1].trim())));
+          return (parts[0].contains(searchParts[0].trim()) &&
+              (searchParts[1].isEmpty ||
+                  parts[1].contains(searchParts[1].trim())));
         } else {
           // If just @ is typed, show all results
           return true;
@@ -158,9 +177,11 @@ class FriendsProvider extends ChangeNotifier {
       }
 
       // For non-@ searches, check both username and full profile code
-      return username.contains(searchQuery) || 
-             profileCode.contains(searchQuery) ||
-             profileCode.replaceAll('@', '').contains(searchQuery); // Also match without @ symbol
+      return username.contains(searchQuery) ||
+          profileCode.contains(searchQuery) ||
+          profileCode
+              .replaceAll('@', '')
+              .contains(searchQuery); // Also match without @ symbol
     }).toList();
   }
 
@@ -216,17 +237,20 @@ class FriendsProvider extends ChangeNotifier {
             icon: Icons.person_add,
             type: 'friend_request_${requestId}',
             timestamp: DateTime.parse(request['created_at']),
-            category: AlertCategory.friendRequest,  // Categorize as friend request
-            requiresResponse: true,                 // User needs to accept/decline
+            category:
+                AlertCategory.friendRequest, // Categorize as friend request
+            requiresResponse: true, // User needs to accept/decline
             actions: [
               AlertAction(
                 label: 'Accept',
-                onPressed: () => respondToFriendRequest(context, requestId, true),
+                onPressed: () =>
+                    respondToFriendRequest(context, requestId, true),
                 color: Colors.green,
               ),
               AlertAction(
                 label: 'Decline',
-                onPressed: () => respondToFriendRequest(context, requestId, false),
+                onPressed: () =>
+                    respondToFriendRequest(context, requestId, false),
                 color: Colors.red,
               ),
             ],
@@ -238,7 +262,7 @@ class FriendsProvider extends ChangeNotifier {
       for (var request in result['sent_requests']) {
         final username = request['to_username'];
         final requestId = request['request_id'].toString();
-        
+
         alertService.addAlert(
           AlertItem(
             title: 'Pending Friend Request',
@@ -246,8 +270,8 @@ class FriendsProvider extends ChangeNotifier {
             icon: Icons.pending_outlined,
             type: 'friend_request_sent_${requestId}',
             timestamp: DateTime.parse(request['created_at']),
-            category: AlertCategory.friendRequest,  // Same category as received
-            requiresResponse: false,                // No action needed
+            category: AlertCategory.friendRequest, // Same category as received
+            requiresResponse: false, // No action needed
             actions: [], // No actions for sent requests
           ),
         );
@@ -261,7 +285,11 @@ class FriendsProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> respondToFriendRequest(BuildContext context, String requestId, bool accept) async {
+  Future<void> respondToFriendRequest(
+    BuildContext context,
+    String requestId,
+    bool accept,
+  ) async {
     try {
       final result = await _service.respondToFriendRequest(requestId, accept);
       // When accepting a request, from_user is the username of the person who sent the request
@@ -271,17 +299,19 @@ class FriendsProvider extends ChangeNotifier {
       _notificationService.showAppNotification(
         context,
         title: accept ? 'Friend Request Accepted' : 'Friend Request Declined',
-        message: accept 
-          ? 'You are now friends with $username'
-          : 'Friend request from $username declined',
+        message: accept
+            ? 'You are now friends with $username'
+            : 'Friend request from $username declined',
         icon: accept ? Icons.person_add : Icons.person_remove,
       );
 
       if (accept) {
         // Force refresh the friends list cache
-        await _service.clearCache();  // Clear the cache first
-        await _service.getFriends(forceRefresh: true);  // This will fetch fresh data
-        
+        await _service.clearCache(); // Clear the cache first
+        await _service.getFriends(
+          forceRefresh: true,
+        ); // This will fetch fresh data
+
         // Reload the friends list
         FreindsPage.reloadFriends();
       }
@@ -292,7 +322,6 @@ class FriendsProvider extends ChangeNotifier {
 
       // Refresh pending requests to update the alerts
       await loadPendingRequests(context);
-      
     } catch (e) {
       _error = e.toString();
       _notificationService.showAppNotification(
@@ -304,4 +333,4 @@ class FriendsProvider extends ChangeNotifier {
     }
     notifyListeners();
   }
-} 
+}

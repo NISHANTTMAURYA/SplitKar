@@ -114,7 +114,7 @@ def list_users_with_profiles(request):
     """
     # Get pagination parameters
     page = int(request.GET.get('page', 1))
-    page_size = int(request.GET.get('page_size', 5))  # Smaller page size for testing
+    page_size = int(request.GET.get('page_size', 10))  # Smaller page size for testing
     search_query = request.GET.get('search', '').strip()
     
     # Calculate offset

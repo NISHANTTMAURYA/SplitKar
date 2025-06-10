@@ -7,7 +7,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 import os
-from .serializers import UserRegistrationSerializer, UserLoginSerializer, UserSerializer, ProfileUpdateSerializer
+from .serializers import UserRegistrationSerializer, UserLoginSerializer, UserSerializer, ProfileUpdateSerializer, MarkAlertReadSerializer
 from django.contrib.auth import authenticate
 from django.db.models import Q
 from django.core.exceptions import ValidationError
@@ -22,6 +22,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.core.cache import cache
 from django.conf import settings
 import time
+from .models import AlertReadStatus
 
 
 # Helper function to generate tokens and user data response
@@ -253,3 +254,38 @@ class ProfileUpdateAPIView(APIView):
                 'data': serializer.data
             })
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class AlertReadStatusView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        # Get all read alerts for user
+        read_statuses = AlertReadStatus.objects.filter(user=request.user)
+        return Response({
+            'read_alerts': [status.alert_type for status in read_statuses]
+        })
+
+class MarkAlertReadView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = MarkAlertReadSerializer(data=request.data)
+        if serializer.is_valid():
+            AlertReadStatus.objects.get_or_create(
+                user=request.user,
+                alert_type=serializer.validated_data['alert_type']
+            )
+            return Response({'status': 'success'})
+        return Response(serializer.errors, status=400)
+
+class MarkAllAlertsReadView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        alert_types = request.data.get('alert_types', [])
+        for alert_type in alert_types:
+            AlertReadStatus.objects.get_or_create(
+                user=request.user,
+                alert_type=alert_type
+            )
+        return Response({'status': 'success'})

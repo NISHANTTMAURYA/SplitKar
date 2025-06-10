@@ -1,50 +1,40 @@
 import 'package:flutter/material.dart';
-import 'package:skapp/components/alert_sheet.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:skapp/pages/friends/friends_provider.dart';
+import 'package:logging/logging.dart';
+import 'package:skapp/config.dart';
+import 'package:skapp/services/auth_service.dart';
 import 'package:provider/provider.dart';
+import 'package:skapp/components/alert_sheet.dart';
 
 class AlertService extends ChangeNotifier {
-  static const String _alertsCacheKey = 'cached_alerts';
+  static final _logger = Logger('AlertService');
+  final String baseUrl = AppConfig.baseUrl;
+  final _authService = AuthService();
+  var client = http.Client();
+
   List<AlertItem> _alerts = [];
+  Set<String> _readAlerts = {};
   bool _isLoading = false;
   bool _isInitialized = false;
-  final Set<String> _readAlerts = {};
 
   // Getters
-  List<AlertItem> get alerts => _alerts;
+  List<AlertItem> get alerts => _alerts.where((alert) {
+    // For static alerts (no response needed), only show unread ones
+    if (!alert.requiresResponse) {
+      return !_readAlerts.contains(_getAlertId(alert));
+    }
+    // For response-required alerts, show all (they'll be removed after response)
+    return true;
+  }).toList();
   bool get isLoading => _isLoading;
   bool get isInitialized => _isInitialized;
-  int get totalCount => _alerts.where((alert) => !_readAlerts.contains(_getAlertId(alert))).length;
-
-  AlertService() {
-    _loadFromCache();
-  }
-
-  // Initialize alerts
-  Future<void> initialize() async {
-    if (_isInitialized) return;
-    
-    try {
-      _isLoading = true;
-      notifyListeners();
-
-      await _loadFromCache();
-      
-      _isInitialized = true;
-      _isLoading = false;
-      notifyListeners();
-    } catch (e) {
-      debugPrint('Error initializing alerts: $e');
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
+  int get totalCount => _alerts
+      .where((alert) => !_readAlerts.contains(_getAlertId(alert)))
+      .length;
 
   // Show alert sheet
   void showAlertSheet(BuildContext context) {
-    // Create a new builder context to ensure proper provider access
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -55,14 +45,6 @@ class AlertService extends ChangeNotifier {
           minChildSize: 0.5,
           maxChildSize: 0.9,
           builder: (_, controller) {
-            // Load friend requests using the new context
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (context.mounted) {
-                final friendsProvider = Provider.of<FriendsProvider>(context, listen: false);
-                friendsProvider.loadPendingRequests(context);
-              }
-            });
-
             return AlertSheet(
               alerts: _alerts,
               onClose: () {
@@ -75,153 +57,167 @@ class AlertService extends ChangeNotifier {
     );
   }
 
-  // Add a new alert with deduplication
-  void addAlert(AlertItem alert) {
-    // Check if an alert with the same type already exists
-    final existingIndex = _alerts.indexWhere((a) => a.type == alert.type);
-    if (existingIndex != -1) {
-      // Update existing alert
-      _alerts[existingIndex] = alert;
-    } else {
-      // Add new alert to the beginning of the list
-      _alerts.insert(0, alert);
-    }
-    _saveToCache();
-    notifyListeners();
-  }
-
-  // Add multiple alerts at once with deduplication
-  void addAlerts(List<AlertItem> newAlerts) {
-    bool hasChanges = false;
-    
-    for (final alert in newAlerts) {
-      final existingIndex = _alerts.indexWhere((a) => a.type == alert.type);
-      if (existingIndex != -1) {
-        if (_alerts[existingIndex].timestamp != alert.timestamp) {
-          _alerts[existingIndex] = alert;
-          hasChanges = true;
-        }
-      } else {
-        _alerts.insert(0, alert);
-        hasChanges = true;
-      }
-    }
-    
-    if (hasChanges) {
-      _saveToCache();
-      notifyListeners();
-    }
-  }
-
-  // Remove an alert
-  void removeAlert(AlertItem alert) {
-    _alerts.remove(alert);
-    _readAlerts.remove(_getAlertId(alert));
-    _saveToCache();
-    notifyListeners();
-  }
-
-  // Clear all alerts
-  void clearAlerts() {
-    _alerts.clear();
-    _readAlerts.clear();
-    _saveToCache();
-    notifyListeners();
-  }
-
-  // Mark specific alert as read
-  void markAsRead(AlertItem alert) {
-    _readAlerts.add(_getAlertId(alert));
-    _saveToCache();
-    notifyListeners();
-  }
-
-  // Mark all alerts as read
-  void markAllAsRead() {
-    for (var alert in _alerts) {
-      _readAlerts.add(_getAlertId(alert));
-    }
-    _saveToCache();
-    notifyListeners();
-  }
-
-  // Check if an alert is read
-  bool isRead(AlertItem alert) {
-    return _readAlerts.contains(_getAlertId(alert));
-  }
-
-  // Generate a unique ID for an alert
-  String _getAlertId(AlertItem alert) {
-    return '${alert.type}_${alert.timestamp.millisecondsSinceEpoch}_${alert.title.hashCode}';
-  }
-
-  // Save alerts to cache with error handling
-  Future<void> _saveToCache() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final alertsData = _alerts.map((alert) => {
-        'title': alert.title,
-        'subtitle': alert.subtitle,
-        'imageUrl': alert.imageUrl,
-        'icon': alert.icon.codePoint,
-        'timestamp': alert.timestamp.toIso8601String(),
-        'type': alert.type,
-      }).toList();
-
-      await prefs.setString(_alertsCacheKey, jsonEncode(alertsData));
-      await prefs.setStringList('read_alerts', _readAlerts.toList());
-    } catch (e) {
-      debugPrint('Error saving alerts to cache: $e');
-    }
-  }
-
-  // Load alerts from cache with error handling
-  Future<void> _loadFromCache() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final alertsJson = prefs.getString(_alertsCacheKey);
-      final readAlertsList = prefs.getStringList('read_alerts');
-
-      if (alertsJson != null) {
-        final alertsData = jsonDecode(alertsJson) as List;
-        _alerts = alertsData.map((data) => AlertItem(
-          title: data['title'],
-          subtitle: data['subtitle'],
-          imageUrl: data['imageUrl'],
-          icon: IconData(data['icon'], fontFamily: 'MaterialIcons'),
-          actions: [], // Actions are not cached as they contain callbacks
-          timestamp: DateTime.parse(data['timestamp']),
-          type: data['type'],
-        )).toList();
-
-        // Sort alerts by timestamp
-        _alerts.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-      }
-
-      if (readAlertsList != null) {
-        _readAlerts.addAll(readAlertsList);
-      }
-
-      notifyListeners();
-    } catch (e) {
-      debugPrint('Error loading alerts from cache: $e');
-    }
-  }
-
   // Remove alerts by type
   void removeAlertsByType(String type) {
     _alerts.removeWhere((alert) => alert.type == type);
-    _saveToCache();
     notifyListeners();
   }
 
-  // Get alerts by type
-  List<AlertItem> getAlertsByType(String type) {
-    return _alerts.where((alert) => alert.type == type).toList();
+  // Initialize alerts and read status
+  Future<void> initialize() async {
+    if (_isInitialized) return;
+
+    try {
+      _isLoading = true;
+      notifyListeners();
+
+      // Fetch read status from API
+      await _fetchReadStatus();
+
+      _isInitialized = true;
+    } catch (e) {
+      _logger.severe('Error initializing alerts: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
-  // Get unread alerts
-  List<AlertItem> get unreadAlerts {
-    return _alerts.where((alert) => !isRead(alert)).toList();
+  // Fetch read status from API
+  Future<void> _fetchReadStatus() async {
+    try {
+      String? token = await _authService.getToken();
+      if (token == null) {
+        _logger.warning('No authentication token available');
+        throw 'Session expired. Please log in again.';
+      }
+
+      final response = await client.get(
+        Uri.parse('$baseUrl/alerts/read-status/'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        _readAlerts = Set<String>.from(data['read_alerts']);
+        notifyListeners();
+      } else if (response.statusCode == 401) {
+        _logger.info('Token expired, attempting refresh...');
+        final refreshSuccess = await _authService.handleTokenRefresh();
+        if (refreshSuccess) {
+          return _fetchReadStatus(); // Retry with new token
+        }
+        throw 'Session expired. Please log in again.';
+      } else {
+        throw 'Failed to fetch read status. Status: ${response.statusCode}';
+      }
+    } catch (e) {
+      _logger.severe('Error fetching read status: $e');
+      rethrow;
+    }
   }
-} 
+
+  // Mark alert as read
+  Future<void> markAsRead(AlertItem alert) async {
+    try {
+      String? token = await _authService.getToken();
+      if (token == null) throw 'Session expired. Please log in again.';
+
+      final response = await client.post(
+        Uri.parse('$baseUrl/alerts/mark-read/'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({'alert_type': _getAlertId(alert)}),
+      );
+
+      if (response.statusCode == 200) {
+        _readAlerts.add(_getAlertId(alert));
+        // Remove the alert if it's a static alert (no response needed)
+        if (!alert.requiresResponse) {
+          _alerts.removeWhere((a) => _getAlertId(a) == _getAlertId(alert));
+        }
+        notifyListeners();
+      } else if (response.statusCode == 401) {
+        final refreshSuccess = await _authService.handleTokenRefresh();
+        if (refreshSuccess) {
+          return markAsRead(alert); // Retry with new token
+        }
+        throw 'Session expired. Please log in again.';
+      } else {
+        throw 'Failed to mark alert as read. Status: ${response.statusCode}';
+      }
+    } catch (e) {
+      _logger.severe('Error marking alert as read: $e');
+      rethrow;
+    }
+  }
+
+  // Mark all alerts as read
+  Future<void> markAllAsRead() async {
+    final unreadAlerts = alerts
+        .where((alert) => !isRead(alert))
+        .map((alert) => _getAlertId(alert))
+        .toList();
+
+    if (unreadAlerts.isEmpty) return;
+
+    try {
+      String? token = await _authService.getToken();
+      if (token == null) throw 'Session expired. Please log in again.';
+
+      final response = await client.post(
+        Uri.parse('$baseUrl/alerts/mark-all-read/'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({'alert_types': unreadAlerts}),
+      );
+
+      if (response.statusCode == 200) {
+        _readAlerts.addAll(unreadAlerts);
+        notifyListeners();
+      } else if (response.statusCode == 401) {
+        final refreshSuccess = await _authService.handleTokenRefresh();
+        if (refreshSuccess) {
+          return markAllAsRead(); // Retry with new token
+        }
+        throw 'Session expired. Please log in again.';
+      } else {
+        throw 'Failed to mark all alerts as read. Status: ${response.statusCode}';
+      }
+    } catch (e) {
+      _logger.severe('Error marking all alerts as read: $e');
+      rethrow;
+    }
+  }
+
+  // Add alert with read status check
+  void addAlert(AlertItem alert) {
+    final existingIndex = _alerts.indexWhere((a) => a.type == alert.type);
+    if (existingIndex != -1) {
+      _alerts[existingIndex] = alert;
+    } else {
+      _alerts.insert(0, alert);
+    }
+    notifyListeners();
+  }
+
+  // Check if alert is read
+  bool isRead(AlertItem alert) => _readAlerts.contains(_getAlertId(alert));
+
+  String _getAlertId(AlertItem alert) => alert.type;
+
+  // Clear alerts (e.g., on logout)
+  void clear() {
+    _alerts.clear();
+    _readAlerts.clear();
+    _isInitialized = false;
+    notifyListeners();
+  }
+}

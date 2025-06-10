@@ -4,6 +4,7 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 from connections.models import Profile
+from .models import AlertReadStatus
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(
@@ -111,3 +112,11 @@ class ProfileUpdateSerializer(serializers.ModelSerializer):
         if User.objects.exclude(id=user.id).filter(username=value).exists():
             raise serializers.ValidationError(_("A user with this username already exists."))
         return value
+
+class AlertReadStatusSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AlertReadStatus
+        fields = ['alert_type', 'read_at']
+
+class MarkAlertReadSerializer(serializers.Serializer):
+    alert_type = serializers.CharField()
