@@ -175,6 +175,8 @@ class AppDrawer extends StatelessWidget {
                 endIndent: 16,
               ),
 
+              // Better approach - Replace your drawer items generation with this:
+
               ...List.generate(labels.length, (index) {
                 return ListTile(
                   leading: Icon(icons[index], color: Colors.white),
@@ -192,25 +194,19 @@ class AppDrawer extends StatelessWidget {
                     vertical: 2,
                   ),
                   onTap: () {
-                    _logger.info('Drawer item tapped');
-                    _logger.info(
-                      'Current route before navigation: $currentRoute',
-                    );
+                    _logger.info('Drawer item tapped: ${labels[index]} (index: $index)');
+                    _logger.info('Current route before navigation: $currentRoute');
 
                     // Close drawer first
                     Navigator.pop(context);
 
-                    if (currentRoute == '/settings') {
-                      _logger.info(
-                        'Already on settings page, preventing navigation',
-                      );
-                      return;
-                    }
-
+                    // Always allow navigation from settings page to main page items
+                    // Only prevent navigation if trying to go to settings while already on settings
                     if (currentRoute == '/main') {
                       _logger.info('On main page, switching to index: $index');
                       onItemSelected(index);
                     } else {
+                      // Coming from settings or other pages - always navigate to main
                       _logger.info('Navigating to main with index: $index');
                       navigationService.navigateToMain(initialIndex: index);
                     }
