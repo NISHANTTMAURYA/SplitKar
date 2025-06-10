@@ -40,7 +40,7 @@ class _SettingsPageState extends State<SettingsPage> {
         key: _scaffoldKey,
         appBar: CustomAppBar(
           scaffoldKey: _scaffoldKey,
-          is_bottom_needed: false,
+          is_bottom_needed: true,
           onBackPressed: () {
             navigationService.popUntilMain();
           },

@@ -6,14 +6,16 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:skapp/widgets/custom_loader.dart';
 import 'package:skapp/pages/main_page.dart';
 import 'package:skapp/services/navigation_service.dart';
+import 'package:logging/logging.dart';
 
 class AppDrawer extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onItemSelected;
   final List<String> labels;
   final List<IconData> icons;
+  final _logger = Logger('AppDrawer');
 
-  const AppDrawer({
+  AppDrawer({
     super.key,
     required this.selectedIndex,
     required this.onItemSelected,
@@ -24,8 +26,14 @@ class AppDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final profile = Provider.of<ProfileNotifier>(context);
-    final navigationService = Provider.of<NavigationService>(context, listen: false);
+    final navigationService = Provider.of<NavigationService>(
+      context,
+      listen: false,
+    );
     final currentRoute = ModalRoute.of(context)?.settings.name;
+
+    _logger.info('Current route: $currentRoute');
+    _logger.info('Selected index: $selectedIndex');
 
     return Drawer(
       elevation: 0,
@@ -57,12 +65,16 @@ class AppDrawer extends StatelessWidget {
                   ],
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 16),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 36,
+                    horizontal: 16,
+                  ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      if (profile.photoUrl != null && profile.photoUrl!.isNotEmpty)
+                      if (profile.photoUrl != null &&
+                          profile.photoUrl!.isNotEmpty)
                         CircleAvatar(
                           radius: 44,
                           backgroundColor: Colors.white,
@@ -118,24 +130,50 @@ class AppDrawer extends StatelessWidget {
                       TextButton.icon(
                         style: TextButton.styleFrom(
                           foregroundColor: Colors.white,
-                          backgroundColor: Colors.deepPurple[300]?.withOpacity(0.3),
+                          backgroundColor: Colors.deepPurple[300]?.withOpacity(
+                            0.3,
+                          ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(20),
                           ),
-                          padding: EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 18,
+                            vertical: 8,
+                          ),
                         ),
                         onPressed: () {
+                          _logger.info('Profile Settings button pressed');
+                          _logger.info('Current route: $currentRoute');
+
+                          // Close drawer first
                           Navigator.pop(context);
+
+                          if (currentRoute == '/settings') {
+                            _logger.info(
+                              'Already on settings page, preventing navigation',
+                            );
+                            return;
+                          }
+
+                          _logger.info('Navigating to settings page');
                           navigationService.navigateToSettings();
                         },
                         icon: Icon(Icons.settings, color: Colors.white),
-                        label: Text('Profile Settings', style: GoogleFonts.cabin()),
+                        label: Text(
+                          'Profile Settings',
+                          style: GoogleFonts.cabin(),
+                        ),
                       ),
                     ],
                   ),
                 ),
               ),
-              Divider(color: Colors.white54, thickness: 1, indent: 16, endIndent: 16),
+              Divider(
+                color: Colors.white54,
+                thickness: 1,
+                indent: 16,
+                endIndent: 16,
+              ),
 
               ...List.generate(labels.length, (index) {
                 return ListTile(
@@ -146,19 +184,34 @@ class AppDrawer extends StatelessWidget {
                   ),
                   selected: selectedIndex == index,
                   selectedTileColor: Colors.deepPurple.withOpacity(0.2),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  contentPadding: EdgeInsets.symmetric(horizontal: 24, vertical: 2),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 2,
+                  ),
                   onTap: () {
-                    Navigator.pop(context); // Close drawer
-                    
+                    _logger.info('Drawer item tapped');
+                    _logger.info(
+                      'Current route before navigation: $currentRoute',
+                    );
+
+                    // Close drawer first
+                    Navigator.pop(context);
+
                     if (currentRoute == '/settings') {
-                      // If we're on settings page, navigate to main with the selected index
-                      navigationService.navigateToMain(initialIndex: index);
-                    } else if (currentRoute == '/main') {
-                      // If we're already on main page, just switch tabs
+                      _logger.info(
+                        'Already on settings page, preventing navigation',
+                      );
+                      return;
+                    }
+
+                    if (currentRoute == '/main') {
+                      _logger.info('On main page, switching to index: $index');
                       onItemSelected(index);
                     } else {
-                      // For any other route, navigate to main with the selected index
+                      _logger.info('Navigating to main with index: $index');
                       navigationService.navigateToMain(initialIndex: index);
                     }
                   },
