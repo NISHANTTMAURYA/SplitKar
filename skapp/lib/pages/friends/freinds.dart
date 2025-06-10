@@ -615,7 +615,7 @@ class _FriendsHeaderDelegate extends SliverPersistentHeaderDelegate {
     return Container(
       decoration: BoxDecoration(
         color: Colors.deepPurple[400],
-        borderRadius: BorderRadius.circular(3),
+
       ),
       child: SizedBox(
         height: maxExtent,
@@ -702,22 +702,8 @@ class _ImageHeaderDelegate extends SliverPersistentHeaderDelegate {
               fit: BoxFit.cover,
             ),
           ),
-          // Gradient overlay
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            height: 4,
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Colors.transparent, Colors.deepPurple[400]!],
-                ),
-              ),
-            ),
-          ),
+
+
         ],
       ),
     );
