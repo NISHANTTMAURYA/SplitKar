@@ -2,38 +2,115 @@ import 'package:flutter/material.dart';
 import 'package:skapp/components/alert_sheet.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'package:skapp/pages/friends/friends_provider.dart';
+import 'package:provider/provider.dart';
 
 class AlertService extends ChangeNotifier {
   static const String _alertsCacheKey = 'cached_alerts';
   List<AlertItem> _alerts = [];
   bool _isLoading = false;
+  bool _isInitialized = false;
   final Set<String> _readAlerts = {};
 
   // Getters
   List<AlertItem> get alerts => _alerts;
   bool get isLoading => _isLoading;
+  bool get isInitialized => _isInitialized;
   int get totalCount => _alerts.where((alert) => !_readAlerts.contains(_getAlertId(alert))).length;
 
   AlertService() {
     _loadFromCache();
   }
 
+  // Initialize alerts
+  Future<void> initialize() async {
+    if (_isInitialized) return;
+    
+    try {
+      _isLoading = true;
+      notifyListeners();
+
+      await _loadFromCache();
+      
+      _isInitialized = true;
+      _isLoading = false;
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error initializing alerts: $e');
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   // Show alert sheet
   void showAlertSheet(BuildContext context) {
-    AlertSheet.show(
-      context,
-      alerts: _alerts,
-      onClose: () {
-        markAllAsRead();
+    // Create a new builder context to ensure proper provider access
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext context) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.9,
+          minChildSize: 0.5,
+          maxChildSize: 0.9,
+          builder: (_, controller) {
+            // Load friend requests using the new context
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (context.mounted) {
+                final friendsProvider = Provider.of<FriendsProvider>(context, listen: false);
+                friendsProvider.loadPendingRequests(context);
+              }
+            });
+
+            return AlertSheet(
+              alerts: _alerts,
+              onClose: () {
+                markAllAsRead();
+              },
+            );
+          },
+        );
       },
     );
   }
 
-  // Add a new alert
+  // Add a new alert with deduplication
   void addAlert(AlertItem alert) {
-    _alerts.insert(0, alert); // Add to the beginning of the list
+    // Check if an alert with the same type already exists
+    final existingIndex = _alerts.indexWhere((a) => a.type == alert.type);
+    if (existingIndex != -1) {
+      // Update existing alert
+      _alerts[existingIndex] = alert;
+    } else {
+      // Add new alert to the beginning of the list
+      _alerts.insert(0, alert);
+    }
     _saveToCache();
     notifyListeners();
+  }
+
+  // Add multiple alerts at once with deduplication
+  void addAlerts(List<AlertItem> newAlerts) {
+    bool hasChanges = false;
+    
+    for (final alert in newAlerts) {
+      final existingIndex = _alerts.indexWhere((a) => a.type == alert.type);
+      if (existingIndex != -1) {
+        if (_alerts[existingIndex].timestamp != alert.timestamp) {
+          _alerts[existingIndex] = alert;
+          hasChanges = true;
+        }
+      } else {
+        _alerts.insert(0, alert);
+        hasChanges = true;
+      }
+    }
+    
+    if (hasChanges) {
+      _saveToCache();
+      notifyListeners();
+    }
   }
 
   // Remove an alert
@@ -78,7 +155,7 @@ class AlertService extends ChangeNotifier {
     return '${alert.type}_${alert.timestamp.millisecondsSinceEpoch}_${alert.title.hashCode}';
   }
 
-  // Save alerts to cache
+  // Save alerts to cache with error handling
   Future<void> _saveToCache() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -98,7 +175,7 @@ class AlertService extends ChangeNotifier {
     }
   }
 
-  // Load alerts from cache
+  // Load alerts from cache with error handling
   Future<void> _loadFromCache() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -116,6 +193,9 @@ class AlertService extends ChangeNotifier {
           timestamp: DateTime.parse(data['timestamp']),
           type: data['type'],
         )).toList();
+
+        // Sort alerts by timestamp
+        _alerts.sort((a, b) => b.timestamp.compareTo(a.timestamp));
       }
 
       if (readAlertsList != null) {
@@ -126,13 +206,6 @@ class AlertService extends ChangeNotifier {
     } catch (e) {
       debugPrint('Error loading alerts from cache: $e');
     }
-  }
-
-  // Add multiple alerts at once
-  void addAlerts(List<AlertItem> newAlerts) {
-    _alerts.insertAll(0, newAlerts);
-    _saveToCache();
-    notifyListeners();
   }
 
   // Remove alerts by type

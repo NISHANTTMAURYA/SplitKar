@@ -8,6 +8,8 @@ import 'package:skapp/pages/activity.dart';
 import 'package:skapp/pages/settings_profile/settings_api.dart';
 import 'package:provider/provider.dart';
 import 'package:skapp/services/navigation_service.dart';
+import 'package:skapp/services/alert_service.dart';
+import 'package:skapp/pages/friends/friends_provider.dart';
 
 class MainPage extends StatefulWidget {
   final int? initialIndex;
@@ -31,9 +33,22 @@ class _MainPageState extends State<MainPage> {
     _selectedIndex = widget.initialIndex ?? 1; // Use provided index or default to Friends
     _pageController = PageController(initialPage: _selectedIndex);
 
-    // Defer profile loading until after the first frame
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ProfileApi().loadAllProfileData(context, forceRefresh: true);
+    // Defer loading until after the first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // Load profile data
+      await ProfileApi().loadAllProfileData(context, forceRefresh: true);
+      
+      // Initialize alerts
+      if (context.mounted) {
+        final alertService = Provider.of<AlertService>(context, listen: false);
+        final friendsProvider = Provider.of<FriendsProvider>(context, listen: false);
+        
+        // Load pending friend requests which will populate alerts
+        await friendsProvider.loadPendingRequests(context);
+        
+        // You can add other types of alerts initialization here
+        // For example: group invitations, activity notifications, etc.
+      }
     });
 
     // Initialize pages map here where we have access to _scaffoldKey
@@ -44,6 +59,7 @@ class _MainPageState extends State<MainPage> {
       },
       'Friends': {
         'page': FreindsPage(
+          key: FreindsPage.freindsKey,
           scaffoldKey: _scaffoldKey,
           pageController: _pageController,
           onFriendsListStateChanged: (hasFriends) {

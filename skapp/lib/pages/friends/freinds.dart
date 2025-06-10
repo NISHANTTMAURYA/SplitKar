@@ -14,6 +14,9 @@ class FreindsPage extends StatefulWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
   final PageController? pageController;
   final Function(bool) onFriendsListStateChanged;
+  
+  // Add a global key for the state
+  static final GlobalKey<_FreindsPageState> freindsKey = GlobalKey<_FreindsPageState>();
 
   // Define reusable text style
   static TextStyle _getBaseTextStyle(double baseSize) => GoogleFonts.cabin(
@@ -29,6 +32,12 @@ class FreindsPage extends StatefulWidget {
 
   @override
   State<FreindsPage> createState() => _FreindsPageState();
+
+  // Add a static method to reload friends
+  static void reloadFriends() {
+    freindsKey.currentState?._loadFriends();
+  }
+
   static Widget friendsImage(BuildContext context, {double? opacity}) {
     final double height = MediaQuery.of(context).size.height;
     final double width = MediaQuery.of(context).size.width;
@@ -136,6 +145,7 @@ class _FreindsPageState extends State<FreindsPage> {
   String? _error;
   final FriendsService _friendsService = FriendsService();
 
+  // Make _loadFriends public so it can be called from FriendsProvider
   Future<void> _loadFriends() async {
     if (!mounted) return;
     
@@ -145,7 +155,7 @@ class _FreindsPageState extends State<FreindsPage> {
     });
 
     try {
-      final friends = await _friendsService.getFriends();
+      final friends = await _friendsService.getFriends(forceRefresh: true); // Always force refresh
       if (mounted) {
         setState(() {
           _friends = friends;

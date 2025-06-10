@@ -3,6 +3,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 import 'package:skapp/widgets/custom_loader.dart';
+import '../../services/alert_service.dart';
+import 'friend_request_status.dart';
+import '../../widgets/bottom_sheet_wrapper.dart';
 import 'friends_provider.dart';
 
 class AddFriendsSheet extends StatefulWidget {
@@ -10,18 +13,11 @@ class AddFriendsSheet extends StatefulWidget {
   const AddFriendsSheet({super.key});
 
   static Future<void> show(BuildContext context) {
-    return showModalBottomSheet(
+    return BottomSheetWrapper.show(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.9,
-        minChildSize: 0.5,
-        maxChildSize: 0.9,
-        builder: (_, controller) => ChangeNotifierProvider(
-          create: (_) => FriendsProvider(),
-          child: const AddFriendsSheet(),
-        ),
+      child: ChangeNotifierProvider(
+        create: (_) => FriendsProvider(),
+        child: const AddFriendsSheet(),
       ),
     );
   }
@@ -103,11 +99,11 @@ class _AddFriendsSheetState extends State<AddFriendsSheet> {
     final provider = context.watch<FriendsProvider>();
     final profileCode = user['profile_code'];
     final isPending = provider.isPending(profileCode);
-    final requestStatus = user['friend_request_status'] as String? ?? 'none';
+    final requestStatus = FriendRequestStatus.fromString(user['friend_request_status'] as String?);
 
     Widget trailingWidget;
     
-    if (requestStatus == 'sent' || isPending) {
+    if (requestStatus.isSent || isPending) {
       trailingWidget = TextButton.icon(
         icon: const Icon(Icons.hourglass_empty),
         label: const Text('Pending'),
@@ -116,17 +112,15 @@ class _AddFriendsSheetState extends State<AddFriendsSheet> {
           foregroundColor: Colors.orange,
         ),
       );
-    } else if (requestStatus == 'received') {
+    } else if (requestStatus.isReceived) {
       trailingWidget = TextButton.icon(
         icon: const Icon(Icons.person_add_alt_1),
         label: const Text('Respond'),
         onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Check your pending requests to respond'),
-              duration: Duration(seconds: 2),
-            ),
-          );
+          // Close the add friends sheet first
+          Navigator.pop(context);
+          // Show the alert sheet
+          context.read<AlertService>().showAlertSheet(context);
         },
         style: TextButton.styleFrom(
           foregroundColor: Theme.of(context).colorScheme.primary,

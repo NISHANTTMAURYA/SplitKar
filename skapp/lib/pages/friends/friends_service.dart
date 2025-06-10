@@ -119,7 +119,7 @@ class FriendsService {
     }
   }
 
-  Future<List<Map<String, dynamic>>> getFriends() async {
+  Future<List<Map<String, dynamic>>> getFriends({bool forceRefresh = false}) async {
     try {
       // Initialize preferences and load cached data
       await _initPrefs();
@@ -129,17 +129,31 @@ class FriendsService {
       _logger.info('Online status: $isOnline');
 
       if (isOnline) {
-        // When online, always fetch fresh data
-        try {
-          final freshFriends = await _fetchFriendsFromApi();
-          return freshFriends;
-        } catch (e) {
-          // If API call fails but we have cached data, use it
-          if (_cachedFriends != null) {
-            _logger.info('API call failed, using cached data');
+        // When online and force refresh is true or no cache exists, fetch fresh data
+        if (forceRefresh || _cachedFriends == null) {
+          _logger.info('Fetching fresh friends data. Force refresh: $forceRefresh');
+          try {
+            final freshFriends = await _fetchFriendsFromApi();
+            return freshFriends;
+          } catch (e) {
+            // If API call fails but we have cached data, use it
+            if (_cachedFriends != null) {
+              _logger.info('API call failed, using cached data');
+              return _cachedFriends!;
+            }
+            rethrow;
+          }
+        } else {
+          // Check if cache is valid
+          final isCacheValid = await _isCacheValid();
+          if (!isCacheValid) {
+            _logger.info('Cache invalid, fetching fresh data');
+            final freshFriends = await _fetchFriendsFromApi();
+            return freshFriends;
+          } else if (_cachedFriends != null) {
+            _logger.info('Using valid cached data');
             return _cachedFriends!;
           }
-          rethrow;
         }
       } else {
         // When offline, use cached data if available
@@ -149,6 +163,9 @@ class FriendsService {
         }
         throw 'No internet connection and no cached data available';
       }
+
+      // If we get here, we need fresh data
+      return _fetchFriendsFromApi();
     } catch (e) {
       _logger.severe('Error in getFriends: $e');
       rethrow;
@@ -262,6 +279,85 @@ class FriendsService {
       }
     } catch (e) {
       _logger.severe('Error sending friend request: $e');
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> getPendingFriendRequests() async {
+    try {
+      String? token = await _authService.getToken();
+      if (token == null) {
+        _logger.warning('No authentication token available');
+        throw 'Session expired. Please log in again.';
+      }
+
+      final response = await client.get(
+        Uri.parse('$baseUrl/friend-request/pending/'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      _logger.info('Response status code from pending requests API: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> result = Map<String, dynamic>.from(jsonDecode(response.body));
+        _logger.info('Fetched pending requests: ${result.toString()}');
+        return result;
+      } else if (response.statusCode == 401) {
+        _logger.info('Token expired, attempting refresh...');
+        final refreshSuccess = await _authService.handleTokenRefresh();
+        if (refreshSuccess) {
+          return getPendingFriendRequests(); // Retry with new token
+        }
+        throw 'Session expired. Please log in again.';
+      } else {
+        throw 'Failed to fetch pending requests. Status: ${response.statusCode}';
+      }
+    } catch (e) {
+      _logger.severe('Error fetching pending friend requests: $e');
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> respondToFriendRequest(String requestId, bool accept) async {
+    try {
+      String? token = await _authService.getToken();
+      if (token == null) {
+        _logger.warning('No authentication token available');
+        throw 'Session expired. Please log in again.';
+      }
+
+      final endpoint = accept ? 'accept' : 'decline';
+      final response = await client.post(
+        Uri.parse('$baseUrl/friend-request/$endpoint/'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({'request_id': int.parse(requestId)}),
+      );
+
+      _logger.info('Response status code from friend request $endpoint API: ${response.statusCode}');
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> result = Map<String, dynamic>.from(jsonDecode(response.body));
+        _logger.info('Successfully ${accept ? 'accepted' : 'declined'} friend request: $result');
+        return result;
+      } else if (response.statusCode == 401) {
+        _logger.info('Token expired, attempting refresh...');
+        final refreshSuccess = await _authService.handleTokenRefresh();
+        if (refreshSuccess) {
+          return respondToFriendRequest(requestId, accept); // Retry with new token
+        }
+        throw 'Session expired. Please log in again.';
+      } else {
+        final errorData = jsonDecode(response.body);
+        throw errorData['error'] ?? 'Failed to ${accept ? 'accept' : 'decline'} friend request';
+      }
+    } catch (e) {
+      _logger.severe('Error responding to friend request: $e');
       rethrow;
     }
   }

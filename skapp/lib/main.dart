@@ -13,6 +13,7 @@ import 'package:skapp/widgets/offline_banner.dart';
 import 'package:skapp/services/notification_service.dart';
 import 'package:skapp/services/navigation_service.dart';
 import 'package:skapp/services/alert_service.dart';
+import 'package:skapp/pages/friends/friends_provider.dart';
 
 class ProfileNotifier extends ChangeNotifier {
   final _logger = Logger('ProfileNotifier');
@@ -124,6 +125,7 @@ void main() {
         ChangeNotifierProvider<NotificationService>.value(value: notificationService),
         Provider<NavigationService>.value(value: navigationService),
         ChangeNotifierProvider<AlertService>.value(value: alertService),
+        ChangeNotifierProvider<FriendsProvider>(create: (_) => FriendsProvider()),
       ],
       child: const MyApp(),
     ),

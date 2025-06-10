@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:skapp/services/alert_service.dart';
+import 'package:skapp/pages/friends/friends_provider.dart';
+
+import '../widgets/bottom_sheet_wrapper.dart';
 
 // Model class for alert items
 class AlertItem {
@@ -52,18 +55,19 @@ class AlertSheet extends StatelessWidget {
     required List<AlertItem> alerts,
     VoidCallback? onClose,
   }) {
-    return showModalBottomSheet(
+    return BottomSheetWrapper.show(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.9,
-        minChildSize: 0.5,
-        maxChildSize: 0.9,
-        builder: (_, controller) => AlertSheet(
-          alerts: alerts,
-          onClose: onClose,
-        ),
+      child: Builder(
+        builder: (context) {
+          // Load friend requests when sheet is shown
+          final friendsProvider = Provider.of<FriendsProvider>(context, listen: false);
+          friendsProvider.loadPendingRequests(context);
+          
+          return AlertSheet(
+            alerts: alerts,
+            onClose: onClose,
+          );
+        },
       ),
     );
   }
