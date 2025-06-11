@@ -175,7 +175,7 @@ class MyApp extends StatelessWidget {
             return MaterialPageRoute(
               settings: settings,
               builder: (context) => MainPage(
-                initialIndex: args?['initialIndex'] as int? ?? 1,
+                initialIndex: 0,
               ),
             );
           case '/settings':
