@@ -1,28 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-// import 'package:skapp/pages/friends/friends_service.dart';
-// import 'package:skapp/pages/friends/friends_service.dart';
+import 'package:skapp/pages/friends/friends_service.dart';
+import 'package:skapp/pages/friends/friends_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:skapp/main.dart';
 import 'package:provider/provider.dart';
 import 'package:skapp/widgets/custom_loader.dart';
-import 'package:skapp/pages/groups/add_group_sheet.dart';
-// import 'package:skapp/pages/friends/friends_provider.dart';
+import 'package:skapp/pages/friends/add_friends_sheet.dart';
+import 'package:skapp/pages/friends/friends_provider.dart';
 
-class GroupsPage extends StatefulWidget {
+class FreindsPage extends StatefulWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
   final PageController? pageController;
   final Function(bool) onFriendsListStateChanged;
 
   // Add a global key for the state
-  static final GlobalKey<_GroupsPageState> freindsKey =
-      GlobalKey<_GroupsPageState>();
+  static final GlobalKey<_FreindsPageState> freindsKey =
+      GlobalKey<_FreindsPageState>();
 
   // Define reusable text style
   static TextStyle _getBaseTextStyle(double baseSize) =>
       GoogleFonts.cabin(fontSize: baseSize * 0.035);
 
-  const GroupsPage({
+  const FreindsPage({
     super.key,
     required this.scaffoldKey,
     this.pageController,
@@ -30,7 +30,9 @@ class GroupsPage extends StatefulWidget {
   });
 
   @override
-  State<GroupsPage> createState() => _GroupsPageState();
+  State<FreindsPage> createState() => _FreindsPageState();
+
+  // Add a static method to reload friends
   static void reloadFriends() {
     freindsKey.currentState?._loadFriends();
   }
@@ -63,8 +65,8 @@ class GroupsPage extends StatefulWidget {
     );
   }
 
-  // Shared widget for the Make a Group button
-  static Widget addGroupsButton(
+  // Shared widget for the add friends button
+  static Widget addFriendsButton(
     BuildContext context,
     VoidCallback onAddFriends, {
     TextStyle? textStyle,
@@ -92,13 +94,10 @@ class GroupsPage extends StatefulWidget {
               initialChildSize: 0.9,
               minChildSize: 0.5,
               maxChildSize: 0.9,
-              builder: (_, controller) =>
-                  // Commented out provider
-                  // ChangeNotifierProvider(
-                  //   create: (_) => FriendsProvider(),
-                  //   child: const AddFriendsSheet(),
-                  // ),
-                  const AddFriendsSheet(),
+              builder: (_, controller) => ChangeNotifierProvider(
+                create: (_) => FriendsProvider(),
+                child: const AddFriendsSheet(),
+              ),
             ),
           );
         },
@@ -114,12 +113,12 @@ class GroupsPage extends StatefulWidget {
                     Icons.add,
                     size: iconSize,
                     color: Theme.of(context).colorScheme.inversePrimary,
-                    semanticLabel: 'Make a Group',
+                    semanticLabel: 'Add Friends',
                   ),
                   SizedBox(width: 4),
                   Flexible(
                     child: Text(
-                      'Make a Group',
+                      'Add Friends',
                       style:
                           textStyle ??
                           TextStyle(
@@ -139,42 +138,11 @@ class GroupsPage extends StatefulWidget {
   }
 }
 
-class _GroupsPageState extends State<GroupsPage> {
-  List<dynamic> _friends = [
-    {
-      'username': 'John Doe',
-      'profile_picture_url': 'https://picsum.photos/200',
-      'profile_code': 'JOHN@1234',
-      'friend_request_status': 'accepted',
-    },
-    {
-      'username': 'Jane Smith',
-      'profile_picture_url': 'https://picsum.photos/201',
-      'profile_code': 'JANE@5678',
-      'friend_request_status': 'accepted',
-    },
-    {
-      'username': 'Mike Johnson',
-      'profile_picture_url': 'https://picsum.photos/202',
-      'profile_code': 'MIKE@9012',
-      'friend_request_status': 'accepted',
-    },
-    {
-      'username': 'Sarah Wilson',
-      'profile_picture_url': 'https://picsum.photos/203',
-      'profile_code': 'SARAH@3456',
-      'friend_request_status': 'accepted',
-    },
-    {
-      'username': 'David Brown',
-      'profile_picture_url': 'https://picsum.photos/204',
-      'profile_code': 'DAVID@7890',
-      'friend_request_status': 'accepted',
-    },
-  ];
+class _FreindsPageState extends State<FreindsPage> {
+  List<dynamic> _friends = [];
   bool _isLoading = true;
   String? _error;
-  // final FriendsService _friendsService = FriendsService();
+  final FriendsService _friendsService = FriendsService();
 
   // Make _loadFriends public so it can be called from FriendsProvider
   Future<void> _loadFriends() async {
@@ -186,13 +154,12 @@ class _GroupsPageState extends State<GroupsPage> {
     });
 
     try {
-      // Commented out service call
-      // final friends = await _friendsService.getFriends(
-      //   forceRefresh: true,
-      // ); // Always force refresh
+      final friends = await _friendsService.getFriends(
+        forceRefresh: true,
+      ); // Always force refresh
       if (mounted) {
         setState(() {
-          // _friends = []; // Empty list since we're not using service
+          _friends = friends;
           _isLoading = false;
         });
       }
@@ -331,11 +298,11 @@ class _NoFriendsViewState extends State<_NoFriendsView> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                GroupsPage.friendsImage(context),
+                FreindsPage.friendsImage(context),
                 SizedBox(height: width * 0.05),
-                GroupsPage.friendsText(context),
+                FreindsPage.friendsText(context),
                 SizedBox(height: width * 0.04),
-                GroupsPage.addGroupsButton(context, widget.onAddFriends),
+                FreindsPage.addFriendsButton(context, widget.onAddFriends),
                 SizedBox(height: width * 0.05),
               ],
             ),
@@ -646,7 +613,10 @@ class _FriendsHeaderDelegate extends SliverPersistentHeaderDelegate {
     print('easedGap: $easedGap');
 
     return Container(
-      decoration: BoxDecoration(color: Colors.deepPurple[400]),
+      decoration: BoxDecoration(
+        color: Colors.deepPurple[400],
+
+      ),
       child: SizedBox(
         height: maxExtent,
         child: Column(
@@ -668,7 +638,7 @@ class _FriendsHeaderDelegate extends SliverPersistentHeaderDelegate {
                   ),
                   SizedBox(width: easedGap),
                   Flexible(
-                    child: GroupsPage.addGroupsButton(
+                    child: FreindsPage.addFriendsButton(
                       context,
                       () {},
                       textStyle: headerTextStyle.copyWith(
@@ -732,6 +702,8 @@ class _ImageHeaderDelegate extends SliverPersistentHeaderDelegate {
               fit: BoxFit.cover,
             ),
           ),
+
+
         ],
       ),
     );
