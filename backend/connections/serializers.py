@@ -117,15 +117,34 @@ class FriendListSerializer(serializers.ModelSerializer):
 class GroupCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Group
-        fields = ['name', 'description']
+        fields = ['name', 'description', 'group_type', 'destination', 'start_date', 'end_date', 'trip_status', 'budget']
         extra_kwargs = {
-            'description': {'required': False}
+            'description': {'required': False},
+            'destination': {'required': False},
+            'start_date': {'required': False},
+            'end_date': {'required': False},
+            'trip_status': {'required': False},
+            'budget': {'required': False}
         }
     
     def validate_name(self, value):
         if len(value.strip()) == 0:
             raise serializers.ValidationError("Group name cannot be empty")
         return value
+        
+    def validate(self, data):
+        if data.get('group_type') == 'trip':
+            if not data.get('destination'):
+                raise serializers.ValidationError("Destination is required for trip groups")
+            if not data.get('start_date'):
+                raise serializers.ValidationError("Start date is required for trip groups")
+            if not data.get('end_date'):
+                raise serializers.ValidationError("End date is required for trip groups")
+            if not data.get('trip_status'):
+                raise serializers.ValidationError("Trip status is required for trip groups")
+            if data.get('start_date') and data.get('end_date') and data['start_date'] > data['end_date']:
+                raise serializers.ValidationError("Start date cannot be after end date")
+        return data
     
     def create(self, validated_data):
         group = Group.objects.create(
@@ -290,10 +309,14 @@ class UserGroupListSerializer(serializers.ModelSerializer):
     created_by = serializers.SerializerMethodField()
     member_count = serializers.SerializerMethodField()
     is_creator = serializers.SerializerMethodField()
+    trip_details = serializers.SerializerMethodField()
 
     class Meta:
         model = Group
-        fields = ['id', 'name', 'description', 'created_by', 'member_count', 'created_at', 'is_creator']
+        fields = [
+            'id', 'name', 'description', 'created_by', 'member_count', 
+            'created_at', 'is_creator', 'group_type', 'trip_details'
+        ]
 
     def get_created_by(self, obj):
         return obj.created_by.username
@@ -306,6 +329,17 @@ class UserGroupListSerializer(serializers.ModelSerializer):
         if request and request.user:
             return obj.created_by == request.user
         return False
+        
+    def get_trip_details(self, obj):
+        if obj.group_type == 'trip':
+            return {
+                'destination': obj.destination,
+                'start_date': obj.start_date,
+                'end_date': obj.end_date,
+                'trip_status': obj.trip_status,
+                'budget': obj.budget
+            }
+        return None
 
 class RemoveFriendSerializer(serializers.Serializer):
     profile_code = serializers.CharField(required=True, max_length=20)

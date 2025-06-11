@@ -94,13 +94,24 @@ class FriendshipAdmin(TimeStampedAdmin):
 
 @admin.register(Group)
 class GroupAdmin(TimeStampedAdmin):
-    list_display = ('id', 'name', 'created_by', 'member_count', 'is_active', 'get_created_time', 'get_updated_time')
-    list_filter = ('is_active', 'created_at', 'updated_at')
-    search_fields = ('name', 'created_by__username', 'members__username')
+    list_display = ('id', 'name', 'group_type', 'created_by', 'member_count', 'is_active', 'get_created_time', 'get_updated_time')
+    list_filter = ('is_active', 'group_type', 'trip_status', 'created_at', 'updated_at')
+    search_fields = ('name', 'created_by__username', 'members__username', 'destination')
     filter_horizontal = ('members',)
     raw_id_fields = ('created_by',)
     ordering = ('-created_at',)
     date_hierarchy = 'created_at'
+    
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('name', 'description', 'group_type', 'created_by', 'members', 'is_active')
+        }),
+        ('Trip Details', {
+            'fields': ('destination', 'start_date', 'end_date', 'trip_status', 'budget'),
+            'classes': ('collapse',),
+            'description': 'These fields are only relevant for trip groups'
+        }),
+    )
 
 @admin.register(GroupInvitation)
 class GroupInvitationAdmin(TimeStampedAdmin):

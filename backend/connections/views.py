@@ -250,18 +250,37 @@ def create_group(request):
     Create a new group.
     The authenticated user will automatically be added as a member and creator.
     Additional members can be added using member_ids in the request.
+    
+    For trip groups, the following fields are required:
+    - destination
+    - start_date
+    - end_date
+    - trip_status
     """
     serializer = GroupCreateSerializer(data=request.data, context={'request': request})
     if serializer.is_valid():
         group = serializer.save()
-        return Response({
+        response_data = {
             'id': group.id,
             'name': group.name,
             'description': group.description,
             'created_by': group.created_by.username,
             'member_count': group.member_count,
-            'created_at': group.created_at
-        }, status=status.HTTP_201_CREATED)
+            'created_at': group.created_at,
+            'group_type': group.group_type
+        }
+        
+        # Add trip details if it's a trip group
+        if group.group_type == 'trip':
+            response_data['trip_details'] = {
+                'destination': group.destination,
+                'start_date': group.start_date,
+                'end_date': group.end_date,
+                'trip_status': group.trip_status,
+                'budget': group.budget
+            }
+            
+        return Response(response_data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['POST'])
@@ -377,6 +396,8 @@ def list_user_groups(request):
     - Member count
     - Creation date
     - Whether the current user is the creator
+    - Group type (regular/trip)
+    - Trip details (if it's a trip group)
     """
     # Get all groups where the user is a member
     user_groups = Group.objects.filter(members=request.user).select_related('created_by')
@@ -384,10 +405,7 @@ def list_user_groups(request):
     # Serialize the groups
     serializer = UserGroupListSerializer(user_groups, many=True, context={'request': request})
     
-    return Response({
-        'groups': serializer.data,
-        'total_groups': len(serializer.data)
-    })
+    return Response(serializer.data)
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])

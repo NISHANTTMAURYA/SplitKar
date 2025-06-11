@@ -231,6 +231,18 @@ class Friendship(TimeStampedModel):
         return f"{self.user1.username} ↔ {self.user2.username}" 
  
 class Group(TimeStampedModel): 
+    GROUP_TYPES = [
+        ('regular', 'Regular Group'),
+        ('trip', 'Trip Group')
+    ]
+    
+    TRIP_STATUS_CHOICES = [
+        ('planned', 'Planned'),
+        ('ongoing', 'Ongoing'),
+        ('completed', 'Completed'),
+        ('cancelled', 'Cancelled')
+    ]
+    
     name = models.CharField(max_length=100, db_index=True) 
     description = models.TextField(default='', blank=True) 
     created_by = models.ForeignKey( 
@@ -239,14 +251,42 @@ class Group(TimeStampedModel):
         related_name='groups_created' 
     ) 
     members = models.ManyToManyField(User, related_name='groups_joined', blank=True) 
-    is_active = models.BooleanField(default=True) 
+    is_active = models.BooleanField(default=True)
+    
+    # Group type field
+    group_type = models.CharField(
+        max_length=10,
+        choices=GROUP_TYPES,
+        default='regular',
+        db_index=True
+    )
+    
+    # Trip-specific fields
+    destination = models.CharField(max_length=200, blank=True, null=True)
+    start_date = models.DateField(blank=True, null=True)
+    end_date = models.DateField(blank=True, null=True)
+    trip_status = models.CharField(
+        max_length=10,
+        choices=TRIP_STATUS_CHOICES,
+        default='planned',
+        blank=True,
+        null=True
+    )
+    budget = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        blank=True,
+        null=True
+    )
      
     class Meta: 
         indexes = [ 
             models.Index(fields=['name']), 
             models.Index(fields=['created_by']), 
             models.Index(fields=['is_active']), 
-            models.Index(fields=['created_at']), 
+            models.Index(fields=['created_at']),
+            models.Index(fields=['group_type']),
+            models.Index(fields=['trip_status']),
         ] 
      
     def __str__(self): 
@@ -254,8 +294,22 @@ class Group(TimeStampedModel):
      
     @property 
     def member_count(self): 
-        return self.members.count() 
- 
+        return self.members.count()
+        
+    def clean(self):
+        """Validate trip-specific fields when group type is 'trip'"""
+        if self.group_type == 'trip':
+            if not self.destination:
+                raise ValidationError("Destination is required for trip groups")
+            if not self.start_date:
+                raise ValidationError("Start date is required for trip groups")
+            if not self.end_date:
+                raise ValidationError("End date is required for trip groups")
+            if not self.trip_status:
+                raise ValidationError("Trip status is required for trip groups")
+            if self.start_date and self.end_date and self.start_date > self.end_date:
+                raise ValidationError("Start date cannot be after end date")
+
 class GroupInvitation(TimeStampedModel): 
     STATUS_CHOICES = [ 
         ('pending', 'Pending'), 
