@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:skapp/components/appbar.dart';
 import 'package:skapp/components/drawer.dart';
 import 'package:skapp/components/bottomNavbar.dart';
-import 'package:skapp/pages/groups.dart';
+import 'package:skapp/pages/groups/groups.dart';
 import 'package:skapp/pages/friends/freinds.dart';
 import 'package:skapp/pages/activity.dart';
 import 'package:skapp/pages/settings_profile/settings_api.dart';
@@ -54,7 +54,16 @@ class _MainPageState extends State<MainPage> {
     // Initialize pages map here where we have access to _scaffoldKey
     pages = {
       'Groups': {
-        'page': const GroupsPage(),
+        'page': GroupsPage(
+          key: GroupsPage.freindsKey,
+          scaffoldKey: _scaffoldKey,
+          pageController: _pageController,
+          onFriendsListStateChanged: (hasFriends) {
+            setState(() {
+              _isFriendsListEmpty = !hasFriends;
+            });
+          },
+        ),
         'icon': Icons.group,
       },
       'Friends': {
