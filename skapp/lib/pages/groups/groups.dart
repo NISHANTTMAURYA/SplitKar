@@ -85,6 +85,7 @@ class GroupsPage extends StatefulWidget {
         highlightColor: Colors.deepPurple.withOpacity(0.1),
         onTap: () {
           showModalBottomSheet(
+            barrierColor: Colors.deepPurple[400],
             context: context,
             isScrollControlled: true,
             backgroundColor: Colors.transparent,
