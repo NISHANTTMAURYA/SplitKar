@@ -565,3 +565,71 @@ def list_all_users(request):
             {'error': str(e)},
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+
+
+# backend/connections/views.py
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def batch_create_group(request):
+    """
+    Create a group and invite members in a single request.
+    """
+    try:
+        # Extract group data and member data
+        group_data = {
+            'name': request.data.get('name'),
+            'description': request.data.get('description'),
+            'group_type': request.data.get('group_type'),
+            'created_by': request.user,
+        }
+        
+        # Add trip details if it's a trip group
+        if group_data['group_type'] == 'trip':
+            group_data.update({
+                'destination': request.data.get('destination'),
+                'start_date': request.data.get('start_date'),
+                'end_date': request.data.get('end_date'),
+                'trip_status': request.data.get('trip_status'),
+                'budget': request.data.get('budget'),
+            })
+
+        # Create the group
+        group = Group.objects.create(**group_data)
+        group.members.add(request.user)  # Add creator as member
+
+        # Process invitations if any
+        profile_codes = request.data.get('profile_codes', [])
+        invitations = []
+        
+        if profile_codes:
+            # Get profiles for the provided codes
+            profiles = Profile.objects.filter(profile_code__in=profile_codes)
+            
+            # Create invitations
+            for profile in profiles:
+                invitation = GroupInvitation.objects.create(
+                    group=group,
+                    invited_by=request.user,
+                    invited_user=profile.user,
+                    status='pending'
+                )
+                invitations.append(invitation)
+
+        return Response({
+            'message': 'Group created and invitations sent successfully',
+            'group': {
+                'id': group.id,
+                'name': group.name,
+                'description': group.description,
+                'member_count': group.member_count,
+                'created_by': group.created_by.username,
+                'group_type': group.group_type,
+                'invitations_sent': len(invitations)
+            }
+        }, status=status.HTTP_201_CREATED)
+
+    except Exception as e:
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_400_BAD_REQUEST
+        )

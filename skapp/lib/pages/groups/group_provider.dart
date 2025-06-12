@@ -192,53 +192,46 @@ class GroupProvider extends ChangeNotifier {
     double? budget,
   }) async {
     try {
-      _logger.info('Starting group creation process...');
+      _logger.info('Starting batch group creation process...');
       
-      // Create the group first
-      final groupResult = await _service.createGroup(
+      // Use the new batch endpoint
+      final result = await _service.batchCreateGroup(
         name: name,
         description: description,
         groupType: groupType,
+        profileCodes: _selectedUsers.toList(),
         destination: destination,
         startDate: startDate,
         endDate: endDate,
         tripStatus: tripStatus,
         budget: budget,
       );
-      _logger.info('Group created successfully: ${groupResult['id']}');
+      
+      _logger.info('Group created successfully: ${result['group']['id']}');
 
-      // If there are selected users, invite them
-      if (_selectedUsers.isNotEmpty) {
-        await _service.inviteToGroup(
-          groupId: groupResult['id'],
-          profileCodes: _selectedUsers.toList(),
+      // Show success notification
+      if (context.mounted) {
+        _notificationService.showAppNotification(
+          context,
+          title: 'Group Created',
+          message: 'Group created and invitations sent to ${_selectedUsers.length} members',
+          icon: Icons.group_add,
         );
-        _logger.info('Invitations sent to ${_selectedUsers.length} members');
 
-        // Show success notification
-        if (context.mounted) {
-          _notificationService.showAppNotification(
-            context,
-            title: 'Group Created',
-            message: 'Group created and invitations sent to ${_selectedUsers.length} members',
-            icon: Icons.group_add,
-          );
-
-          // Create alert for group creation
-          final alertService = Provider.of<AlertService>(context, listen: false);
-          alertService.addAlert(
-            AlertItem(
-              title: 'New Group Created',
-              subtitle: 'You created a new group: $name',
-              icon: Icons.group,
-              type: 'group_created_${groupResult['id']}',
-              timestamp: DateTime.now(),
-              category: AlertCategory.groupInvite,
-              requiresResponse: false,
-              actions: [],
-            ),
-          );
-        }
+        // Create alert for group creation
+        final alertService = Provider.of<AlertService>(context, listen: false);
+        alertService.addAlert(
+          AlertItem(
+            title: 'New Group Created',
+            subtitle: 'You created a new group: $name',
+            icon: Icons.group,
+            type: 'group_created_${result['group']['id']}',
+            timestamp: DateTime.now(),
+            category: AlertCategory.groupInvite,
+            requiresResponse: false,
+            actions: [],
+          ),
+        );
       }
 
       // Clear selected users and reset state

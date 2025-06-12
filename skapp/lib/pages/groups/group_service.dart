@@ -545,4 +545,76 @@ class GroupsService {
       _logger.severe('Error clearing groups cache: $e');
     }
   }
+
+  Future<Map<String, dynamic>> batchCreateGroup({
+    required String name,
+    required String description,
+    required String groupType,
+    required List<String> profileCodes,
+    String? destination,
+    DateTime? startDate,
+    DateTime? endDate,
+    String? tripStatus,
+    double? budget,
+  }) async {
+    try {
+      String? token = await _authService.getToken();
+      if (token == null) {
+        throw 'Session expired. Please log in again.';
+      }
+
+      final body = {
+        'name': name,
+        'description': description,
+        'group_type': groupType,
+        'profile_codes': profileCodes,
+        if (groupType == 'trip') ...{
+          'destination': destination,
+          'start_date': startDate?.toIso8601String().split('T')[0],
+          'end_date': endDate?.toIso8601String().split('T')[0],
+          'trip_status': tripStatus,
+          if (budget != null) 'budget': budget.toString(),
+        },
+      };
+
+      final response = await client.post(
+        Uri.parse('$baseUrl/group/batch-create/'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(body),
+      );
+
+      if (response.statusCode == 201) {
+        final result = jsonDecode(response.body);
+        // Clear cache and fetch fresh data
+        await clearCache();
+        await getGroups(forceRefresh: true);
+        return result;
+      } else if (response.statusCode == 401) {
+        final refreshSuccess = await _authService.handleTokenRefresh();
+        if (refreshSuccess) {
+          return batchCreateGroup(
+            name: name,
+            description: description,
+            groupType: groupType,
+            profileCodes: profileCodes,
+            destination: destination,
+            startDate: startDate,
+            endDate: endDate,
+            tripStatus: tripStatus,
+            budget: budget,
+          );
+        }
+        throw 'Session expired. Please log in again.';
+      } else {
+        final errorData = jsonDecode(response.body);
+        throw errorData['error'] ?? 'Failed to create group';
+      }
+    } catch (e) {
+      _logger.severe('Error in batch create group: $e');
+      rethrow;
+    }
+  }
 }
