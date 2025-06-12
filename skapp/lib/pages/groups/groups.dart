@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-// import 'package:skapp/pages/friends/friends_service.dart';
-// import 'package:skapp/pages/friends/friends_service.dart';
+import 'package:skapp/pages/groups/group_service.dart';
+// import 'package:skapp/pages/groups/friends_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:skapp/main.dart';
 import 'package:provider/provider.dart';
 import 'package:skapp/widgets/custom_loader.dart';
 import 'package:skapp/pages/groups/add_group_sheet.dart';
-// import 'package:skapp/pages/friends/friends_provider.dart';
+// import 'package:skapp/pages/groups/friends_provider.dart';
 
 class GroupsPage extends StatefulWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
@@ -50,7 +50,7 @@ class GroupsPage extends StatefulWidget {
     );
   }
 
-  // Shared widget for the friends text
+  // Shared widget for the groups text
   static Widget friendsText(BuildContext context) {
     final double height = MediaQuery.of(context).size.height;
     final double width = MediaQuery.of(context).size.width;
@@ -140,41 +140,41 @@ class GroupsPage extends StatefulWidget {
 }
 
 class _GroupsPageState extends State<GroupsPage> {
-  List<dynamic> _friends = [
-    {
-      'username': 'John Doe',
-      'profile_picture_url': 'https://picsum.photos/200',
-      'profile_code': 'JOHN@1234',
-      'friend_request_status': 'accepted',
-    },
-    {
-      'username': 'Jane Smith',
-      'profile_picture_url': 'https://picsum.photos/201',
-      'profile_code': 'JANE@5678',
-      'friend_request_status': 'accepted',
-    },
-    {
-      'username': 'Mike Johnson',
-      'profile_picture_url': 'https://picsum.photos/202',
-      'profile_code': 'MIKE@9012',
-      'friend_request_status': 'accepted',
-    },
-    {
-      'username': 'Sarah Wilson',
-      'profile_picture_url': 'https://picsum.photos/203',
-      'profile_code': 'SARAH@3456',
-      'friend_request_status': 'accepted',
-    },
-    {
-      'username': 'David Brown',
-      'profile_picture_url': 'https://picsum.photos/204',
-      'profile_code': 'DAVID@7890',
-      'friend_request_status': 'accepted',
-    },
-  ];
+  List<dynamic> _groups = [];
+  //   {
+  //     'username': 'John Doe',
+  //     'profile_picture_url': 'https://picsum.photos/200',
+  //     'profile_code': 'JOHN@1234',
+  //     'friend_request_status': 'accepted',
+  //   },
+  //   {
+  //     'username': 'Jane Smith',
+  //     'profile_picture_url': 'https://picsum.photos/201',
+  //     'profile_code': 'JANE@5678',
+  //     'friend_request_status': 'accepted',
+  //   },
+  //   {
+  //     'username': 'Mike Johnson',
+  //     'profile_picture_url': 'https://picsum.photos/202',
+  //     'profile_code': 'MIKE@9012',
+  //     'friend_request_status': 'accepted',
+  //   },
+  //   {
+  //     'username': 'Sarah Wilson',
+  //     'profile_picture_url': 'https://picsum.photos/203',
+  //     'profile_code': 'SARAH@3456',
+  //     'friend_request_status': 'accepted',
+  //   },
+  //   {
+  //     'username': 'David Brown',
+  //     'profile_picture_url': 'https://picsum.photos/204',
+  //     'profile_code': 'DAVID@7890',
+  //     'friend_request_status': 'accepted',
+  //   },
+  // ];
   bool _isLoading = true;
   String? _error;
-  // final FriendsService _friendsService = FriendsService();
+  final GroupsService _groupsService = GroupsService();
 
   // Make _loadFriends public so it can be called from FriendsProvider
   Future<void> _loadFriends() async {
@@ -187,12 +187,12 @@ class _GroupsPageState extends State<GroupsPage> {
 
     try {
       // Commented out service call
-      // final friends = await _friendsService.getFriends(
-      //   forceRefresh: true,
-      // ); // Always force refresh
+      final groups = await _groupsService.getGroups(
+        forceRefresh: true,
+      ); // Always force refresh
       if (mounted) {
         setState(() {
-          // _friends = []; // Empty list since we're not using service
+          _groups = groups; // Empty list since we're not using service
           _isLoading = false;
         });
       }
@@ -234,7 +234,7 @@ class _GroupsPageState extends State<GroupsPage> {
     final double statusBarHeight = MediaQuery.of(context).padding.top;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      widget.onFriendsListStateChanged(_friends.isNotEmpty);
+      widget.onFriendsListStateChanged(_groups.isNotEmpty);
     });
 
     // Show loader if loading
@@ -267,28 +267,28 @@ class _GroupsPageState extends State<GroupsPage> {
     return Scaffold(
       body: RefreshIndicator(
         onRefresh: _loadFriends,
-        child: _friends.isNotEmpty
-            ? _FriendsListView(
-                friends: _friends,
+        child: _groups.isNotEmpty
+            ? _GroupsListView(
+                groups: _groups,
                 scaffoldKey: widget.scaffoldKey,
                 pageController: widget.pageController,
               )
-            : _NoFriendsView(onAddFriends: () {}),
+            : _NoGroupsView(onAddFriends: () {}),
       ),
     );
   }
 }
 
-class _NoFriendsView extends StatefulWidget {
+class _NoGroupsView extends StatefulWidget {
   final VoidCallback onAddFriends;
 
-  const _NoFriendsView({required this.onAddFriends});
+  const _NoGroupsView({required this.onAddFriends});
 
   @override
-  State<_NoFriendsView> createState() => _NoFriendsViewState();
+  State<_NoGroupsView> createState() => _NoFriendsViewState();
 }
 
-class _NoFriendsViewState extends State<_NoFriendsView> {
+class _NoFriendsViewState extends State<_NoGroupsView> {
   TextStyle _getGreetingStyle(double width) => GoogleFonts.cabin(
     fontSize: width * 0.055, // Slightly smaller to handle long usernames better
     fontWeight: FontWeight.w500,
@@ -346,22 +346,22 @@ class _NoFriendsViewState extends State<_NoFriendsView> {
   }
 }
 
-class _FriendsListView extends StatefulWidget {
-  final List<dynamic> friends;
+class _GroupsListView extends StatefulWidget {
+  final List<dynamic> groups;
   final GlobalKey<ScaffoldState> scaffoldKey;
   final PageController? pageController;
 
-  const _FriendsListView({
-    required this.friends,
+  const _GroupsListView({
+    required this.groups,
     required this.scaffoldKey,
     this.pageController,
   });
 
   @override
-  State<_FriendsListView> createState() => _FriendsListViewState();
+  State<_GroupsListView> createState() => _FriendsListViewState();
 }
 
-class _FriendsListViewState extends State<_FriendsListView> {
+class _FriendsListViewState extends State<_GroupsListView> {
   final ScrollController _scrollController = ScrollController();
   double _scrollOffset = 0;
 
@@ -414,7 +414,7 @@ class _FriendsListViewState extends State<_FriendsListView> {
     final double statusBarHeight = MediaQuery.of(context).padding.top;
 
     // Get the styles for this build context
-    final friendNameStyle = _getFriendNameStyle(width);
+    final groupNameStyle = _getFriendNameStyle(width);
     final headerTextStyle = _getHeaderStyle(width);
     final greetingStyle = _getGreetingStyle(width);
     final friendCountRegularStyle = _getFriendCountStyle(false, width);
@@ -536,13 +536,13 @@ class _FriendsListViewState extends State<_FriendsListView> {
                     child: ClipOval(
                       child: CachedNetworkImage(
                         imageUrl:
-                            widget.friends[index]['profile_picture_url'] ?? '',
+                            widget.groups[index]['profile_picture_url'] ?? '',
                         placeholder: (context, url) => CustomLoader(
                           size: avatarSize * 0.6,
                           isButtonLoader: true,
                         ),
                         errorWidget: (context, url, error) =>
-                            Icon(Icons.person, size: avatarSize * 0.6),
+                            Icon(Icons.groups_2_outlined, size: avatarSize * 0.6),
                         width: imageSize,
                         height: imageSize,
                         fit: BoxFit.cover,
@@ -550,13 +550,13 @@ class _FriendsListViewState extends State<_FriendsListView> {
                     ),
                   ),
                   title: Text(
-                    widget.friends[index]['username']?.toString() ?? 'No Name',
-                    style: friendNameStyle,
+                    widget.groups[index]['name']?.toString() ?? 'Group Name not fetched',
+                    style: groupNameStyle,
                   ),
                 ),
               ),
             );
-          }, childCount: widget.friends.length),
+          }, childCount: widget.groups.length),
         ),
         SliverToBoxAdapter(
           child: Padding(
@@ -591,11 +591,11 @@ class _FriendsListViewState extends State<_FriendsListView> {
                       style: _getFriendCountStyle(false, width),
                     ),
                     Text(
-                      '${widget.friends.length}',
+                      '${widget.groups.length}',
                       style: _getFriendCountStyle(true, width),
                     ),
                     Text(
-                      ' friends 🎉',
+                      ' groups 🎉',
                       style: _getFriendCountStyle(false, width),
                     ),
                   ],
@@ -661,7 +661,7 @@ class _FriendsHeaderDelegate extends SliverPersistentHeaderDelegate {
                 children: [
                   Flexible(
                     child: Text(
-                      'Friends',
+                      'Groups',
                       style: headerTextStyle.copyWith(color: Colors.white),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -719,6 +719,7 @@ class _ImageHeaderDelegate extends SliverPersistentHeaderDelegate {
 
     return Container(
       height: visibleHeight,
+      color: Colors.white,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
@@ -728,7 +729,8 @@ class _ImageHeaderDelegate extends SliverPersistentHeaderDelegate {
             right: 0,
             height: maxExtent,
             child: Image.asset(
-              'assets/images/freinds_scroll.jpg',
+              'assets/images/groups.png',
+             
               fit: BoxFit.cover,
             ),
           ),

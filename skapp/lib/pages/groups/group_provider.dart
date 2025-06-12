@@ -24,12 +24,12 @@
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:skapp/pages/friends/friends_service.dart';
+import 'package:skapp/pages/groups/group_service.dart';
 import 'package:skapp/services/notification_service.dart';
 import 'package:skapp/services/alert_service.dart';
 import 'package:skapp/components/alert_sheet.dart';
 import 'package:provider/provider.dart';
-import 'package:skapp/pages/friends/freinds.dart';
+import 'package:skapp/pages/groups/groups.dart';
 import 'package:skapp/main.dart';
 
 class FriendsProvider extends ChangeNotifier {
@@ -37,7 +37,7 @@ class FriendsProvider extends ChangeNotifier {
   // final Map<String, dynamic> _cache = {};
   // static const int CACHE_TIMEOUT = 300; // 5 minutes
 
-  final FriendsService _service = FriendsService();
+  final GroupsService _service = GroupsService();
   final NotificationService _notificationService = NotificationService();
 
   List<Map<String, dynamic>> _potentialFriends = [];
@@ -382,12 +382,12 @@ class FriendsProvider extends ChangeNotifier {
       if (accept) {
         // Force refresh the friends list cache
         await _service.clearCache(); // Clear the cache first
-        await _service.getFriends(
+        await _service.getGroups(
           forceRefresh: true,
         ); // This will fetch fresh data
 
         // Reload the friends list
-        FreindsPage.reloadFriends();
+        GroupsPage.reloadFriends();
       }
 
       // Remove the alert for this request

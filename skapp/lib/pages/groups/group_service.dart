@@ -6,30 +6,30 @@ import 'package:logging/logging.dart';
 import 'package:skapp/services/auth_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class FriendsService {
-  static final _logger = Logger('FriendsService');
-  static const String _friendsCacheKey = 'cached_friends';
-  static const String _friendsCacheExpiryKey = 'friends_cache_expiry';
+class GroupsService {
+  static final _logger = Logger('GroupsService');
+  static const String _groupsCacheKey = 'cached_groups';
+  static const String _groupsCacheExpiryKey = 'friends_cache_expiry';
   static const Duration _cacheValidity = Duration(minutes: 5);
 
   var client = http.Client();
   final String baseUrl = AppConfig.baseUrl;
-  String get url => '$baseUrl/friends/list/';
+  String get url => '$baseUrl/group/list/';
   final _authService = AuthService();
   late SharedPreferences _prefs;
 
-  List<Map<String, dynamic>>? _cachedFriends;
+  List<Map<String, dynamic>>? _cachedGroups;
 
   Future<void> _initPrefs() async {
     try {
       _prefs = await SharedPreferences.getInstance();
-      // Load cached friends
-      final cachedData = _prefs.getString(_friendsCacheKey);
+      // Load cached groups
+      final cachedData = _prefs.getString(_groupsCacheKey);
       if (cachedData != null) {
-        _cachedFriends = List<Map<String, dynamic>>.from(
+        _cachedGroups = List<Map<String, dynamic>>.from(
           jsonDecode(cachedData).map((x) => Map<String, dynamic>.from(x)),
         );
-        _logger.info('Loaded ${_cachedFriends?.length} friends from cache');
+        _logger.info('Loaded ${_cachedGroups?.length} groups from cache');
       }
     } catch (e) {
       _logger.severe('Error initializing preferences: $e');
@@ -38,7 +38,7 @@ class FriendsService {
 
   Future<bool> _isCacheValid() async {
     try {
-      final cacheExpiry = _prefs.getString(_friendsCacheExpiryKey);
+      final cacheExpiry = _prefs.getString(_groupsCacheExpiryKey);
       _logger.info('Cache expiry from storage: $cacheExpiry');
 
       if (cacheExpiry == null) {
@@ -62,16 +62,16 @@ class FriendsService {
     }
   }
 
-  Future<void> _cacheFriendsData(List<Map<String, dynamic>> friends) async {
+  Future<void> _cacheGroupsData(List<Map<String, dynamic>> groups) async {
     try {
-      await _prefs.setString(_friendsCacheKey, jsonEncode(friends));
+      await _prefs.setString(_groupsCacheKey, jsonEncode(groups));
       await _prefs.setString(
-        _friendsCacheExpiryKey,
+        _groupsCacheExpiryKey,
         DateTime.now().add(_cacheValidity).toIso8601String(),
       );
-      _logger.info('Cached ${friends.length} friends');
+      _logger.info('Cached ${groups.length} groups');
     } catch (e) {
-      _logger.severe('Error caching friends data: $e');
+      _logger.severe('Error caching groups data: $e');
     }
   }
 
@@ -92,21 +92,21 @@ class FriendsService {
       );
 
       _logger.info(
-        'Response status code from friends API: ${response.statusCode}',
+        'Response status code from groups API: ${response.statusCode}',
       );
 
       if (response.statusCode == 200) {
-        final List<Map<String, dynamic>> friends =
+        final List<Map<String, dynamic>> groups =
             List<Map<String, dynamic>>.from(
               jsonDecode(
                 response.body,
               ).map((x) => Map<String, dynamic>.from(x)),
             );
-        _logger.info('Fetched ${friends.length} friends from API');
+        _logger.info('Fetched ${groups.length} groups from API');
 
         // Cache the fresh data
-        await _cacheFriendsData(friends);
-        return friends;
+        await _cacheGroupsData(groups);
+        return groups;
       } else if (response.statusCode == 401) {
         // Use the improved token refresh handling
         _logger.info('Token expired, attempting refresh...');
@@ -116,15 +116,15 @@ class FriendsService {
         }
         throw 'Session expired. Please log in again.';
       } else {
-        throw 'Failed to fetch friends. Status: ${response.statusCode}';
+        throw 'Failed to fetch groups. Status: ${response.statusCode}';
       }
     } catch (e) {
-      _logger.severe('Error fetching friends from API: $e');
+      _logger.severe('Error fetching groups from API: $e');
       rethrow;
     }
   }
 
-  Future<List<Map<String, dynamic>>> getFriends({
+  Future<List<Map<String, dynamic>>> getGroups({
     bool forceRefresh = false,
   }) async {
     try {
@@ -137,18 +137,18 @@ class FriendsService {
 
       if (isOnline) {
         // When online and force refresh is true or no cache exists, fetch fresh data
-        if (forceRefresh || _cachedFriends == null) {
+        if (forceRefresh || _cachedGroups == null) {
           _logger.info(
-            'Fetching fresh friends data. Force refresh: $forceRefresh',
+            'Fetching fresh groups data. Force refresh: $forceRefresh',
           );
           try {
             final freshFriends = await _fetchFriendsFromApi();
             return freshFriends;
           } catch (e) {
             // If API call fails but we have cached data, use it
-            if (_cachedFriends != null) {
+            if (_cachedGroups != null) {
               _logger.info('API call failed, using cached data');
-              return _cachedFriends!;
+              return _cachedGroups!;
             }
             rethrow;
           }
@@ -159,16 +159,16 @@ class FriendsService {
             _logger.info('Cache invalid, fetching fresh data');
             final freshFriends = await _fetchFriendsFromApi();
             return freshFriends;
-          } else if (_cachedFriends != null) {
+          } else if (_cachedGroups != null) {
             _logger.info('Using valid cached data');
-            return _cachedFriends!;
+            return _cachedGroups!;
           }
         }
       } else {
         // When offline, use cached data if available
-        if (_cachedFriends != null) {
+        if (_cachedGroups != null) {
           _logger.info('Offline mode: using cached data');
-          return _cachedFriends!;
+          return _cachedGroups!;
         }
         throw 'No internet connection and no cached data available';
       }
@@ -185,12 +185,12 @@ class FriendsService {
   Future<void> clearCache() async {
     try {
       _prefs = await SharedPreferences.getInstance();
-      await _prefs.remove(_friendsCacheKey);
-      await _prefs.remove(_friendsCacheExpiryKey);
-      _cachedFriends = null;
+      await _prefs.remove(_groupsCacheKey);
+      await _prefs.remove(_groupsCacheExpiryKey);
+      _cachedGroups = null;
       _logger.info('Friends cache cleared');
     } catch (e) {
-      _logger.severe('Error clearing friends cache: $e');
+      _logger.severe('Error clearing groups cache: $e');
     }
   }
 
@@ -233,7 +233,7 @@ class FriendsService {
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = jsonDecode(response.body);
         _logger.info(
-          'Fetched ${data['users'].length} potential friends from API (Page $page)',
+          'Fetched ${data['users'].length} potential groups from API (Page $page)',
         );
         return data;
       } else if (response.statusCode == 401) {
