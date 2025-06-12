@@ -7,7 +7,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 import os
-from .serializers import UserRegistrationSerializer, UserLoginSerializer, UserSerializer, ProfileUpdateSerializer, MarkAlertReadSerializer
+from .serializers import UserRegistrationSerializer, UserLoginSerializer, UserSerializer, ProfileUpdateSerializer, MarkAlertReadSerializer, BatchAlertReadSerializer
 from django.contrib.auth import authenticate
 from django.db.models import Q
 from django.core.exceptions import ValidationError
@@ -259,33 +259,62 @@ class AlertReadStatusView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        # Get all read alerts for user
+        # Get all read alerts for user with batch support
         read_statuses = AlertReadStatus.objects.filter(user=request.user)
         return Response({
-            'read_alerts': [status.alert_type for status in read_statuses]
+            'read_alerts': [status.alert_type for status in read_statuses],
+            'batches': {
+                status.batch_id: [s.alert_type for s in read_statuses if s.batch_id == status.batch_id]
+                for status in read_statuses if status.batch_id
+            }
         })
 
 class MarkAlertReadView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        serializer = MarkAlertReadSerializer(data=request.data)
+        serializer = BatchAlertReadSerializer(data=request.data)
         if serializer.is_valid():
-            AlertReadStatus.objects.get_or_create(
-                user=request.user,
-                alert_type=serializer.validated_data['alert_type']
-            )
-            return Response({'status': 'success'})
+            alert_types = serializer.validated_data['alert_types']
+            batch_id = serializer.validated_data.get('batch_id')
+            
+            # Create all alert statuses in a single database operation
+            AlertReadStatus.objects.bulk_create([
+                AlertReadStatus(
+                    user=request.user,
+                    alert_type=alert_type,
+                    batch_id=batch_id
+                )
+                for alert_type in alert_types
+            ], ignore_conflicts=True)  # Ignore if already exists
+            
+            return Response({
+                'status': 'success',
+                'marked_count': len(alert_types)
+            })
         return Response(serializer.errors, status=400)
 
 class MarkAllAlertsReadView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        alert_types = request.data.get('alert_types', [])
-        for alert_type in alert_types:
-            AlertReadStatus.objects.get_or_create(
-                user=request.user,
-                alert_type=alert_type
-            )
-        return Response({'status': 'success'})
+        serializer = BatchAlertReadSerializer(data=request.data)
+        if serializer.is_valid():
+            alert_types = serializer.validated_data['alert_types']
+            batch_id = serializer.validated_data.get('batch_id')
+            
+            # Use bulk_create for better performance
+            AlertReadStatus.objects.bulk_create([
+                AlertReadStatus(
+                    user=request.user,
+                    alert_type=alert_type,
+                    batch_id=batch_id
+                )
+                for alert_type in alert_types
+            ], ignore_conflicts=True)
+            
+            return Response({
+                'status': 'success',
+                'marked_count': len(alert_types)
+            })
+        return Response(serializer.errors, status=400)

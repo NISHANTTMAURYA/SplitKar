@@ -275,50 +275,55 @@ class AlertService extends ChangeNotifier {
     }
   }
 
-  // Mark all alerts as read
-  Future<void> markAllAsRead() async {
-    final unreadAlerts = alerts
-        .where((alert) => !isRead(alert))
-        .map((alert) => _getAlertId(alert))
-        .toList();
-
-    if (unreadAlerts.isEmpty) return;
-
+  // Batch mark alerts as read
+  Future<void> markBatchAsRead(List<AlertItem> alerts, {String? batchId}) async {
     try {
       String? token = await _authService.getToken();
       if (token == null) throw 'Session expired. Please log in again.';
 
+      final alertTypes = alerts.map((alert) => _getAlertId(alert)).toList();
+
       final response = await client.post(
-        Uri.parse('$baseUrl/alerts/mark-all-read/'),
+        Uri.parse('$baseUrl/alerts/mark-read/'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
         },
-        body: jsonEncode({'alert_types': unreadAlerts}),
+        body: jsonEncode({
+          'alert_types': alertTypes,
+          if (batchId != null) 'batch_id': batchId,
+        }),
       );
 
       if (response.statusCode == 200) {
-        _readAlerts.addAll(unreadAlerts);
-        // Remove all static alerts that were just marked as read
+        // Update local state
+        _readAlerts.addAll(alertTypes);
+        // Remove static alerts that were marked as read
         _alerts.removeWhere(
-          (alert) =>
-              !alert.requiresResponse &&
-              unreadAlerts.contains(_getAlertId(alert)),
+          (alert) => !alert.requiresResponse && alertTypes.contains(_getAlertId(alert)),
         );
         notifyListeners();
       } else if (response.statusCode == 401) {
         final refreshSuccess = await _authService.handleTokenRefresh();
         if (refreshSuccess) {
-          return markAllAsRead(); // Retry with new token
+          return markBatchAsRead(alerts, batchId: batchId);
         }
         throw 'Session expired. Please log in again.';
       } else {
-        throw 'Failed to mark all alerts as read. Status: ${response.statusCode}';
+        throw 'Failed to mark alerts as read. Status: ${response.statusCode}';
       }
     } catch (e) {
-      _logger.severe('Error marking all alerts as read: $e');
+      _logger.severe('Error marking batch alerts as read: $e');
       rethrow;
     }
+  }
+
+  // Update markAllAsRead to use batch operation
+  Future<void> markAllAsRead() async {
+    final unreadAlerts = alerts.where((alert) => !isRead(alert)).toList();
+    if (unreadAlerts.isEmpty) return;
+
+    await markBatchAsRead(unreadAlerts, batchId: 'all_${DateTime.now().millisecondsSinceEpoch}');
   }
 
   // Check if alert is read

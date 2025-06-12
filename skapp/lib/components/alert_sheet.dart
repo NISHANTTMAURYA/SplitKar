@@ -64,9 +64,10 @@ import 'package:provider/provider.dart';
 import 'package:skapp/services/alert_service.dart';
 import 'package:skapp/pages/friends/friends_provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-
+import 'package:skapp/services/alert_service.dart';
 import '../widgets/bottom_sheet_wrapper.dart';
 import '../widgets/custom_loader.dart';
+
 
 // Model class for alert items with enhanced categorization support
 class AlertItem {
@@ -287,6 +288,20 @@ class _AlertSheetState extends State<AlertSheet>
     ];
   }
 
+  void _handleCategoryRead(AlertCategory category, BuildContext context) {
+    final alertService = context.read<AlertService>();
+    final categoryAlerts = widget.alerts
+        .where((alert) => alert.category == category && !alertService.isRead(alert))
+        .toList();
+    
+    if (categoryAlerts.isNotEmpty) {
+      alertService.markBatchAsRead(
+        categoryAlerts,
+        batchId: 'category_${category.name}_${DateTime.now().millisecondsSinceEpoch}',
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -356,6 +371,15 @@ class _AlertSheetState extends State<AlertSheet>
                 labelColor: Theme.of(context).colorScheme.primary,
                 unselectedLabelColor: Colors.grey,
                 tabs: _buildTabs(),
+                onTap: (index) {
+                  if (index > 0) {  // Skip "All" tab
+                    final category = widget.alerts
+                        .map((a) => a.category)
+                        .toSet()
+                        .toList()[index - 1];
+                    _handleCategoryRead(category, context);
+                  }
+                },
               ),
             ),
 

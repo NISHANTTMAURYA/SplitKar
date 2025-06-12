@@ -116,7 +116,14 @@ class ProfileUpdateSerializer(serializers.ModelSerializer):
 class AlertReadStatusSerializer(serializers.ModelSerializer):
     class Meta:
         model = AlertReadStatus
-        fields = ['alert_type', 'read_at']
+        fields = ['alert_type', 'read_at', 'batch_id']
 
 class MarkAlertReadSerializer(serializers.Serializer):
     alert_type = serializers.CharField()
+
+class BatchAlertReadSerializer(serializers.Serializer):
+    alert_types = serializers.ListField(
+        child=serializers.CharField(),
+        required=True
+    )
+    batch_id = serializers.CharField(required=False)
