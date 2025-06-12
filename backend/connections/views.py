@@ -400,7 +400,7 @@ def list_user_groups(request):
     - Trip details (if it's a trip group)
     """
     # Get all groups where the user is a member
-    user_groups = Group.objects.filter(members=request.user).select_related('created_by')
+    user_groups = Group.objects.filter(members=request.user).select_related('created_by').order_by('-created_at')
     
     # Serialize the groups
     serializer = UserGroupListSerializer(user_groups, many=True, context={'request': request})
