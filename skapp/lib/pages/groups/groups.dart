@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:skapp/pages/groups/group_service.dart';
+import 'package:skapp/pages/groups/group_provider.dart';
 // import 'package:skapp/pages/groups/friends_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:skapp/main.dart';
@@ -83,26 +84,7 @@ class GroupsPage extends StatefulWidget {
         borderRadius: BorderRadius.circular(12),
         splashColor: Colors.grey.withOpacity(0.3),
         highlightColor: Colors.deepPurple.withOpacity(0.1),
-        onTap: () {
-          showModalBottomSheet(
-            barrierColor: Colors.deepPurple[400],
-            context: context,
-            isScrollControlled: true,
-            backgroundColor: Colors.transparent,
-            builder: (context) => DraggableScrollableSheet(
-              initialChildSize: 0.9,
-              minChildSize: 0.5,
-              maxChildSize: 0.9,
-              builder: (_, controller) =>
-                  // Commented out provider
-                  // ChangeNotifierProvider(
-                  //   create: (_) => FriendsProvider(),
-                  //   child: const AddFriendsSheet(),
-                  // ),
-                  const AddFriendsSheet(),
-            ),
-          );
-        },
+        onTap: () => AddFriendsSheet.show(context),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(15, 5, 15, 5),
           child: LayoutBuilder(

@@ -216,9 +216,12 @@ class _AddFriendsSheetState extends State<AddFriendsSheet> {
 
         return NotificationListener<ScrollNotification>(
           onNotification: (ScrollNotification scrollInfo) {
-            if (!provider.isLoadingMore && provider.hasMore &&
-                scrollInfo.metrics.pixels == scrollInfo.metrics.maxScrollExtent) {
-              provider.loadMore();
+            if (scrollInfo is ScrollEndNotification) {
+              if (scrollInfo.metrics.pixels >= scrollInfo.metrics.maxScrollExtent * 0.8) {
+                if (!provider.isLoadingMore && provider.hasMore) {
+                  provider.loadMore();
+                }
+              }
             }
             return true;
           },

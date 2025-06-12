@@ -9,12 +9,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 class GroupsService {
   static final _logger = Logger('GroupsService');
   static const String _groupsCacheKey = 'cached_groups';
-  static const String _groupsCacheExpiryKey = 'friends_cache_expiry';
+  static const String _groupsCacheExpiryKey = 'groups_cache_expiry';
   static const Duration _cacheValidity = Duration(minutes: 5);
 
   var client = http.Client();
   final String baseUrl = AppConfig.baseUrl;
-  String get url => '$baseUrl/group/list/';
   final _authService = AuthService();
   late SharedPreferences _prefs;
 
@@ -75,7 +74,7 @@ class GroupsService {
     }
   }
 
-  Future<List<Map<String, dynamic>>> _fetchFriendsFromApi() async {
+  Future<List<Map<String, dynamic>>> _fetchGroupsFromApi() async {
     try {
       String? token = await _authService.getToken();
       if (token == null) {
@@ -84,7 +83,7 @@ class GroupsService {
       }
 
       final response = await client.get(
-        Uri.parse(url),
+        Uri.parse('$baseUrl/group/list/'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -98,9 +97,7 @@ class GroupsService {
       if (response.statusCode == 200) {
         final List<Map<String, dynamic>> groups =
             List<Map<String, dynamic>>.from(
-              jsonDecode(
-                response.body,
-              ).map((x) => Map<String, dynamic>.from(x)),
+              jsonDecode(response.body).map((x) => Map<String, dynamic>.from(x)),
             );
         _logger.info('Fetched ${groups.length} groups from API');
 
@@ -108,11 +105,10 @@ class GroupsService {
         await _cacheGroupsData(groups);
         return groups;
       } else if (response.statusCode == 401) {
-        // Use the improved token refresh handling
         _logger.info('Token expired, attempting refresh...');
         final refreshSuccess = await _authService.handleTokenRefresh();
         if (refreshSuccess) {
-          return _fetchFriendsFromApi(); // Retry with new token
+          return _fetchGroupsFromApi(); // Retry with new token
         }
         throw 'Session expired. Please log in again.';
       } else {
@@ -142,8 +138,8 @@ class GroupsService {
             'Fetching fresh groups data. Force refresh: $forceRefresh',
           );
           try {
-            final freshFriends = await _fetchFriendsFromApi();
-            return freshFriends;
+            final freshGroups = await _fetchGroupsFromApi();
+            return freshGroups;
           } catch (e) {
             // If API call fails but we have cached data, use it
             if (_cachedGroups != null) {
@@ -157,8 +153,8 @@ class GroupsService {
           final isCacheValid = await _isCacheValid();
           if (!isCacheValid) {
             _logger.info('Cache invalid, fetching fresh data');
-            final freshFriends = await _fetchFriendsFromApi();
-            return freshFriends;
+            final freshGroups = await _fetchGroupsFromApi();
+            return freshGroups;
           } else if (_cachedGroups != null) {
             _logger.info('Using valid cached data');
             return _cachedGroups!;
@@ -174,29 +170,237 @@ class GroupsService {
       }
 
       // If we get here, we need fresh data
-      return _fetchFriendsFromApi();
+      return _fetchGroupsFromApi();
     } catch (e) {
-      _logger.severe('Error in getFriends: $e');
+      _logger.severe('Error in getGroups: $e');
       rethrow;
     }
   }
 
-  // Helper method to clear cache (useful for logout)
-  Future<void> clearCache() async {
+  Future<Map<String, dynamic>> createGroup({
+    required String name,
+    required String description,
+    required String groupType,
+    String? destination,
+    DateTime? startDate,
+    DateTime? endDate,
+    String? tripStatus,
+    double? budget,
+  }) async {
     try {
-      _prefs = await SharedPreferences.getInstance();
-      await _prefs.remove(_groupsCacheKey);
-      await _prefs.remove(_groupsCacheExpiryKey);
-      _cachedGroups = null;
-      _logger.info('Friends cache cleared');
+      String? token = await _authService.getToken();
+      if (token == null) {
+        _logger.warning('No authentication token available');
+        throw 'Session expired. Please log in again.';
+      }
+
+      final body = {
+        'name': name,
+        'description': description,
+        'group_type': groupType,
+        if (groupType == 'trip') ...{
+          'destination': destination,
+          'start_date': startDate?.toIso8601String(),
+          'end_date': endDate?.toIso8601String(),
+          'trip_status': tripStatus,
+          if (budget != null) 'budget': budget,
+        },
+      };
+
+      final response = await client.post(
+        Uri.parse('$baseUrl/group/create/'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(body),
+      );
+
+      _logger.info(
+        'Response status code from create group API: ${response.statusCode}',
+      );
+
+      if (response.statusCode == 201) {
+        final Map<String, dynamic> result = Map<String, dynamic>.from(
+          jsonDecode(response.body),
+        );
+        _logger.info('Successfully created group: $result');
+        return result;
+      } else if (response.statusCode == 401) {
+        _logger.info('Token expired, attempting refresh...');
+        final refreshSuccess = await _authService.handleTokenRefresh();
+        if (refreshSuccess) {
+          return createGroup(
+            name: name,
+            description: description,
+            groupType: groupType,
+            destination: destination,
+            startDate: startDate,
+            endDate: endDate,
+            tripStatus: tripStatus,
+            budget: budget,
+          );
+        }
+        throw 'Session expired. Please log in again.';
+      } else {
+        final errorData = jsonDecode(response.body);
+        throw errorData['error'] ?? 'Failed to create group';
+      }
     } catch (e) {
-      _logger.severe('Error clearing groups cache: $e');
+      _logger.severe('Error creating group: $e');
+      rethrow;
     }
   }
 
-  Future<Map<String, dynamic>> listOtherUsers({
+  Future<Map<String, dynamic>> inviteToGroup({
+    required int groupId,
+    required List<String> profileCodes,
+  }) async {
+    try {
+      String? token = await _authService.getToken();
+      if (token == null) {
+        _logger.warning('No authentication token available');
+        throw 'Session expired. Please log in again.';
+      }
+
+      final response = await client.post(
+        Uri.parse('$baseUrl/group/invite/'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'group_id': groupId,
+          'profile_codes': profileCodes,
+        }),
+      );
+
+      _logger.info(
+        'Response status code from invite to group API: ${response.statusCode}',
+      );
+
+      if (response.statusCode == 201) {
+        final Map<String, dynamic> result = Map<String, dynamic>.from(
+          jsonDecode(response.body),
+        );
+        _logger.info('Successfully sent group invitations: $result');
+        return result;
+      } else if (response.statusCode == 401) {
+        _logger.info('Token expired, attempting refresh...');
+        final refreshSuccess = await _authService.handleTokenRefresh();
+        if (refreshSuccess) {
+          return inviteToGroup(
+            groupId: groupId,
+            profileCodes: profileCodes,
+          );
+        }
+        throw 'Session expired. Please log in again.';
+      } else {
+        final errorData = jsonDecode(response.body);
+        throw errorData['error'] ?? 'Failed to send group invitations';
+      }
+    } catch (e) {
+      _logger.severe('Error sending group invitations: $e');
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> getPendingInvitations() async {
+    try {
+      String? token = await _authService.getToken();
+      if (token == null) {
+        _logger.warning('No authentication token available');
+        throw 'Session expired. Please log in again.';
+      }
+
+      final response = await client.get(
+        Uri.parse('$baseUrl/group/invitation/pending/'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      _logger.info(
+        'Response status code from pending invitations API: ${response.statusCode}',
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> result = Map<String, dynamic>.from(
+          jsonDecode(response.body),
+        );
+        _logger.info('Fetched pending invitations: ${result.toString()}');
+        return result;
+      } else if (response.statusCode == 401) {
+        _logger.info('Token expired, attempting refresh...');
+        final refreshSuccess = await _authService.handleTokenRefresh();
+        if (refreshSuccess) {
+          return getPendingInvitations();
+        }
+        throw 'Session expired. Please log in again.';
+      } else {
+        throw 'Failed to fetch pending invitations. Status: ${response.statusCode}';
+      }
+    } catch (e) {
+      _logger.severe('Error fetching pending group invitations: $e');
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> respondToInvitation(
+    int invitationId,
+    bool accept,
+  ) async {
+    try {
+      String? token = await _authService.getToken();
+      if (token == null) {
+        _logger.warning('No authentication token available');
+        throw 'Session expired. Please log in again.';
+      }
+
+      final endpoint = accept ? 'accept' : 'decline';
+      final response = await client.post(
+        Uri.parse('$baseUrl/group/invitation/$endpoint/'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({'invitation_id': invitationId}),
+      );
+
+      _logger.info(
+        'Response status code from group invitation $endpoint API: ${response.statusCode}',
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> result = Map<String, dynamic>.from(
+          jsonDecode(response.body),
+        );
+        _logger.info(
+          'Successfully ${accept ? 'accepted' : 'declined'} group invitation: $result',
+        );
+        return result;
+      } else if (response.statusCode == 401) {
+        _logger.info('Token expired, attempting refresh...');
+        final refreshSuccess = await _authService.handleTokenRefresh();
+        if (refreshSuccess) {
+          return respondToInvitation(invitationId, accept);
+        }
+        throw 'Session expired. Please log in again.';
+      } else {
+        final errorData = jsonDecode(response.body);
+        throw errorData['error'] ??
+            'Failed to ${accept ? 'accept' : 'decline'} group invitation';
+      }
+    } catch (e) {
+      _logger.severe('Error responding to group invitation: $e');
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> getAllUsers({
     int page = 1,
-    int pageSize = 10, // Smaller page size for testing
+    int pageSize = 10,
     String? searchQuery,
   }) async {
     try {
@@ -215,7 +419,7 @@ class GroupsService {
       };
 
       final uri = Uri.parse(
-        '$baseUrl/profile/list-others/',
+        '$baseUrl/profile/list-all/',
       ).replace(queryParameters: queryParams);
 
       final response = await client.get(
@@ -227,80 +431,42 @@ class GroupsService {
       );
 
       _logger.info(
-        'Response status code from list-others API: ${response.statusCode}',
+        'Response status code from list-all API: ${response.statusCode}',
       );
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = jsonDecode(response.body);
+        
+        // Ensure the response has the expected format
+        if (!data.containsKey('users') || !data.containsKey('pagination')) {
+          throw 'Invalid response format from server';
+        }
+
         _logger.info(
-          'Fetched ${data['users'].length} potential groups from API (Page $page)',
+          'Fetched ${data['users'].length} users from API (Page $page)',
         );
         return data;
       } else if (response.statusCode == 401) {
         _logger.info('Token expired, attempting refresh...');
         final refreshSuccess = await _authService.handleTokenRefresh();
         if (refreshSuccess) {
-          return listOtherUsers(
+          return getAllUsers(
             page: page,
             pageSize: pageSize,
             searchQuery: searchQuery,
-          ); // Retry with new token
+          );
         }
         throw 'Session expired. Please log in again.';
       } else {
         throw 'Failed to fetch users. Status: ${response.statusCode}';
       }
     } catch (e) {
-      _logger.severe('Error fetching other users: $e');
+      _logger.severe('Error fetching users: $e');
       rethrow;
     }
   }
 
-  Future<Map<String, dynamic>> sendFriendRequest(String profileCode) async {
-    try {
-      String? token = await _authService.getToken();
-      if (token == null) {
-        _logger.warning('No authentication token available');
-        throw 'Session expired. Please log in again.';
-      }
-
-      final response = await client.post(
-        Uri.parse('$baseUrl/friend-request/send/'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({'profile_code': profileCode}),
-      );
-
-      _logger.info(
-        'Response status code from send friend request API: ${response.statusCode}',
-      );
-
-      if (response.statusCode == 201) {
-        final Map<String, dynamic> result = Map<String, dynamic>.from(
-          jsonDecode(response.body),
-        );
-        _logger.info('Successfully sent friend request: $result');
-        return result;
-      } else if (response.statusCode == 401) {
-        _logger.info('Token expired, attempting refresh...');
-        final refreshSuccess = await _authService.handleTokenRefresh();
-        if (refreshSuccess) {
-          return sendFriendRequest(profileCode); // Retry with new token
-        }
-        throw 'Session expired. Please log in again.';
-      } else {
-        final errorData = jsonDecode(response.body);
-        throw errorData['error'] ?? 'Failed to send friend request';
-      }
-    } catch (e) {
-      _logger.severe('Error sending friend request: $e');
-      rethrow;
-    }
-  }
-
-  Future<Map<String, dynamic>> getPendingFriendRequests() async {
+  Future<List<Map<String, dynamic>>> getFriendsList() async {
     try {
       String? token = await _authService.getToken();
       if (token == null) {
@@ -309,7 +475,7 @@ class GroupsService {
       }
 
       final response = await client.get(
-        Uri.parse('$baseUrl/friend-request/pending/'),
+        Uri.parse('$baseUrl/friends/list/'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -317,82 +483,42 @@ class GroupsService {
       );
 
       _logger.info(
-        'Response status code from pending requests API: ${response.statusCode}',
+        'Response status code from friends list API: ${response.statusCode}',
       );
 
       if (response.statusCode == 200) {
-        final Map<String, dynamic> result = Map<String, dynamic>.from(
-          jsonDecode(response.body),
-        );
-        _logger.info('Fetched pending requests: ${result.toString()}');
-        return result;
+        final List<Map<String, dynamic>> friends =
+            List<Map<String, dynamic>>.from(
+              jsonDecode(response.body).map((x) => Map<String, dynamic>.from(x)),
+            );
+        _logger.info('Fetched ${friends.length} friends from API');
+        return friends;
       } else if (response.statusCode == 401) {
         _logger.info('Token expired, attempting refresh...');
         final refreshSuccess = await _authService.handleTokenRefresh();
         if (refreshSuccess) {
-          return getPendingFriendRequests(); // Retry with new token
+          return getFriendsList();
         }
         throw 'Session expired. Please log in again.';
       } else {
-        throw 'Failed to fetch pending requests. Status: ${response.statusCode}';
+        throw 'Failed to fetch friends. Status: ${response.statusCode}';
       }
     } catch (e) {
-      _logger.severe('Error fetching pending friend requests: $e');
+      _logger.severe('Error fetching friends list: $e');
       rethrow;
     }
   }
 
-  Future<Map<String, dynamic>> respondToFriendRequest(
-    String requestId,
-    bool accept,
-  ) async {
+  // Helper method to clear cache (useful for logout)
+  Future<void> clearCache() async {
     try {
-      String? token = await _authService.getToken();
-      if (token == null) {
-        _logger.warning('No authentication token available');
-        throw 'Session expired. Please log in again.';
-      }
-
-      final endpoint = accept ? 'accept' : 'decline';
-      final response = await client.post(
-        Uri.parse('$baseUrl/friend-request/$endpoint/'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({'request_id': int.parse(requestId)}),
-      );
-
-      _logger.info(
-        'Response status code from friend request $endpoint API: ${response.statusCode}',
-      );
-
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> result = Map<String, dynamic>.from(
-          jsonDecode(response.body),
-        );
-        _logger.info(
-          'Successfully ${accept ? 'accepted' : 'declined'} friend request: $result',
-        );
-        return result;
-      } else if (response.statusCode == 401) {
-        _logger.info('Token expired, attempting refresh...');
-        final refreshSuccess = await _authService.handleTokenRefresh();
-        if (refreshSuccess) {
-          return respondToFriendRequest(
-            requestId,
-            accept,
-          ); // Retry with new token
-        }
-        throw 'Session expired. Please log in again.';
-      } else {
-        final errorData = jsonDecode(response.body);
-        throw errorData['error'] ??
-            'Failed to ${accept ? 'accept' : 'decline'} friend request';
-      }
+      _prefs = await SharedPreferences.getInstance();
+      await _prefs.remove(_groupsCacheKey);
+      await _prefs.remove(_groupsCacheExpiryKey);
+      _cachedGroups = null;
+      _logger.info('Groups cache cleared');
     } catch (e) {
-      _logger.severe('Error responding to friend request: $e');
-      rethrow;
+      _logger.severe('Error clearing groups cache: $e');
     }
   }
 }

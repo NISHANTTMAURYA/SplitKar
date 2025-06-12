@@ -4,7 +4,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
-from .models import Profile, FriendRequest, Friendship, Group, GroupInvitation
+from .models import Profile, FriendRequest, Friendship, Group, GroupInvitation, User
 from .serializers import (
     ProfileLookupSerializer, FriendRequestByCodeSerializer, 
     FriendRequestAcceptSerializer, FriendRequestDeclineSerializer, 
@@ -430,3 +430,138 @@ def remove_group_member(request):
                 status=status.HTTP_400_BAD_REQUEST
             )
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def list_all_users(request):
+    """
+    List all users except the current user, with pagination and search support.
+    Returns all friends first, then paginates remaining users.
+    """
+    try:
+        # Get pagination parameters
+        page = int(request.GET.get('page', 1))
+        page_size = int(request.GET.get('page_size', 10))
+        search_query = request.GET.get('search', '').strip()
+        
+        # Get current user's profile with error handling
+        try:
+            current_profile = request.user.profile
+        except Profile.DoesNotExist:
+            return Response(
+                {'error': 'Profile not found for current user'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Get friend IDs for current user
+        try:
+            friend_pairs = Friendship.objects.filter(
+                Q(user1=request.user) | Q(user2=request.user)
+            ).values_list('user1_id', 'user2_id')
+            
+            # Extract friend IDs from pairs
+            friend_ids = set()
+            for user1_id, user2_id in friend_pairs:
+                friend_ids.add(user1_id if user1_id != request.user.id else user2_id)
+        except Exception as e:
+            print(f"Error getting friend IDs: {str(e)}")
+            friend_ids = set()
+
+        # Get pending friend request IDs
+        try:
+            pending_sent = set(FriendRequest.objects.filter(
+                from_user=request.user,
+                status='pending'
+            ).values_list('to_user_id', flat=True))
+            
+            pending_received = set(FriendRequest.objects.filter(
+                to_user=request.user,
+                status='pending'
+            ).values_list('from_user_id', flat=True))
+        except Exception as e:
+            print(f"Error getting pending friend requests: {str(e)}")
+            pending_sent = set()
+            pending_received = set()
+
+        # Base queryset - all profiles except current user
+        profiles = Profile.objects.exclude(id=current_profile.id)
+        
+        # Apply search if provided
+        if search_query:
+            profiles = profiles.filter(
+                Q(user__username__icontains=search_query) |
+                Q(profile_code__icontains=search_query)
+            )
+
+        # Get all friends first
+        friend_profiles = profiles.filter(user_id__in=friend_ids).select_related('user')
+        friend_data = []
+        for profile in friend_profiles:
+            try:
+                user = profile.user
+                friend_data.append({
+                    'id': user.id,
+                    'username': user.username,
+                    'profile_code': profile.profile_code,
+                    'profile_picture_url': profile.profile_picture_url,
+                    'is_friend': True,
+                    'friend_request_status': 'none',
+                })
+            except Exception as e:
+                print(f"Error processing friend profile {profile.id}: {str(e)}")
+                continue
+
+        # Get non-friend profiles for pagination
+        non_friend_profiles = profiles.exclude(user_id__in=friend_ids)
+        total_non_friends = non_friend_profiles.count()
+        
+        # Calculate offset for non-friends
+        offset = (page - 1) * page_size
+        
+        # Get paginated non-friend profiles
+        non_friend_profiles = non_friend_profiles.select_related('user')[offset:offset + page_size]
+        
+        # Prepare non-friend data
+        non_friend_data = []
+        for profile in non_friend_profiles:
+            try:
+                user = profile.user
+                friend_request_status = 'sent' if user.id in pending_sent else 'received' if user.id in pending_received else 'none'
+                
+                non_friend_data.append({
+                    'id': user.id,
+                    'username': user.username,
+                    'profile_code': profile.profile_code,
+                    'profile_picture_url': profile.profile_picture_url,
+                    'is_friend': False,
+                    'friend_request_status': friend_request_status,
+                })
+            except Exception as e:
+                print(f"Error processing non-friend profile {profile.id}: {str(e)}")
+                continue
+
+        # Combine friends and paginated non-friends
+        users_data = friend_data + non_friend_data
+        
+        # Calculate pagination info for non-friends
+        total_pages = (total_non_friends + page_size - 1) // page_size
+        has_next = page < total_pages
+        
+        return Response({
+            'users': users_data,
+            'pagination': {
+                'page': page,
+                'page_size': page_size,
+                'total_count': total_non_friends,  # Only count non-friends for pagination
+                'total_pages': total_pages,
+                'has_next': has_next,
+                'friend_count': len(friend_data),  # Add friend count for frontend reference
+            }
+        })
+        
+    except Exception as e:
+        print(f"Error in list_all_users: {str(e)}")
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

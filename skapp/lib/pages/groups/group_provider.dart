@@ -32,7 +32,7 @@ import 'package:provider/provider.dart';
 import 'package:skapp/pages/groups/groups.dart';
 import 'package:skapp/main.dart';
 
-class FriendsProvider extends ChangeNotifier {
+class GroupProvider extends ChangeNotifier {
   // TODO: Add caching implementation
   // final Map<String, dynamic> _cache = {};
   // static const int CACHE_TIMEOUT = 300; // 5 minutes
@@ -40,11 +40,11 @@ class FriendsProvider extends ChangeNotifier {
   final GroupsService _service = GroupsService();
   final NotificationService _notificationService = NotificationService();
 
-  List<Map<String, dynamic>> _potentialFriends = [];
+  List<Map<String, dynamic>> _users = [];
   String? _error;
   bool _isLoading = false;
   bool _isLoadingMore = false;
-  final Set<String> _pendingRequests = {};
+  final Set<String> _selectedUsers = {};
 
   // Pagination state
   int _currentPage = 1;
@@ -52,34 +52,48 @@ class FriendsProvider extends ChangeNotifier {
   bool _hasMore = true;
   String _searchQuery = '';
 
+  List<Map<String, dynamic>> _pendingInvitations = [];
+  bool _isLoadingInvitations = false;
+  String? _invitationError;
+
   // Getters
-  List<Map<String, dynamic>> get potentialFriends => _potentialFriends;
+  List<Map<String, dynamic>> get users => _users;
   String? get error => _error;
   bool get isLoading => _isLoading;
   bool get isLoadingMore => _isLoadingMore;
   bool get hasMore => _hasMore;
-  bool isPending(String profileCode) => _pendingRequests.contains(profileCode);
+  Set<String> get selectedUsers => _selectedUsers;
+  List<Map<String, dynamic>> get pendingInvitations => _pendingInvitations;
+  bool get isLoadingInvitations => _isLoadingInvitations;
+  String? get invitationError => _invitationError;
 
   // TODO: Add request cancellation
   bool _isRequestCancelled = false;
 
-  // Load initial potential friends
-  Future<void> loadPotentialFriends() async {
+  // Load initial users
+  Future<void> loadUsers() async {
     if (_isLoading) return;
 
     try {
       _isLoading = true;
       _error = null;
       _currentPage = 1;
+      _users = []; // Clear existing users
       notifyListeners();
 
-      final result = await _service.listOtherUsers(
+      final result = await _service.getAllUsers(
         page: _currentPage,
         searchQuery: _searchQuery,
       );
 
-      _potentialFriends = List<Map<String, dynamic>>.from(result['users']);
+      // Get all users from the response
+      final allUsers = List<Map<String, dynamic>>.from(result['users']);
+      
+      // Update pagination state
       _updatePaginationState(result['pagination']);
+      
+      // Store all users
+      _users = allUsers;
       _error = null;
     } catch (e) {
       _error = e.toString();
@@ -87,6 +101,43 @@ class FriendsProvider extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  // Search users with debounce
+  Future<void> searchUsers(String query) async {
+    if (_searchQuery == query) return;
+
+    _searchQuery = query;
+    _currentPage = 1;
+    _users = []; // Clear existing users
+    _hasMore = true; // Reset pagination
+    await loadUsers();
+  }
+
+  // Reset state when sheet is closed
+  void resetState() {
+    _users = [];
+    _error = null;
+    _isLoading = false;
+    _isLoadingMore = false;
+    _selectedUsers.clear();
+    _currentPage = 1;
+    _totalPages = 1;
+    _hasMore = true;
+    _searchQuery = '';
+    _pendingInvitations.clear();
+    _invitationError = null;
+    notifyListeners();
+  }
+
+  // Toggle user selection
+  void toggleUserSelection(String profileCode) {
+    if (_selectedUsers.contains(profileCode)) {
+      _selectedUsers.remove(profileCode);
+    } else {
+      _selectedUsers.add(profileCode);
+    }
+    notifyListeners();
   }
 
   // Load more users (for infinite scroll)
@@ -97,14 +148,20 @@ class FriendsProvider extends ChangeNotifier {
       _isLoadingMore = true;
       notifyListeners();
 
-      final result = await _service.listOtherUsers(
+      final result = await _service.getAllUsers(
         page: _currentPage + 1,
         searchQuery: _searchQuery,
       );
 
+      // Get new users from the response
       final newUsers = List<Map<String, dynamic>>.from(result['users']);
-      _potentialFriends.addAll(newUsers);
+      
+      // Add new users to the existing list
+      _users.addAll(newUsers);
+      
+      // Update pagination state
       _updatePaginationState(result['pagination']);
+      _error = null;
     } catch (e) {
       _error = e.toString();
     } finally {
@@ -120,122 +177,192 @@ class FriendsProvider extends ChangeNotifier {
     _hasMore = pagination['has_next'];
   }
 
-  // Search users
-  Future<void> searchUsers(String query) async {
-    if (_searchQuery == query) return;
-
-    _searchQuery = query;
-    await loadPotentialFriends(); // This will reset to page 1 with the new search
-  }
-
-  // Send friend request
-  Future<void> sendFriendRequest(
-    BuildContext context,
-    Map<String, dynamic> user,
-  ) async {
-    final profileCode = user['profile_code'] as String;
-    final username = user['username'] as String;
-    if (_pendingRequests.contains(profileCode)) return;
-
+  // Create group and invite selected users
+  Future<void> createGroupAndInvite({
+    required BuildContext context,
+    required String name,
+    required String description,
+    required String groupType,
+    String? destination,
+    DateTime? startDate,
+    DateTime? endDate,
+    String? tripStatus,
+    double? budget,
+  }) async {
     try {
-      _pendingRequests.add(profileCode);
-      notifyListeners();
-
-      final result = await _service.sendFriendRequest(profileCode);
-      final requestId = result['request_id'].toString();
-
-      // Update the user's status in the list
-      final index = _potentialFriends.indexWhere(
-        (u) => u['profile_code'] == profileCode,
+      // Create the group first
+      final groupResult = await _service.createGroup(
+        name: name,
+        description: description,
+        groupType: groupType,
+        destination: destination,
+        startDate: startDate,
+        endDate: endDate,
+        tripStatus: tripStatus,
+        budget: budget,
       );
-      if (index != -1) {
-        _potentialFriends[index]['friend_request_status'] = 'sent';
+
+      // If there are selected users, invite them
+      if (_selectedUsers.isNotEmpty) {
+        await _service.inviteToGroup(
+          groupId: groupResult['id'],
+          profileCodes: _selectedUsers.toList(),
+        );
+
+        // Show success notification
+        _notificationService.showAppNotification(
+          context,
+          title: 'Group Created',
+          message: 'Group created and invitations sent to ${_selectedUsers.length} members',
+          icon: Icons.group_add,
+        );
+
+        // Create alert for group creation
+        final alertService = Provider.of<AlertService>(context, listen: false);
+        alertService.addAlert(
+          AlertItem(
+            title: 'New Group Created',
+            subtitle: 'You created a new group: $name',
+            icon: Icons.group,
+            type: 'group_created_${groupResult['id']}',
+            timestamp: DateTime.now(),
+            category: AlertCategory.groupInvite,
+            requiresResponse: false,
+            actions: [],
+          ),
+        );
       }
 
-      // Create alert for sent friend request
-      final alertService = Provider.of<AlertService>(context, listen: false);
-
-      // Create the alert item
-      final alertItem = AlertItem(
-        title: 'Pending Friend Request',
-        subtitle: 'Waiting for $username to respond',
-        icon: Icons.pending_outlined,
-        type: 'friend_request_sent_$requestId',
-        timestamp: DateTime.now(),
-        category: AlertCategory.friendRequest,
-        requiresResponse: false,
-        actions: [],
-      );
-
-      // Add the alert
-      alertService.addAlert(alertItem);
-
-      // Show success notification
+      // Clear selected users and reset state
+      _selectedUsers.clear();
+      notifyListeners();
+    } catch (e) {
+      _error = e.toString();
       _notificationService.showAppNotification(
         context,
-        title: 'Friend Request Sent',
-        message: 'Friend request sent to $username',
-        icon: Icons.person_add,
+        title: 'Error',
+        message: e.toString(),
+        icon: Icons.error,
       );
-
-      // Force refresh the alerts to ensure they appear
-      await loadPendingRequests(context);
-    } finally {
-      _pendingRequests.remove(profileCode);
       notifyListeners();
     }
   }
 
-  // Filter users
-  List<Map<String, dynamic>> filterUsers(String query) {
-    if (_potentialFriends == null) return [];
-    if (query.isEmpty) return _potentialFriends;
+  // Load pending invitations
+  Future<void> loadPendingInvitations(BuildContext context) async {
+    try {
+      _isLoadingInvitations = true;
+      _invitationError = null;
+      notifyListeners();
 
-    final searchQuery = query.toLowerCase();
+      final result = await _service.getPendingInvitations();
+      _pendingInvitations = List<Map<String, dynamic>>.from(result['invitations']);
 
-    return _potentialFriends.where((user) {
-      final username = user['username']?.toString().toLowerCase() ?? '';
-      final profileCode = user['profile_code']?.toString().toLowerCase() ?? '';
-
-      // If searching with @, prioritize profile code matches
-      if (searchQuery.contains('@')) {
-        // Split the profile code into parts (before and after @)
-        final parts = profileCode.split('@');
-        final searchParts = searchQuery.split('@');
-
-        // Match either part of the profile code
-        if (searchParts.length > 1) {
-          // If search has @, match the parts accordingly
-          return (parts[0].contains(searchParts[0].trim()) &&
-              (searchParts[1].isEmpty ||
-                  parts[1].contains(searchParts[1].trim())));
-        } else {
-          // If just @ is typed, show all results
-          return true;
+      // Create alerts for new invitations
+      final alertService = Provider.of<AlertService>(context, listen: false);
+      for (final invitation in _pendingInvitations) {
+        final groupName = invitation['group']['name'];
+        final invitedBy = invitation['invited_by']['username'];
+        
+        // Check if alert already exists
+        final existingAlert = alertService.alerts.any(
+          (alert) => alert.type == 'group_invite_${invitation['id']}'
+        );
+        
+        if (!existingAlert) {
+          alertService.addAlert(
+            AlertItem(
+              title: 'Group Invitation',
+              subtitle: '$invitedBy invited you to join $groupName',
+              icon: Icons.group_add,
+              type: 'group_invite_${invitation['id']}',
+              timestamp: DateTime.parse(invitation['created_at']),
+              category: AlertCategory.groupInvite,
+              requiresResponse: true,
+              actions: [
+                AlertAction(
+                  label: 'Accept',
+                  onPressed: () => handleInvitationResponse(
+                    context,
+                    invitation['id'],
+                    true,
+                  ),
+                  color: Colors.green,
+                ),
+                AlertAction(
+                  label: 'Decline',
+                  onPressed: () => handleInvitationResponse(
+                    context,
+                    invitation['id'],
+                    false,
+                  ),
+                  color: Colors.red,
+                ),
+              ],
+            ),
+          );
         }
       }
-
-      // For non-@ searches, check both username and full profile code
-      return username.contains(searchQuery) ||
-          profileCode.contains(searchQuery) ||
-          profileCode
-              .replaceAll('@', '')
-              .contains(searchQuery); // Also match without @ symbol
-    }).toList();
+    } catch (e) {
+      _invitationError = e.toString();
+      _notificationService.showAppNotification(
+        context,
+        title: 'Error',
+        message: e.toString(),
+        icon: Icons.error,
+      );
+    } finally {
+      _isLoadingInvitations = false;
+      notifyListeners();
+    }
   }
 
-  // Clear state (useful when navigating away)
-  void clear() {
-    _potentialFriends = [];
-    _error = null;
-    _isLoading = false;
-    _isLoadingMore = false;
-    _pendingRequests.clear();
-    _currentPage = 1;
-    _totalPages = 1;
-    _hasMore = true;
-    _searchQuery = '';
-    notifyListeners();
+  // Handle invitation response (accept/decline)
+  Future<void> handleInvitationResponse(
+    BuildContext context,
+    int invitationId,
+    bool accept,
+  ) async {
+    try {
+      final result = await _service.respondToInvitation(
+        invitationId,
+        accept,
+      );
+
+      // Remove the invitation from the list
+      _pendingInvitations.removeWhere(
+        (invitation) => invitation['id'] == invitationId
+      );
+
+      // Remove the alert
+      final alertService = Provider.of<AlertService>(context, listen: false);
+      alertService.removeAlertsByType('group_invite_$invitationId');
+
+      // Show success notification
+      _notificationService.showAppNotification(
+        context,
+        title: accept ? 'Invitation Accepted' : 'Invitation Declined',
+        message: accept 
+          ? 'You have joined the group'
+          : 'You have declined the invitation',
+        icon: accept ? Icons.check_circle : Icons.cancel,
+      );
+
+      // If accepted, refresh groups list
+      if (accept) {
+        await _service.clearCache();
+        await _service.getGroups(forceRefresh: true);
+      }
+
+      notifyListeners();
+    } catch (e) {
+      _notificationService.showAppNotification(
+        context,
+        title: 'Error',
+        message: e.toString(),
+        icon: Icons.error,
+      );
+    }
   }
 
   // TODO: Implement batch operations
@@ -249,114 +376,8 @@ class FriendsProvider extends ChangeNotifier {
   }
 
   Future<void> loadPendingRequests(BuildContext context) async {
-    /*
-     * Load Pending Requests
-     * -------------------
-     * Optimization Notes:
-     * 1. Current Implementation:
-     *    - Basic API call to fetch requests
-     *    - Simple state updates
-     * 
-     * 2. Needed Improvements:
-     *    - Add proper caching
-     *    - Implement request cancellation
-     *    - Add proper error handling
-     * 
-     * 3. Performance:
-     *    - Add batch processing
-     *    - Implement proper loading states
-     *    - Optimize state updates
-     */
-
-    try {
-      final result = await _service.getPendingFriendRequests();
-      final alertService = Provider.of<AlertService>(context, listen: false);
-
-      print('sent_requests: $result["sent_requests"]');
-      print('received_requests: $result["received_requests"]');
-
-      /*
-       * Example of Dynamic Alert System Usage
-       * -----------------------------------
-       * Here we create two types of friend request alerts:
-       * 1. Received Requests:
-       *    - Category: AlertCategory.friendRequest
-       *    - requiresResponse: true (needs user action)
-       *    - Actions: Accept/Decline buttons
-       * 
-       * 2. Sent Requests:
-       *    - Category: AlertCategory.friendRequest
-       *    - requiresResponse: false (no action needed)
-       *    - Actions: None (waiting for other user)
-       * 
-       * To add new alert types in the future:
-       * 1. Use appropriate AlertCategory (add new one if needed)
-       * 2. Set requiresResponse based on if user action is needed
-       * 3. Add relevant actions with callbacks
-       */
-
-      // Process received requests - These require user response
-      for (var request in result['received_requests']) {
-        final username = request['from_username'];
-        final requestId = request['request_id'].toString();
-
-        alertService.addAlert(
-          AlertItem(
-            title: 'Friend Request',
-            subtitle: '$username wants to be your friend',
-            icon: Icons.person_add,
-            type: 'friend_request_${requestId}',
-            timestamp: DateTime.parse(request['created_at']),
-            category:
-                AlertCategory.friendRequest, // Categorize as friend request
-            requiresResponse: true, // User needs to accept/decline
-            actions: [
-              AlertAction(
-                label: 'Accept',
-                onPressed: () =>
-                    respondToFriendRequest(context, requestId, true),
-                color: Colors.green,
-              ),
-              AlertAction(
-                label: 'Decline',
-                onPressed: () =>
-                    respondToFriendRequest(context, requestId, false),
-                color: Colors.red,
-              ),
-            ],
-          ),
-        );
-      }
-
-      final currentUsername = Provider.of<ProfileNotifier>(
-        context,
-        listen: false,
-      ).username;
-
-      // For sent requests (show only if current user is the sender)
-      for (var request in result['sent_requests']) {
-        if (request['from_username'] == currentUsername) {
-          alertService.addAlert(
-            AlertItem(
-              title: 'Pending Friend Request',
-              subtitle: 'Waiting for ${request['to_username']} to respond',
-              icon: Icons.pending_outlined,
-              type: 'friend_request_sent_${request['request_id']}',
-              timestamp: DateTime.parse(request['created_at']),
-              category: AlertCategory.friendRequest,
-              requiresResponse: false,
-              actions: [],
-            ),
-          );
-        }
-      }
-
-      notifyListeners();
-    } catch (e) {
-      _error = e.toString();
-      notifyListeners();
-      rethrow; // Rethrow to let the AlertService handle the error
-    }
+    // This method should be moved to FriendsProvider
+    throw UnimplementedError('This method should be in FriendsProvider');
   }
 
   Future<void> respondToFriendRequest(
@@ -364,47 +385,7 @@ class FriendsProvider extends ChangeNotifier {
     String requestId,
     bool accept,
   ) async {
-    try {
-      final result = await _service.respondToFriendRequest(requestId, accept);
-      // When accepting a request, from_user is the username of the person who sent the request
-      final username = result['from_user'];
-
-      // Show success notification
-      _notificationService.showAppNotification(
-        context,
-        title: accept ? 'Friend Request Accepted' : 'Friend Request Declined',
-        message: accept
-            ? 'You are now friends with $username'
-            : 'Friend request from $username declined',
-        icon: accept ? Icons.person_add : Icons.person_remove,
-      );
-
-      if (accept) {
-        // Force refresh the friends list cache
-        await _service.clearCache(); // Clear the cache first
-        await _service.getGroups(
-          forceRefresh: true,
-        ); // This will fetch fresh data
-
-        // Reload the friends list
-        GroupsPage.reloadFriends();
-      }
-
-      // Remove the alert for this request
-      final alertService = Provider.of<AlertService>(context, listen: false);
-      alertService.removeAlertsByType('friend_request_${requestId}');
-
-      // Refresh pending requests to update the alerts
-      await loadPendingRequests(context);
-    } catch (e) {
-      _error = e.toString();
-      _notificationService.showAppNotification(
-        context,
-        title: 'Error',
-        message: e.toString(),
-        icon: Icons.error,
-      );
-    }
-    notifyListeners();
+    // This method should be moved to FriendsProvider
+    throw UnimplementedError('This method should be in FriendsProvider');
   }
 }
