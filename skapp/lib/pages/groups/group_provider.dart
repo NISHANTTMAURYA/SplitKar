@@ -31,6 +31,7 @@ import 'package:skapp/components/alert_sheet.dart';
 import 'package:provider/provider.dart';
 import 'package:skapp/pages/groups/groups.dart';
 import 'package:skapp/main.dart';
+import 'package:logging/logging.dart';
 
 class GroupProvider extends ChangeNotifier {
   // TODO: Add caching implementation
@@ -39,6 +40,7 @@ class GroupProvider extends ChangeNotifier {
 
   final GroupsService _service = GroupsService();
   final NotificationService _notificationService = NotificationService();
+  static final _logger = Logger('GroupProvider');
 
   List<Map<String, dynamic>> _users = [];
   String? _error;
@@ -178,7 +180,7 @@ class GroupProvider extends ChangeNotifier {
   }
 
   // Create group and invite selected users
-  Future<void> createGroupAndInvite({
+  Future<bool> createGroupAndInvite({
     required BuildContext context,
     required String name,
     required String description,
@@ -190,6 +192,8 @@ class GroupProvider extends ChangeNotifier {
     double? budget,
   }) async {
     try {
+      _logger.info('Starting group creation process...');
+      
       // Create the group first
       final groupResult = await _service.createGroup(
         name: name,
@@ -201,6 +205,7 @@ class GroupProvider extends ChangeNotifier {
         tripStatus: tripStatus,
         budget: budget,
       );
+      _logger.info('Group created successfully: ${groupResult['id']}');
 
       // If there are selected users, invite them
       if (_selectedUsers.isNotEmpty) {
@@ -208,43 +213,52 @@ class GroupProvider extends ChangeNotifier {
           groupId: groupResult['id'],
           profileCodes: _selectedUsers.toList(),
         );
+        _logger.info('Invitations sent to ${_selectedUsers.length} members');
 
         // Show success notification
-        _notificationService.showAppNotification(
-          context,
-          title: 'Group Created',
-          message: 'Group created and invitations sent to ${_selectedUsers.length} members',
-          icon: Icons.group_add,
-        );
+        if (context.mounted) {
+          _notificationService.showAppNotification(
+            context,
+            title: 'Group Created',
+            message: 'Group created and invitations sent to ${_selectedUsers.length} members',
+            icon: Icons.group_add,
+          );
 
-        // Create alert for group creation
-        final alertService = Provider.of<AlertService>(context, listen: false);
-        alertService.addAlert(
-          AlertItem(
-            title: 'New Group Created',
-            subtitle: 'You created a new group: $name',
-            icon: Icons.group,
-            type: 'group_created_${groupResult['id']}',
-            timestamp: DateTime.now(),
-            category: AlertCategory.groupInvite,
-            requiresResponse: false,
-            actions: [],
-          ),
-        );
+          // Create alert for group creation
+          final alertService = Provider.of<AlertService>(context, listen: false);
+          alertService.addAlert(
+            AlertItem(
+              title: 'New Group Created',
+              subtitle: 'You created a new group: $name',
+              icon: Icons.group,
+              type: 'group_created_${groupResult['id']}',
+              timestamp: DateTime.now(),
+              category: AlertCategory.groupInvite,
+              requiresResponse: false,
+              actions: [],
+            ),
+          );
+        }
       }
 
       // Clear selected users and reset state
       _selectedUsers.clear();
       notifyListeners();
+
+      return true;
     } catch (e) {
+      _logger.severe('Error in createGroupAndInvite: $e');
       _error = e.toString();
-      _notificationService.showAppNotification(
-        context,
-        title: 'Error',
-        message: e.toString(),
-        icon: Icons.error,
-      );
+      if (context.mounted) {
+        _notificationService.showAppNotification(
+          context,
+          title: 'Error',
+          message: e.toString(),
+          icon: Icons.error,
+        );
+      }
       notifyListeners();
+      return false;
     }
   }
 
@@ -387,5 +401,20 @@ class GroupProvider extends ChangeNotifier {
   ) async {
     // This method should be moved to FriendsProvider
     throw UnimplementedError('This method should be in FriendsProvider');
+  }
+
+  // Add this method to refresh groups
+  Future<void> refreshGroups() async {
+    try {
+      _logger.info('Refreshing groups list...');
+      await _service.clearCache();
+      await _service.getGroups(forceRefresh: true);
+      _logger.info('Groups list refreshed successfully');
+      notifyListeners();
+    } catch (e) {
+      _logger.severe('Error refreshing groups: $e');
+      _error = e.toString();
+      notifyListeners();
+    }
   }
 }

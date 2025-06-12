@@ -194,18 +194,36 @@ class GroupsService {
         throw 'Session expired. Please log in again.';
       }
 
+      // Validate trip group fields
+      if (groupType == 'trip') {
+        if (destination == null || destination.isEmpty) {
+          throw 'Destination is required for trip groups';
+        }
+        if (startDate == null) {
+          throw 'Start date is required for trip groups';
+        }
+        if (endDate == null) {
+          throw 'End date is required for trip groups';
+        }
+        if (tripStatus == null || tripStatus.isEmpty) {
+          throw 'Trip status is required for trip groups';
+        }
+      }
+
       final body = {
         'name': name,
         'description': description,
         'group_type': groupType,
         if (groupType == 'trip') ...{
           'destination': destination,
-          'start_date': startDate?.toIso8601String(),
-          'end_date': endDate?.toIso8601String(),
+          'start_date': startDate?.toIso8601String().split('T')[0],
+          'end_date': endDate?.toIso8601String().split('T')[0],
           'trip_status': tripStatus,
-          if (budget != null) 'budget': budget,
+          if (budget != null) 'budget': budget.toString(),
         },
       };
+
+      _logger.info('Creating group with body: $body');
 
       final response = await client.post(
         Uri.parse('$baseUrl/group/create/'),
@@ -225,6 +243,11 @@ class GroupsService {
           jsonDecode(response.body),
         );
         _logger.info('Successfully created group: $result');
+        
+        // Clear cache and fetch fresh data
+        await clearCache();
+        await getGroups(forceRefresh: true);
+        
         return result;
       } else if (response.statusCode == 401) {
         _logger.info('Token expired, attempting refresh...');
@@ -244,6 +267,7 @@ class GroupsService {
         throw 'Session expired. Please log in again.';
       } else {
         final errorData = jsonDecode(response.body);
+        _logger.severe('Error response from API: ${response.body}');
         throw errorData['error'] ?? 'Failed to create group';
       }
     } catch (e) {

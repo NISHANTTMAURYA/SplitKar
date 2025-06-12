@@ -84,7 +84,16 @@ class GroupsPage extends StatefulWidget {
         borderRadius: BorderRadius.circular(12),
         splashColor: Colors.grey.withOpacity(0.3),
         highlightColor: Colors.deepPurple.withOpacity(0.1),
-        onTap: () => AddFriendsSheet.show(context),
+        onTap: () async {
+          final bool shouldRefresh = await AddFriendsSheet.show(context);
+          if (shouldRefresh && context.mounted) {
+            // Get the state and refresh
+            final state = freindsKey.currentState;
+            if (state != null) {
+              await state._loadFriends();
+            }
+          }
+        },
         child: Padding(
           padding: const EdgeInsets.fromLTRB(15, 5, 15, 5),
           child: LayoutBuilder(

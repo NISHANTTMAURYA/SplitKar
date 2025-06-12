@@ -11,8 +11,8 @@ import 'group_provider.dart';
 class AddFriendsSheet extends StatefulWidget {
   const AddFriendsSheet({super.key});
 
-  static Future<void> show(BuildContext context) {
-    return showModalBottomSheet(
+  static Future<bool> show(BuildContext context) {
+    return showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -25,7 +25,7 @@ class AddFriendsSheet extends StatefulWidget {
           child: const AddFriendsSheet(),
         ),
       ),
-    );
+    ).then((shouldRefresh) => shouldRefresh ?? false);
   }
 
   @override
@@ -42,6 +42,7 @@ class _AddFriendsSheetState extends State<AddFriendsSheet> {
   String _selectedTripStatus = 'planned';
   DateTime? _startDate;
   DateTime? _endDate;
+  bool _isCreatingGroup = false;
 
   @override
   void initState() {
@@ -334,7 +335,8 @@ class _AddFriendsSheetState extends State<AddFriendsSheet> {
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
             ),
-            prefixText: '\$',
+            prefixText: '₹',
+            hintText: 'Enter amount in Indian Rupees',
           ),
           keyboardType: TextInputType.number,
         ),
@@ -450,36 +452,74 @@ class _AddFriendsSheetState extends State<AddFriendsSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      child: SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 8),
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(2),
+    return WillPopScope(
+      onWillPop: () async {
+        if (_isCreatingGroup) {
+          return false;
+        }
+        return true;
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: SafeArea(
+          child: Stack(
+            children: [
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(height: 8),
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Create Group',
+                    style: GoogleFonts.cabin(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Expanded(
+                    child: _buildContent(),
+                  ),
+                ],
               ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Create Group',
-              style: GoogleFonts.cabin(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            Expanded(
-              child: _buildContent(),
-            ),
-          ],
+              if (_isCreatingGroup)
+                Positioned.fill(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.3),
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                    ),
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const CustomLoader(),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Creating group...',
+                            style: GoogleFonts.cabin(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -607,26 +647,47 @@ class _AddFriendsSheetState extends State<AddFriendsSheet> {
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: ElevatedButton(
-                onPressed: provider.selectedUsers.isEmpty
+                onPressed: (_isCreatingGroup || provider.selectedUsers.isEmpty)
                     ? null
                     : () async {
                         if (!_validateForm()) return;
                         
-                        await provider.createGroupAndInvite(
-                          context: context,
-                          name: _groupNameController.text,
-                          description: _groupDescriptionController.text,
-                          groupType: _selectedGroupType,
-                          destination: _selectedGroupType == 'trip' ? _destinationController.text : null,
-                          startDate: _selectedGroupType == 'trip' ? _startDate : null,
-                          endDate: _selectedGroupType == 'trip' ? _endDate : null,
-                          tripStatus: _selectedGroupType == 'trip' ? _selectedTripStatus : null,
-                          budget: _selectedGroupType == 'trip' && _budgetController.text.isNotEmpty
-                              ? double.tryParse(_budgetController.text)
-                              : null,
-                        );
-                        if (mounted) {
-                          Navigator.pop(context);
+                        // Hide keyboard before showing loading
+                        FocusScope.of(context).unfocus();
+                        
+                        setState(() => _isCreatingGroup = true);
+                        
+                        try {
+                          final success = await provider.createGroupAndInvite(
+                            context: context,
+                            name: _groupNameController.text,
+                            description: _groupDescriptionController.text,
+                            groupType: _selectedGroupType,
+                            destination: _selectedGroupType == 'trip' ? _destinationController.text : null,
+                            startDate: _selectedGroupType == 'trip' ? _startDate : null,
+                            endDate: _selectedGroupType == 'trip' ? _endDate : null,
+                            tripStatus: _selectedGroupType == 'trip' ? _selectedTripStatus : null,
+                            budget: _selectedGroupType == 'trip' && _budgetController.text.isNotEmpty
+                                ? double.tryParse(_budgetController.text)
+                                : null,
+                          );
+                          
+                          if (mounted) {
+                            setState(() => _isCreatingGroup = false);
+                            if (success) {
+                              Navigator.pop(context, true);
+                            }
+                          }
+                        } catch (e) {
+                          if (mounted) {
+                            setState(() => _isCreatingGroup = false);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(e.toString()),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
                         }
                       },
                 style: ElevatedButton.styleFrom(
@@ -636,7 +697,9 @@ class _AddFriendsSheetState extends State<AddFriendsSheet> {
                   ),
                 ),
                 child: Text(
-                  'Create Group (${provider.selectedUsers.length} selected)',
+                  _isCreatingGroup 
+                    ? 'Creating Group...'
+                    : 'Create Group (${provider.selectedUsers.length} selected)',
                   style: GoogleFonts.cabin(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
