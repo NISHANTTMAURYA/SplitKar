@@ -32,6 +32,12 @@ class GroupsPage extends StatefulWidget {
 
   @override
   State<GroupsPage> createState() => _GroupsPageState();
+
+  // Add static method to refresh groups
+  static Future<void> refreshGroups() async {
+    await freindsKey.currentState?.refreshGroups();
+  }
+
   static void reloadFriends() {
     freindsKey.currentState?._loadFriends();
   }
@@ -167,6 +173,12 @@ class _GroupsPageState extends State<GroupsPage> {
   bool _isLoading = true;
   String? _error;
   final GroupsService _groupsService = GroupsService();
+
+  // Add public method to refresh groups
+  Future<void> refreshGroups() async {
+    if (!mounted) return;
+    await _loadFriends(); // Reuse existing load method
+  }
 
   // Make _loadFriends public so it can be called from FriendsProvider
   Future<void> _loadFriends() async {

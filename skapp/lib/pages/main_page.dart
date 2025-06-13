@@ -10,22 +10,46 @@ import 'package:provider/provider.dart';
 import 'package:skapp/services/navigation_service.dart';
 import 'package:skapp/services/alert_service.dart';
 import 'package:skapp/pages/friends/friends_provider.dart';
+import 'package:skapp/pages/groups/group_provider.dart';
 
 class MainPage extends StatefulWidget {
   final int? initialIndex;
 
   const MainPage({super.key, this.initialIndex});
 
+  static final GlobalKey<MainPageState> mainPageKey = GlobalKey<MainPageState>();
+
+  // Add static method to refresh data
+  static Future<void> refreshData(BuildContext context) async {
+    final state = mainPageKey.currentState;
+    if (state != null && state.mounted) {
+      await state.refreshData();
+    }
+  }
+
   @override
-  State<MainPage> createState() => _MainPageState();
+  State<MainPage> createState() => MainPageState();
 }
 
-class _MainPageState extends State<MainPage> {
+class MainPageState extends State<MainPage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   late Map<String, dynamic> pages;
   late int _selectedIndex;
   late final PageController _pageController;
   bool _isFriendsListEmpty = true;
+
+  // Add method to refresh data
+  Future<void> refreshData() async {
+    if (mounted) {
+      // Refresh friends list
+      if (FreindsPage.freindsKey.currentState != null) {
+        await FreindsPage.freindsKey.currentState!.refreshFriends();
+      }
+      
+      // Refresh groups list using static method
+      await GroupsPage.refreshGroups();
+    }
+  }
 
   @override
   void initState() {
@@ -41,13 +65,7 @@ class _MainPageState extends State<MainPage> {
       // Initialize alerts
       if (context.mounted) {
         final alertService = Provider.of<AlertService>(context, listen: false);
-        final friendsProvider = Provider.of<FriendsProvider>(context, listen: false);
-        
-        // Load pending friend requests which will populate alerts
-        await friendsProvider.loadPendingRequests(context);
-        
-        // You can add other types of alerts initialization here
-        // For example: group invitations, activity notifications, etc.
+        await alertService.fetchAlerts(context);
       }
     });
 

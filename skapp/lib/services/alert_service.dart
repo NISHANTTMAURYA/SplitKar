@@ -1,64 +1,21 @@
 /*
  * Alert Service
  * ------------
- * This service manages the application's alert system, handling both local and server-side alerts.
+ * This service is a thin wrapper for backend alert APIs.
+ * It handles:
+ * 1. Fetching alerts from backend
+ * 2. Marking alerts as read
+ * 3. Managing alert UI state
  * 
- * Key Features:
- * 1. Server Synchronization: Keeps alert read status in sync with server
- * 2. Local State Management: Manages alert state locally for immediate UI updates
- * 3. Batch Operations: Supports batch marking alerts as read
+ * Alert Types:
+ * 1. Static Alerts:
+ *    - Can be marked as read
+ *    - Stay in list but marked as read
  * 
- * Example Usage:
- * ```dart
- * // Initialize the service
- * final alertService = Provider.of<AlertService>(context, listen: false);
- * await alertService.initialize();
- * 
- * // Add a new alert
- * await alertService.addAlert(
- *   AlertItem(
- *     title: 'New Message',
- *     subtitle: 'You have a new message from John',
- *     icon: Icons.message,
- *     type: 'message_123',
- *     timestamp: DateTime.now(),
- *     category: AlertCategory.general,
- *     requiresResponse: false,
- *   ),
- * );
- * 
- * // Mark an alert as read
- * await alertService.markAsRead(alertItem);
- * 
- * // Mark all alerts as read
- * await alertService.markAllAsRead();
- * ```
- * 
- * Optimization Notes
- * -----------------
- * 1. Caching Implementation Needed:
- *    - Add in-memory cache for read status to reduce API calls
- *    - Cache timeout: 5 minutes
- *    - Clear cache on logout
- * 
- * 2. Batch Operations:
- *    - Implement batch marking as read instead of individual calls
- *    - Reduces server load and network requests
- * 
- * 3. Pagination Support:
- *    - Add page size limit (e.g., 20 items per page)
- *    - Implement infinite scroll in UI
- *    - Cache paginated results
- * 
- * 4. Error Handling:
- *    - Add retry mechanism for failed API calls
- *    - Implement proper error recovery
- *    - Add offline support with local storage
- * 
- * 5. Performance:
- *    - Add debouncing for frequent operations
- *    - Implement request cancellation for pending calls
- *    - Add request timeout handling
+ * 2. Responsive Alerts:
+ *    - Friend requests, group invites etc.
+ *    - Fetched from separate endpoints
+ *    - Actions trigger direct API calls
  */
 
 import 'package:flutter/material.dart';
@@ -67,8 +24,10 @@ import 'dart:convert';
 import 'package:logging/logging.dart';
 import 'package:skapp/config.dart';
 import 'package:skapp/services/auth_service.dart';
-import 'package:provider/provider.dart';
 import 'package:skapp/components/alert_sheet.dart';
+import 'package:skapp/pages/friends/friends_provider.dart';
+import 'package:skapp/pages/groups/group_provider.dart';
+import 'package:provider/provider.dart';
 
 class AlertService extends ChangeNotifier {
   static final _logger = Logger('AlertService');
@@ -77,29 +36,18 @@ class AlertService extends ChangeNotifier {
   var client = http.Client();
 
   List<AlertItem> _alerts = [];
-  Set<String> _readAlerts = {};
+  List<AlertCategoryCount> _categoryCounts = [];
   bool _isLoading = false;
-  bool _isInitialized = false;
-
-  // TODO: Add caching implementation
-  // final Map<String, bool> _readStatusCache = {};
-  // final Map<String, AlertItem> _alertCache = {};
-  // static const int CACHE_TIMEOUT = 300; // 5 minutes
+  String? _error;
 
   // Getters
-  List<AlertItem> get alerts => _alerts.where((alert) {
-    // For static alerts (no response needed), only show unread ones
-    if (!alert.requiresResponse) {
-      return !_readAlerts.contains(_getAlertId(alert));
-    }
-    // For response-required alerts, show all (they'll be removed after response)
-    return true;
-  }).toList();
+  List<AlertItem> get alerts => _alerts;
+  List<AlertCategoryCount> get categoryCounts => _categoryCounts;
   bool get isLoading => _isLoading;
-  bool get isInitialized => _isInitialized;
-  int get totalCount => _alerts
-      .where((alert) => !_readAlerts.contains(_getAlertId(alert)))
-      .length;
+  String? get error => _error;
+  
+  // Get total count of alerts requiring attention (unread or requiring response)
+  int get totalCount => _categoryCounts.fold(0, (sum, count) => sum + count.unread);
 
   // Show alert sheet
   void showAlertSheet(BuildContext context) {
@@ -115,9 +63,8 @@ class AlertService extends ChangeNotifier {
           builder: (_, controller) {
             return AlertSheet(
               alerts: _alerts,
-              onClose: () {
-                markAllAsRead();
-              },
+              categoryCounts: _categoryCounts,
+              onClose: () => fetchAlerts(context), // Refresh on close
             );
           },
         );
@@ -125,121 +72,178 @@ class AlertService extends ChangeNotifier {
     );
   }
 
-  // Remove alerts by type
-  void removeAlertsByType(String type) {
-    _alerts.removeWhere((alert) => alert.type == type);
-    notifyListeners();
+  // Helper method to create friend request alert
+  AlertItem _createFriendRequestAlert(
+    Map<String, dynamic> request,
+    FriendsProvider friendsProvider,
+    BuildContext context,
+  ) {
+    return AlertItem(
+      id: 'friend_request_${request['request_id']}',
+      title: 'Friend Request',
+      subtitle: '${request['from_username']} wants to be your friend',
+      icon: Icons.person_add,
+      actions: [
+        AlertAction(
+          label: 'Accept',
+          onPressed: () async {
+            await friendsProvider.respondToFriendRequest(
+              context,
+              request['request_id'].toString(),
+              true,
+            );
+            // Refresh alerts after action
+            fetchAlerts(context);
+          },
+          color: Colors.green,
+        ),
+        AlertAction(
+          label: 'Decline',
+          onPressed: () async {
+            await friendsProvider.respondToFriendRequest(
+              context,
+              request['request_id'].toString(),
+              false,
+            );
+            // Refresh alerts after action
+            fetchAlerts(context);
+          },
+          color: Colors.red,
+        ),
+      ],
+      timestamp: DateTime.parse(request['created_at'] ?? DateTime.now().toIso8601String()),
+      category: AlertCategory.friendRequest,
+      requiresResponse: true,
+    );
   }
 
-  // Add alert with server check
-  Future<void> addAlert(AlertItem alert) async {
-    try {
-      // First check if alert exists and is read on server
-      String? token = await _authService.getToken();
-      if (token == null) throw 'Session expired. Please log in again.';
-
-      final response = await client.get(
-        Uri.parse('$baseUrl/alerts/read-status/'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final serverReadAlerts = Set<String>.from(data['read_alerts']);
-
-        // Update local read status
-        _readAlerts = serverReadAlerts;
-
-        // Only add alert if it's not read on server
-        if (!serverReadAlerts.contains(_getAlertId(alert))) {
-          final existingIndex = _alerts.indexWhere((a) => a.type == alert.type);
-          if (existingIndex != -1) {
-            _alerts[existingIndex] = alert;
-          } else {
-            _alerts.insert(0, alert);
-          }
-          notifyListeners();
-        }
-      } else if (response.statusCode == 401) {
-        final refreshSuccess = await _authService.handleTokenRefresh();
-        if (refreshSuccess) {
-          return addAlert(alert); // Retry with new token
-        }
-        throw 'Session expired. Please log in again.';
-      } else {
-        throw 'Failed to check alert status. Status: ${response.statusCode}';
-      }
-    } catch (e) {
-      _logger.severe('Error adding alert: $e');
-      rethrow;
-    }
+  // Helper method to create group invitation alert
+  AlertItem _createGroupInvitationAlert(
+    Map<String, dynamic> invitation,
+    GroupProvider groupProvider,
+    BuildContext context,
+  ) {
+    return AlertItem(
+      id: 'group_invite_${invitation['invitation_id']}',
+      title: 'Group Invitation',
+      subtitle: '${invitation['invited_by_username']} invited you to join ${invitation['group_name']}',
+      icon: Icons.group_add,
+      actions: [
+        AlertAction(
+          label: 'Accept',
+          onPressed: () async {
+            await groupProvider.handleInvitationResponse(
+              context,
+              invitation['invitation_id'],
+              true,
+            );
+            // Refresh alerts after action
+            fetchAlerts(context);
+          },
+          color: Colors.green,
+        ),
+        AlertAction(
+          label: 'Decline',
+          onPressed: () async {
+            await groupProvider.handleInvitationResponse(
+              context,
+              invitation['invitation_id'],
+              false,
+            );
+            // Refresh alerts after action
+            fetchAlerts(context);
+          },
+          color: Colors.red,
+        ),
+      ],
+      timestamp: DateTime.parse(invitation['created_at'] ?? DateTime.now().toIso8601String()),
+      category: AlertCategory.groupInvite,
+      requiresResponse: true,
+    );
   }
 
-  // Initialize alerts and read status
-  Future<void> initialize() async {
-    if (_isInitialized) return;
-
+  // Fetch alerts from backend
+  Future<void> fetchAlerts(BuildContext context) async {
     try {
       _isLoading = true;
+      _error = null;
       notifyListeners();
 
-      // Fetch read status from API
-      await _fetchReadStatus();
+      // Get providers
+      final friendsProvider = Provider.of<FriendsProvider>(context, listen: false);
+      final groupProvider = Provider.of<GroupProvider>(context, listen: false);
 
-      // Clear any alerts that are marked as read on server
-      _alerts.removeWhere((alert) => _readAlerts.contains(_getAlertId(alert)));
+      _logger.info('Fetching friend requests and group invitations...');
 
-      _isInitialized = true;
+      // Fetch friend requests and group invitations
+      final friendRequests = await friendsProvider.service.getPendingFriendRequests();
+      _logger.info('Friend requests response: $friendRequests');
+      
+      final groupInvitations = await groupProvider.service.getPendingInvitations();
+      _logger.info('Group invitations response: $groupInvitations');
+
+      // Convert to AlertItems
+      List<AlertItem> newAlerts = [];
+
+      // Add friend requests
+      if (friendRequests != null && friendRequests['received_requests'] != null) {
+        for (var request in friendRequests['received_requests']) {
+          if (request != null && request['request_id'] != null && request['from_username'] != null) {
+            _logger.info('Processing friend request: $request');
+            newAlerts.add(_createFriendRequestAlert(request, friendsProvider, context));
+          }
+        }
+      }
+
+      // Add group invitations
+      if (groupInvitations != null && groupInvitations['received_invitations'] != null) {
+        for (var invitation in groupInvitations['received_invitations']) {
+          if (invitation != null && 
+              invitation['invitation_id'] != null && 
+              invitation['group_name'] != null && 
+              invitation['invited_by_username'] != null) {
+            _logger.info('Processing group invitation: $invitation');
+            newAlerts.add(_createGroupInvitationAlert(invitation, groupProvider, context));
+          }
+        }
+      }
+
+      _logger.info('Created ${newAlerts.length} alert items');
+
+      // Update alerts and category counts
+      _alerts = newAlerts;
+      _categoryCounts = [
+        AlertCategoryCount(
+          category: AlertCategory.friendRequest,
+          total: friendRequests?['received_requests']?.length ?? 0,
+          unread: friendRequests?['received_requests']?.length ?? 0,
+        ),
+        AlertCategoryCount(
+          category: AlertCategory.groupInvite,
+          total: groupInvitations?['received_invitations']?.length ?? 0,
+          unread: groupInvitations?['received_invitations']?.length ?? 0,
+        ),
+      ];
+
+      _logger.info('Updated alerts and category counts');
+      _logger.info('Total alerts: ${_alerts.length}');
+      _logger.info('Category counts: $_categoryCounts');
+
+      notifyListeners();
     } catch (e) {
-      _logger.severe('Error initializing alerts: $e');
+      _logger.severe('Error fetching alerts: $e');
+      _error = e.toString();
     } finally {
       _isLoading = false;
       notifyListeners();
     }
   }
 
-  // Fetch read status from API
-  Future<void> _fetchReadStatus() async {
-    try {
-      String? token = await _authService.getToken();
-      if (token == null) {
-        _logger.warning('No authentication token available');
-        throw 'Session expired. Please log in again.';
-      }
+  // Mark alert as read (only for static alerts)
+  Future<void> markAsRead(BuildContext context, AlertItem alert) async {
+    // Skip if alert requires response - those are handled by their respective services
+    if (alert.requiresResponse) return;
 
-      final response = await client.get(
-        Uri.parse('$baseUrl/alerts/read-status/'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        _readAlerts = Set<String>.from(data['read_alerts']);
-        notifyListeners();
-      } else if (response.statusCode == 401) {
-        _logger.info('Token expired, attempting refresh...');
-        final refreshSuccess = await _authService.handleTokenRefresh();
-        if (refreshSuccess) {
-          return _fetchReadStatus(); // Retry with new token
-        }
-        throw 'Session expired. Please log in again.';
-      } else {
-        throw 'Failed to fetch read status. Status: ${response.statusCode}';
-      }
-    } catch (e) {
-      _logger.severe('Error fetching read status: $e');
-      rethrow;
-    }
-  }
-
-  // Mark alert as read
-  Future<void> markAsRead(AlertItem alert) async {
     try {
       String? token = await _authService.getToken();
       if (token == null) throw 'Session expired. Please log in again.';
@@ -250,20 +254,15 @@ class AlertService extends ChangeNotifier {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
         },
-        body: jsonEncode({'alert_type': _getAlertId(alert)}),
+        body: jsonEncode({'alert_id': alert.id}),
       );
 
       if (response.statusCode == 200) {
-        _readAlerts.add(_getAlertId(alert));
-        // Remove the alert if it's a static alert (no response needed)
-        if (!alert.requiresResponse) {
-          _alerts.removeWhere((a) => _getAlertId(a) == _getAlertId(alert));
-        }
-        notifyListeners();
+        await fetchAlerts(context); // Refresh alerts and counts
       } else if (response.statusCode == 401) {
         final refreshSuccess = await _authService.handleTokenRefresh();
         if (refreshSuccess) {
-          return markAsRead(alert); // Retry with new token
+          return markAsRead(context, alert);
         }
         throw 'Session expired. Please log in again.';
       } else {
@@ -271,87 +270,74 @@ class AlertService extends ChangeNotifier {
       }
     } catch (e) {
       _logger.severe('Error marking alert as read: $e');
-      rethrow;
     }
   }
 
-  // Batch mark alerts as read
-  Future<void> markBatchAsRead(List<AlertItem> alerts, {String? batchId}) async {
+  // Mark all alerts in a category as read
+  Future<void> markCategoryAsRead(BuildContext context, AlertCategory category) async {
     try {
       String? token = await _authService.getToken();
       if (token == null) throw 'Session expired. Please log in again.';
 
-      final alertTypes = alerts.map((alert) => _getAlertId(alert)).toList();
-
       final response = await client.post(
-        Uri.parse('$baseUrl/alerts/mark-read/'),
+        Uri.parse('$baseUrl/alerts/mark-category-read/'),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
         },
-        body: jsonEncode({
-          'alert_types': alertTypes,
-          if (batchId != null) 'batch_id': batchId,
-        }),
+        body: jsonEncode({'category': category.name}),
       );
 
       if (response.statusCode == 200) {
-        // Update local state
-        _readAlerts.addAll(alertTypes);
-        // Remove static alerts that were marked as read
-        _alerts.removeWhere(
-          (alert) => !alert.requiresResponse && alertTypes.contains(_getAlertId(alert)),
-        );
-        notifyListeners();
+        await fetchAlerts(context); // Refresh alerts and counts
       } else if (response.statusCode == 401) {
         final refreshSuccess = await _authService.handleTokenRefresh();
         if (refreshSuccess) {
-          return markBatchAsRead(alerts, batchId: batchId);
+          return markCategoryAsRead(context, category);
         }
         throw 'Session expired. Please log in again.';
       } else {
-        throw 'Failed to mark alerts as read. Status: ${response.statusCode}';
+        throw 'Failed to mark category as read. Status: ${response.statusCode}';
       }
     } catch (e) {
-      _logger.severe('Error marking batch alerts as read: $e');
-      rethrow;
+      _logger.severe('Error marking category as read: $e');
     }
   }
 
-  // Update markAllAsRead to use batch operation
-  Future<void> markAllAsRead() async {
-    final unreadAlerts = alerts.where((alert) => !isRead(alert)).toList();
-    if (unreadAlerts.isEmpty) return;
+  // Mark all static alerts as read
+  Future<void> markAllAsRead(BuildContext context) async {
+    try {
+      String? token = await _authService.getToken();
+      if (token == null) throw 'Session expired. Please log in again.';
 
-    await markBatchAsRead(unreadAlerts, batchId: 'all_${DateTime.now().millisecondsSinceEpoch}');
+      final response = await client.post(
+        Uri.parse('$baseUrl/alerts/mark-all-read/'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        await fetchAlerts(context); // Refresh alerts and counts
+      } else if (response.statusCode == 401) {
+        final refreshSuccess = await _authService.handleTokenRefresh();
+        if (refreshSuccess) {
+          return markAllAsRead(context);
+        }
+        throw 'Session expired. Please log in again.';
+      } else {
+        throw 'Failed to mark all alerts as read. Status: ${response.statusCode}';
+      }
+    } catch (e) {
+      _logger.severe('Error marking all alerts as read: $e');
+    }
   }
-
-  // Check if alert is read
-  bool isRead(AlertItem alert) => _readAlerts.contains(_getAlertId(alert));
-
-  String _getAlertId(AlertItem alert) => alert.type;
 
   // Clear alerts (e.g., on logout)
   void clear() {
-    _alerts.clear();
-    _readAlerts.clear();
-    _isInitialized = false;
+    _alerts = [];
+    _categoryCounts = [];
     notifyListeners();
-  }
-
-  // TODO: Implement batch operations for better performance
-  Future<void> markMultipleAsRead(List<String> alertTypes) async {
-    // Implementation needed
-  }
-
-  // TODO: Add pagination support
-  Future<List<AlertItem>> getAlerts({int page = 1, int limit = 20}) async {
-    // Implementation needed
-    return []; // Return empty list as default implementation
-  }
-
-  // TODO: Add proper error recovery
-  Future<void> _handleApiError(dynamic error) async {
-    // Implementation needed
   }
 }

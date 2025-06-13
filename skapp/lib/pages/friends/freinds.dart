@@ -144,7 +144,7 @@ class _FreindsPageState extends State<FreindsPage> {
   String? _error;
   final FriendsService _friendsService = FriendsService();
 
-  // Make _loadFriends public so it can be called from FriendsProvider
+  // Make _loadFriends public so it can be called from outside
   Future<void> _loadFriends() async {
     if (!mounted) return;
 
@@ -171,6 +171,11 @@ class _FreindsPageState extends State<FreindsPage> {
         });
       }
     }
+  }
+
+  // Add public method to refresh friends
+  Future<void> refreshFriends() async {
+    await _loadFriends();
   }
 
   @override

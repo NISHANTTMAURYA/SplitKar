@@ -68,6 +68,7 @@ class GroupProvider extends ChangeNotifier {
   List<Map<String, dynamic>> get pendingInvitations => _pendingInvitations;
   bool get isLoadingInvitations => _isLoadingInvitations;
   String? get invitationError => _invitationError;
+  GroupsService get service => _service;
 
   // TODO: Add request cancellation
   bool _isRequestCancelled = false;
@@ -194,7 +195,6 @@ class GroupProvider extends ChangeNotifier {
     try {
       _logger.info('Starting batch group creation process...');
       
-      // Use the new batch endpoint
       final result = await _service.batchCreateGroup(
         name: name,
         description: description,
@@ -218,7 +218,8 @@ class GroupProvider extends ChangeNotifier {
           icon: Icons.group_add,
         );
 
-        // Create alert for group creation
+        // TODO: Remove alert creation - will be handled by backend
+        /*
         final alertService = Provider.of<AlertService>(context, listen: false);
         alertService.addAlert(
           AlertItem(
@@ -232,6 +233,7 @@ class GroupProvider extends ChangeNotifier {
             actions: [],
           ),
         );
+        */
       }
 
       // Clear selected users and reset state
@@ -262,61 +264,26 @@ class GroupProvider extends ChangeNotifier {
       _invitationError = null;
       notifyListeners();
 
+      _logger.info('Loading pending group invitations...');
       final result = await _service.getPendingInvitations();
-      _pendingInvitations = List<Map<String, dynamic>>.from(result['invitations']);
-
-      // Create alerts for new invitations
-      final alertService = Provider.of<AlertService>(context, listen: false);
-      for (final invitation in _pendingInvitations) {
-        final groupName = invitation['group']['name'];
-        final invitedBy = invitation['invited_by']['username'];
-        
-        // Check if alert already exists
-        final existingAlert = alertService.alerts.any(
-          (alert) => alert.type == 'group_invite_${invitation['id']}'
-        );
-        
-        if (!existingAlert) {
-          alertService.addAlert(
-            AlertItem(
-              title: 'Group Invitation',
-              subtitle: '$invitedBy invited you to join $groupName',
-              icon: Icons.group_add,
-              type: 'group_invite_${invitation['id']}',
-              timestamp: DateTime.parse(invitation['created_at']),
-              category: AlertCategory.groupInvite,
-              requiresResponse: true,
-              actions: [
-                AlertAction(
-                  label: 'Accept',
-                  onPressed: () => handleInvitationResponse(
-                    context,
-                    invitation['id'],
-                    true,
-                  ),
-                  color: Colors.green,
-                ),
-                AlertAction(
-                  label: 'Decline',
-                  onPressed: () => handleInvitationResponse(
-                    context,
-                    invitation['id'],
-                    false,
-                  ),
-                  color: Colors.red,
-                ),
-              ],
-            ),
-          );
-        }
+      _logger.info('Pending group invitations response: $result');
+      
+      if (result != null && result['received_invitations'] != null) {
+        _pendingInvitations = List<Map<String, dynamic>>.from(result['received_invitations']);
+        _logger.info('Processed ${_pendingInvitations.length} invitations');
+      } else {
+        _pendingInvitations = [];
+        _logger.warning('No invitations found in response');
       }
+
+      notifyListeners();
     } catch (e) {
       _invitationError = e.toString();
+      _logger.severe('Error loading pending group invitations: $e');
       _notificationService.showAppNotification(
         context,
         title: 'Error',
-        message: e.toString(),
-        icon: Icons.error,
+        message: 'Failed to load group invitations',
       );
     } finally {
       _isLoadingInvitations = false;
@@ -341,10 +308,6 @@ class GroupProvider extends ChangeNotifier {
         (invitation) => invitation['id'] == invitationId
       );
 
-      // Remove the alert
-      final alertService = Provider.of<AlertService>(context, listen: false);
-      alertService.removeAlertsByType('group_invite_$invitationId');
-
       // Show success notification
       _notificationService.showAppNotification(
         context,
@@ -359,16 +322,24 @@ class GroupProvider extends ChangeNotifier {
       if (accept) {
         await _service.clearCache();
         await _service.getGroups(forceRefresh: true);
+        await refreshGroups();
       }
+
+      // Clear any errors
+      _error = null;
+      _invitationError = null;
 
       notifyListeners();
     } catch (e) {
+      _error = e.toString();
+      _invitationError = e.toString();
       _notificationService.showAppNotification(
         context,
         title: 'Error',
         message: e.toString(),
         icon: Icons.error,
       );
+      notifyListeners();
     }
   }
 
@@ -400,13 +371,19 @@ class GroupProvider extends ChangeNotifier {
   Future<void> refreshGroups() async {
     try {
       _logger.info('Refreshing groups list...');
+      _isLoading = true;
+      notifyListeners();
+      
       await _service.clearCache();
-      await _service.getGroups(forceRefresh: true);
-      _logger.info('Groups list refreshed successfully');
+      final groups = await _service.getGroups(forceRefresh: true);
+      _logger.info('Groups list refreshed successfully: ${groups.length} groups');
+      
+      _isLoading = false;
       notifyListeners();
     } catch (e) {
       _logger.severe('Error refreshing groups: $e');
       _error = e.toString();
+      _isLoading = false;
       notifyListeners();
     }
   }

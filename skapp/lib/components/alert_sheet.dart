@@ -4,58 +4,20 @@
  * This system is designed to handle various types of alerts in a flexible and organized way.
  * 
  * Key Features:
- * 1. Categorization: Alerts are automatically grouped by category (friend requests, group invites, etc.)
- * 2. Priority Handling: Alerts requiring response are shown first
- * 3. Extensible: Easy to add new alert types by extending the AlertCategory enum
+ * 1. Categorization: Alerts are automatically grouped by category
+ * 2. UI Organization: Alerts requiring response are shown first
+ * 3. Backend Integration: Alerts are fetched directly from backend
  * 
- * How to Add New Alert Types:
- * 1. Add a new category to AlertCategory enum if needed
- * 2. Create an AlertItem with:
- *    - Appropriate category
- *    - requiresResponse flag (true if user action needed)
- *    - Relevant actions (buttons/callbacks)
+ * Alert Types:
+ * 1. Static Alerts: 
+ *    - Notifications that don't require response
+ *    - Stored in database
+ *    - Read status tracked in database
  * 
- * Example Usage:
- * ```dart
- * alertService.addAlert(
- *   AlertItem(
- *     title: 'Group Invitation',
- *     subtitle: 'User invited you to Group',
- *     category: AlertCategory.groupInvite,
- *     requiresResponse: true,
- *     actions: [
- *       AlertAction(label: 'Accept', onPressed: () => ...),
- *       AlertAction(label: 'Decline', onPressed: () => ...),
- *     ],
- *   ),
- * );
- * ```
- * 
- * Optimization Notes:
- * 1. Performance Improvements Needed:
- *    - Implement virtual scrolling for large lists
- *    - Add lazy loading for images
- *    - Implement proper list item recycling
- * 
- * 2. UI/UX Improvements:
- *    - Add pull-to-refresh functionality
- *    - Implement smooth animations for state changes
- *    - Add proper loading states
- * 
- * 3. Memory Management:
- *    - Implement proper disposal of resources
- *    - Add memory leak prevention
- *    - Optimize image caching
- * 
- * 4. State Management:
- *    - Implement proper state restoration
- *    - Add offline support
- *    - Optimize rebuilds
- * 
- * 5. Accessibility:
- *    - Add proper screen reader support
- *    - Implement keyboard navigation
- *    - Add proper contrast ratios
+ * 2. Interactive Alerts:
+ *    - Friend requests, group invites etc.
+ *    - Fetched from separate endpoints
+ *    - Actions trigger direct API calls
  */
 
 import 'package:flutter/material.dart';
@@ -63,47 +25,89 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:skapp/services/alert_service.dart';
 import 'package:skapp/pages/friends/friends_provider.dart';
+import 'package:skapp/pages/groups/group_provider.dart';
+import 'package:skapp/pages/friends/freinds.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:skapp/services/alert_service.dart';
 import '../widgets/bottom_sheet_wrapper.dart';
 import '../widgets/custom_loader.dart';
+import 'package:logging/logging.dart';
+import 'package:skapp/pages/main_page.dart';
 
+// Category count model for UI
+class AlertCategoryCount {
+  final AlertCategory category;
+  final int total;
+  final int unread;
 
-// Model class for alert items with enhanced categorization support
+  AlertCategoryCount({
+    required this.category,
+    required this.total,
+    required this.unread,
+  });
+
+  factory AlertCategoryCount.fromJson(Map<String, dynamic> json) {
+    return AlertCategoryCount(
+      category: AlertCategory.values.firstWhere(
+        (e) => e.name == json['category'],
+      ),
+      total: json['total'] ?? 0,
+      unread: json['unread'] ?? 0,
+    );
+  }
+}
+
+// Keep these models as they define UI structure
 class AlertItem {
+  final String id;
   final String title;
   final String subtitle;
   final String? imageUrl;
   final IconData icon;
   final List<AlertAction> actions;
   final DateTime timestamp;
-  final String type;
-  final AlertCategory category; // Category for grouping alerts
-  final bool requiresResponse; // Indicates if user action is required
+  final AlertCategory category;
+  final bool requiresResponse;
+  final bool isRead;  // Only used for static alerts
 
   AlertItem({
+    required this.id,
     required this.title,
     required this.subtitle,
     this.imageUrl,
     required this.icon,
     required this.actions,
     required this.timestamp,
-    required this.type,
     this.category = AlertCategory.general,
     this.requiresResponse = false,
+    this.isRead = false,
   });
+
+  // Add factory method for backend data
+  factory AlertItem.fromJson(Map<String, dynamic> json) {
+    // TODO: Implement conversion from backend JSON
+    throw UnimplementedError();
+  }
+
+  // Helper method to determine if alert should be shown
+  bool get shouldShow {
+    // For responsive alerts (like friend requests), show if not responded
+    if (requiresResponse) {
+      return true; // Will be removed once response is given
+    }
+    // For static alerts, show if not read
+    return !isRead;
+  }
 }
 
-// Model class for alert actions
 class AlertAction {
   final String label;
-  final VoidCallback onPressed;
+  final Future<void> Function() onPressed;
   final Color? color;
 
   AlertAction({required this.label, required this.onPressed, this.color});
 }
 
-// Enum for alert categories
+// Keep enum for UI organization
 enum AlertCategory {
   friendRequest,
   groupInvite,
@@ -138,47 +142,56 @@ enum AlertCategory {
 }
 
 class AlertSheet extends StatefulWidget {
-  /*
-   * Alert Sheet Widget
-   * ----------------
-   * Optimization Notes:
-   * 1. Current Implementation:
-   *    - Basic list view with grouping
-   *    - Simple state management
-   * 
-   * 2. Needed Improvements:
-   *    - Add virtual scrolling
-   *    - Implement proper image caching
-   *    - Add pull-to-refresh
-   *    - Optimize rebuilds
-   * 
-   * 3. Performance:
-   *    - Implement proper list item recycling
-   *    - Add lazy loading
-   *    - Optimize animations
-   */
-
   final List<AlertItem> alerts;
+  final List<AlertCategoryCount> categoryCounts;
   final VoidCallback? onClose;
+  static final _logger = Logger('AlertSheet');
 
-  const AlertSheet({super.key, required this.alerts, this.onClose});
+  const AlertSheet({
+    super.key, 
+    required this.alerts,
+    required this.categoryCounts,
+    this.onClose,
+  });
 
   static Future<void> show(
     BuildContext context, {
     required List<AlertItem> alerts,
+    required List<AlertCategoryCount> categoryCounts,
     VoidCallback? onClose,
   }) {
     return BottomSheetWrapper.show(
       context: context,
       child: Builder(
         builder: (context) {
+          // Load both friend requests and group invitations
           final friendsProvider = Provider.of<FriendsProvider>(
             context,
             listen: false,
           );
-          friendsProvider.loadPendingRequests(context);
+          final groupProvider = Provider.of<GroupProvider>(
+            context,
+            listen: false,
+          );
+          final alertService = Provider.of<AlertService>(
+            context,
+            listen: false,
+          );
+          
+          // Load pending requests and invitations
+          Future.wait([
+            friendsProvider.loadPendingRequests(context),
+            groupProvider.loadPendingInvitations(context),
+            alertService.fetchAlerts(context),
+          ]).catchError((error) {
+            AlertSheet._logger.severe('Error loading alerts: $error');
+          });
 
-          return AlertSheet(alerts: alerts, onClose: onClose);
+          return AlertSheet(
+            alerts: alerts,
+            categoryCounts: categoryCounts,
+            onClose: onClose,
+          );
         },
       ),
     );
@@ -188,30 +201,10 @@ class AlertSheet extends StatefulWidget {
   State<AlertSheet> createState() => _AlertSheetState();
 }
 
-class _AlertSheetState extends State<AlertSheet>
-    with SingleTickerProviderStateMixin {
-  /*
-   * Alert Sheet State
-   * ---------------
-   * Optimization Notes:
-   * 1. State Management:
-   *    - Implement proper state restoration
-   *    - Add offline support
-   *    - Optimize state updates
-   * 
-   * 2. Performance:
-   *    - Add proper disposal of resources
-   *    - Implement memory leak prevention
-   *    - Optimize rebuilds
-   * 
-   * 3. UI/UX:
-   *    - Add smooth animations
-   *    - Implement proper loading states
-   *    - Add error handling
-   */
-
+class _AlertSheetState extends State<AlertSheet> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   AlertCategory? _selectedFilter;
+  static final _logger = Logger('AlertSheet');
 
   @override
   void initState() {
@@ -220,10 +213,13 @@ class _AlertSheetState extends State<AlertSheet>
   }
 
   void _initializeTabController() {
-    // Get unique categories from alerts
-    final categories = widget.alerts.map((a) => a.category).toSet().toList()
+    // Get categories that have alerts
+    final categories = widget.categoryCounts
+      .where((count) => count.total > 0)
+      .map((count) => count.category)
+      .toList()
       ..sort((a, b) {
-        // Sort categories: actionable first, then by enum order
+        // Sort by responsive alerts first, then by unread count
         final aHasResponse = widget.alerts.any(
           (alert) => alert.category == a && alert.requiresResponse,
         );
@@ -233,21 +229,17 @@ class _AlertSheetState extends State<AlertSheet>
         if (aHasResponse != bHasResponse) {
           return aHasResponse ? -1 : 1;
         }
-        return a.index.compareTo(b.index);
+        // Then sort by unread count
+        final aCount = widget.categoryCounts
+          .firstWhere((c) => c.category == a)
+          .unread;
+        final bCount = widget.categoryCounts
+          .firstWhere((c) => c.category == b)
+          .unread;
+        return bCount.compareTo(aCount);
       });
 
-    // Add 1 for the "All" tab
     _tabController = TabController(length: categories.length + 1, vsync: this);
-
-    _tabController.addListener(() {
-      if (!_tabController.indexIsChanging) {
-        setState(() {
-          _selectedFilter = _tabController.index == 0
-              ? null
-              : categories[_tabController.index - 1];
-        });
-      }
-    });
   }
 
   @override
@@ -257,53 +249,164 @@ class _AlertSheetState extends State<AlertSheet>
   }
 
   List<Widget> _buildTabs() {
-    final categories = widget.alerts.map((a) => a.category).toSet().toList()
-      ..sort((a, b) => a.index.compareTo(b.index));
-
     return [
-      // All tab
-      const Tab(
+      // All tab with total count
+      Tab(
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.all_inbox, size: 16),
-            SizedBox(width: 4),
-            Text('All'),
+            const Icon(Icons.all_inbox, size: 16),
+            const SizedBox(width: 4),
+            const Text('All'),
+            if (_getTotalUnreadCount() > 0) ...[
+              const SizedBox(width: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  _getTotalUnreadCount().toString(),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),
-      // Category specific tabs
-      ...categories.map(
-        (category) => Tab(
+      // Category specific tabs with counts
+      ...widget.categoryCounts
+        .where((count) => count.total > 0)
+        .map((count) => Tab(
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(category.icon, size: 16),
+              Icon(count.category.icon, size: 16),
               const SizedBox(width: 4),
-              Text(category.displayName),
+              Text(count.category.displayName),
+              if (count.unread > 0) ...[
+                const SizedBox(width: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    count.unread.toString(),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
-        ),
-      ),
+        )),
     ];
   }
 
-  void _handleCategoryRead(AlertCategory category, BuildContext context) {
-    final alertService = context.read<AlertService>();
-    final categoryAlerts = widget.alerts
-        .where((alert) => alert.category == category && !alertService.isRead(alert))
-        .toList();
-    
-    if (categoryAlerts.isNotEmpty) {
-      alertService.markBatchAsRead(
-        categoryAlerts,
-        batchId: 'category_${category.name}_${DateTime.now().millisecondsSinceEpoch}',
-      );
-    }
+  int _getTotalUnreadCount() {
+    return widget.categoryCounts.fold(0, (sum, count) => sum + count.unread);
   }
 
   @override
   Widget build(BuildContext context) {
+    // Get providers to check loading/error states
+    final alertService = Provider.of<AlertService>(context);
+    final friendsProvider = Provider.of<FriendsProvider>(context);
+    final groupProvider = Provider.of<GroupProvider>(context);
+
+    // Show loading state if any provider is loading
+    if (alertService.isLoading || 
+        friendsProvider.isLoading || 
+        groupProvider.isLoadingInvitations) {
+      return Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CustomLoader(size: 40),
+              const SizedBox(height: 16),
+              Text(
+                'Loading alerts...',
+                style: GoogleFonts.cabin(
+                  fontSize: 16,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Show error state if any provider has an error
+    final errors = [
+      if (alertService.error != null) alertService.error,
+      if (friendsProvider.error != null) friendsProvider.error,
+      if (groupProvider.invitationError != null) groupProvider.invitationError,
+    ];
+
+    if (errors.isNotEmpty) {
+      return Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.error_outline, size: 48, color: Colors.red[400]),
+                const SizedBox(height: 16),
+                Text(
+                  'Error loading alerts',
+                  style: GoogleFonts.cabin(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red[400],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  errors.join('\n'),
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.cabin(
+                    fontSize: 14,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextButton.icon(
+                  onPressed: () {
+                    // Retry loading alerts
+                    alertService.fetchAlerts(context);
+                    friendsProvider.loadPendingRequests(context);
+                    groupProvider.loadPendingInvitations(context);
+                  },
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Retry'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Show normal content if no loading or errors
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).scaffoldBackgroundColor,
@@ -326,32 +429,13 @@ class _AlertSheetState extends State<AlertSheet>
                   ),
                 ),
                 const SizedBox(height: 16),
-                // Title and mark all as seen button
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Activity',
-                      style: GoogleFonts.cabin(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    if (widget.alerts.isNotEmpty)
-                      TextButton.icon(
-                        onPressed: () {
-                          context.read<AlertService>().markAllAsRead();
-                        },
-                        icon: const Icon(Icons.done_all),
-                        label: Text(
-                          'Mark all as seen',
-                          style: GoogleFonts.cabin(
-                            color: Theme.of(context).colorScheme.primary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                  ],
+                // Title
+                Text(
+                  'Activity',
+                  style: GoogleFonts.cabin(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
@@ -371,15 +455,6 @@ class _AlertSheetState extends State<AlertSheet>
                 labelColor: Theme.of(context).colorScheme.primary,
                 unselectedLabelColor: Colors.grey,
                 tabs: _buildTabs(),
-                onTap: (index) {
-                  if (index > 0) {  // Skip "All" tab
-                    final category = widget.alerts
-                        .map((a) => a.category)
-                        .toSet()
-                        .toList()[index - 1];
-                    _handleCategoryRead(category, context);
-                  }
-                },
               ),
             ),
 
@@ -391,7 +466,11 @@ class _AlertSheetState extends State<AlertSheet>
   }
 
   Widget _buildAlertList(BuildContext context) {
+    AlertSheet._logger.info('Building alert list with ${widget.alerts.length} alerts');
+    AlertSheet._logger.info('Category counts: ${widget.categoryCounts}');
+
     if (widget.alerts.isEmpty) {
+      AlertSheet._logger.info('No alerts to display');
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -416,12 +495,23 @@ class _AlertSheetState extends State<AlertSheet>
       );
     }
 
-    final alertService = context.watch<AlertService>();
-
-    // Filter alerts by selected category
+    // Filter alerts by selected category and visibility
     final filteredAlerts = _selectedFilter == null
-        ? widget.alerts
-        : widget.alerts.where((a) => a.category == _selectedFilter).toList();
+        ? widget.alerts.where((a) => a.shouldShow).toList()
+        : widget.alerts.where((a) => a.category == _selectedFilter && a.shouldShow).toList();
+
+    AlertSheet._logger.info('Filtered alerts count: ${filteredAlerts.length}');
+    AlertSheet._logger.info('Selected filter: $_selectedFilter');
+
+    if (filteredAlerts.isEmpty) {
+      AlertSheet._logger.info('No alerts after filtering');
+      return Center(
+        child: Text(
+          'No alerts in this category',
+          style: GoogleFonts.cabin(fontSize: 16, color: Colors.grey[600]),
+        ),
+      );
+    }
 
     // Group alerts by category
     final Map<AlertCategory, List<AlertItem>> groupedAlerts = {};
@@ -432,16 +522,14 @@ class _AlertSheetState extends State<AlertSheet>
       groupedAlerts[alert.category]!.add(alert);
     }
 
+    AlertSheet._logger.info('Grouped alerts by category: ${groupedAlerts.keys.map((k) => '${k.name}: ${groupedAlerts[k]!.length}')}');
+
     // Sort categories to show actionable items first
     final sortedCategories = groupedAlerts.keys.toList()
       ..sort((a, b) {
         // First, prioritize categories with items requiring response
-        final aHasResponse = groupedAlerts[a]!.any(
-          (item) => item.requiresResponse,
-        );
-        final bHasResponse = groupedAlerts[b]!.any(
-          (item) => item.requiresResponse,
-        );
+        final aHasResponse = groupedAlerts[a]!.any((item) => item.requiresResponse);
+        final bHasResponse = groupedAlerts[b]!.any((item) => item.requiresResponse);
         if (aHasResponse != bHasResponse) {
           return aHasResponse ? -1 : 1;
         }
@@ -449,21 +537,14 @@ class _AlertSheetState extends State<AlertSheet>
         return a.index.compareTo(b.index);
       });
 
-    if (filteredAlerts.isEmpty) {
-      return Center(
-        child: Text(
-          'No alerts in this category',
-          style: GoogleFonts.cabin(fontSize: 16, color: Colors.grey[600]),
-        ),
-      );
-    }
-
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: sortedCategories.length,
       itemBuilder: (context, categoryIndex) {
         final category = sortedCategories[categoryIndex];
         final categoryAlerts = groupedAlerts[category]!;
+
+        AlertSheet._logger.info('Building category ${category.name} with ${categoryAlerts.length} alerts');
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -494,7 +575,7 @@ class _AlertSheetState extends State<AlertSheet>
             ],
             // Category alerts
             ...categoryAlerts.map(
-              (alert) => _buildAlertCard(context, alert, alertService),
+              (alert) => _buildAlertCard(context, alert),
             ),
             if (categoryIndex < sortedCategories.length - 1)
               const Divider(height: 32),
@@ -504,29 +585,29 @@ class _AlertSheetState extends State<AlertSheet>
     );
   }
 
-  Widget _buildAlertCard(
-    BuildContext context,
-    AlertItem alert,
-    AlertService alertService,
-  ) {
-    final isRead = alertService.isRead(alert);
-
+  Widget _buildAlertCard(BuildContext context, AlertItem alert) {
     return Hero(
-      tag: 'alert_${alert.timestamp.millisecondsSinceEpoch}',
+      tag: 'alert_${alert.id}',
       child: Card(
         margin: const EdgeInsets.only(bottom: 16),
-        elevation: isRead ? 1 : 2,
+        elevation: 2,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: InkWell(
-          onTap: () => alertService.markAsRead(alert),
+          onTap: () {
+            if (!alert.requiresResponse) {
+              context.read<AlertService>().markAsRead(context, alert);
+            }
+          },
           borderRadius: BorderRadius.circular(12),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 300),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
-              color: isRead
-                  ? Theme.of(context).cardColor
-                  : Theme.of(context).colorScheme.primary.withOpacity(0.05),
+              color: alert.requiresResponse
+                  ? Theme.of(context).colorScheme.primary.withOpacity(0.05)
+                  : (alert.isRead
+                      ? Theme.of(context).cardColor
+                      : Theme.of(context).colorScheme.primary.withOpacity(0.05)),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -562,7 +643,7 @@ class _AlertSheetState extends State<AlertSheet>
                                 color: Theme.of(context).colorScheme.primary,
                               ),
                       ),
-                      if (!isRead)
+                      if (!alert.isRead && !alert.requiresResponse)
                         Positioned(
                           right: 0,
                           top: 0,
@@ -586,7 +667,7 @@ class _AlertSheetState extends State<AlertSheet>
                   title: Text(
                     alert.title,
                     style: GoogleFonts.cabin(
-                      fontWeight: isRead ? FontWeight.normal : FontWeight.bold,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                   subtitle: Column(
@@ -595,9 +676,7 @@ class _AlertSheetState extends State<AlertSheet>
                       Text(
                         alert.subtitle,
                         style: GoogleFonts.cabin(
-                          color: isRead
-                              ? Colors.grey[600]
-                              : Theme.of(context).colorScheme.onBackground,
+                          color: Theme.of(context).colorScheme.onBackground,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -621,9 +700,58 @@ class _AlertSheetState extends State<AlertSheet>
                         return Padding(
                           padding: const EdgeInsets.only(left: 8.0),
                           child: TextButton(
-                            onPressed: () {
-                              action.onPressed();
-                              alertService.markAsRead(alert);
+                            onPressed: () async {
+                              try {
+                                // Execute the action
+                                await action.onPressed();
+                                
+                                // Close the sheet
+                                if (context.mounted) {
+                                  Navigator.pop(context);
+                                }
+
+                                // Refresh data using the static method
+                                if (context.mounted) {
+                                  await MainPage.refreshData(context);
+                                }
+
+                                // Refresh both friends and groups lists
+                                if (context.mounted) {
+                                  final friendsProvider = Provider.of<FriendsProvider>(
+                                    context,
+                                    listen: false,
+                                  );
+                                  final groupProvider = Provider.of<GroupProvider>(
+                                    context,
+                                    listen: false,
+                                  );
+
+                                  // Clear caches and force refresh
+                                  if (alert.category == AlertCategory.friendRequest) {
+                                    await friendsProvider.service.clearCache();
+                                    await friendsProvider.service.getFriends(forceRefresh: true);
+                                    if (FreindsPage.freindsKey.currentState != null) {
+                                      await FreindsPage.freindsKey.currentState!.refreshFriends();
+                                    }
+                                  }
+
+                                  if (alert.category == AlertCategory.groupInvite) {
+                                    await groupProvider.service.clearCache();
+                                    await groupProvider.service.getGroups(forceRefresh: true);
+                                    await groupProvider.refreshGroups();
+                                  }
+                                }
+                              } catch (e) {
+                                AlertSheet._logger.severe('Error executing action: $e');
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Error: $e'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
+                              }
                             },
                             style: TextButton.styleFrom(
                               foregroundColor: action.color,
