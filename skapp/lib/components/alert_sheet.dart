@@ -239,7 +239,11 @@ class _AlertSheetState extends State<AlertSheet> with SingleTickerProviderStateM
         return bCount.compareTo(aCount);
       });
 
-    _tabController = TabController(length: categories.length + 1, vsync: this);
+    // Initialize controller with the correct number of tabs (All + active categories)
+    _tabController = TabController(
+      length: categories.isEmpty ? 1 : categories.length + 1,
+      vsync: this
+    );
   }
 
   @override
@@ -705,41 +709,13 @@ class _AlertSheetState extends State<AlertSheet> with SingleTickerProviderStateM
                                 // Execute the action
                                 await action.onPressed();
                                 
-                                // Close the sheet
+                                // Refresh data using the providers
                                 if (context.mounted) {
-                                  Navigator.pop(context);
-                                }
-
-                                // Refresh data using the static method
-                                if (context.mounted) {
-                                  await MainPage.refreshData(context);
-                                }
-
-                                // Refresh both friends and groups lists
-                                if (context.mounted) {
-                                  final friendsProvider = Provider.of<FriendsProvider>(
-                                    context,
-                                    listen: false,
-                                  );
-                                  final groupProvider = Provider.of<GroupProvider>(
-                                    context,
-                                    listen: false,
-                                  );
-
-                                  // Clear caches and force refresh
-                                  if (alert.category == AlertCategory.friendRequest) {
-                                    await friendsProvider.service.clearCache();
-                                    await friendsProvider.service.getFriends(forceRefresh: true);
-                                    if (FreindsPage.freindsKey.currentState != null) {
-                                      await FreindsPage.freindsKey.currentState!.refreshFriends();
-                                    }
-                                  }
-
-                                  if (alert.category == AlertCategory.groupInvite) {
-                                    await groupProvider.service.clearCache();
-                                    await groupProvider.service.getGroups(forceRefresh: true);
-                                    await groupProvider.refreshGroups();
-                                  }
+                                  // Refresh groups list
+                                  await context.read<GroupProvider>().loadGroups(forceRefresh: true);
+                                  
+                                  // Refresh alerts
+                                  await context.read<AlertService>().fetchAlerts(context);
                                 }
                               } catch (e) {
                                 AlertSheet._logger.severe('Error executing action: $e');

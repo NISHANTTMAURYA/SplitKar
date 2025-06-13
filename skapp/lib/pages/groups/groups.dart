@@ -35,11 +35,11 @@ class GroupsPage extends StatefulWidget {
 
   // Add static method to refresh groups
   static Future<void> refreshGroups() async {
-    await freindsKey.currentState?.refreshGroups();
-  }
-
-  static void reloadFriends() {
-    freindsKey.currentState?._loadFriends();
+    // Use provider directly instead of state
+    final context = freindsKey.currentContext;
+    if (context != null) {
+      await Provider.of<GroupProvider>(context, listen: false).loadGroups(forceRefresh: true);
+    }
   }
 
   static Widget friendsImage(BuildContext context, {double? opacity}) {
@@ -93,11 +93,8 @@ class GroupsPage extends StatefulWidget {
         onTap: () async {
           final bool shouldRefresh = await AddFriendsSheet.show(context);
           if (shouldRefresh && context.mounted) {
-            // Get the state and refresh
-            final state = freindsKey.currentState;
-            if (state != null) {
-              await state._loadFriends();
-            }
+            // Refresh groups using provider
+            await Provider.of<GroupProvider>(context, listen: false).loadGroups(forceRefresh: true);
           }
         },
         child: Padding(
@@ -138,147 +135,61 @@ class GroupsPage extends StatefulWidget {
 }
 
 class _GroupsPageState extends State<GroupsPage> {
-  List<dynamic> _groups = [];
-  //   {
-  //     'username': 'John Doe',
-  //     'profile_picture_url': 'https://picsum.photos/200',
-  //     'profile_code': 'JOHN@1234',
-  //     'friend_request_status': 'accepted',
-  //   },
-  //   {
-  //     'username': 'Jane Smith',
-  //     'profile_picture_url': 'https://picsum.photos/201',
-  //     'profile_code': 'JANE@5678',
-  //     'friend_request_status': 'accepted',
-  //   },
-  //   {
-  //     'username': 'Mike Johnson',
-  //     'profile_picture_url': 'https://picsum.photos/202',
-  //     'profile_code': 'MIKE@9012',
-  //     'friend_request_status': 'accepted',
-  //   },
-  //   {
-  //     'username': 'Sarah Wilson',
-  //     'profile_picture_url': 'https://picsum.photos/203',
-  //     'profile_code': 'SARAH@3456',
-  //     'friend_request_status': 'accepted',
-  //   },
-  //   {
-  //     'username': 'David Brown',
-  //     'profile_picture_url': 'https://picsum.photos/204',
-  //     'profile_code': 'DAVID@7890',
-  //     'friend_request_status': 'accepted',
-  //   },
-  // ];
-  bool _isLoading = true;
-  String? _error;
-  final GroupsService _groupsService = GroupsService();
-
-  // Add public method to refresh groups
-  Future<void> refreshGroups() async {
-    if (!mounted) return;
-    await _loadFriends(); // Reuse existing load method
-  }
-
-  // Make _loadFriends public so it can be called from FriendsProvider
-  Future<void> _loadFriends() async {
-    if (!mounted) return;
-
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
-
-    try {
-      // Commented out service call
-      final groups = await _groupsService.getGroups(
-        forceRefresh: true,
-      ); // Always force refresh
-      if (mounted) {
-        setState(() {
-          _groups = groups; // Empty list since we're not using service
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _error = e.toString();
-          _isLoading = false;
-        });
-      }
-    }
-  }
-
   @override
   void initState() {
     super.initState();
-    _loadFriends();
-  }
-
-  bool _isImagePreloaded = false;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (!_isImagePreloaded) {
-      precacheImage(
-        const AssetImage('assets/images/freinds_scroll.jpg'),
-        context,
-      );
-      _isImagePreloaded = true;
-    }
+    // Load groups through provider after the first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<GroupProvider>().loadGroups();
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-    final double height = MediaQuery.of(context).size.height;
-    final double baseSize = width < height ? width : height;
-    final double statusBarHeight = MediaQuery.of(context).padding.top;
+    return Consumer<GroupProvider>(
+      builder: (context, provider, child) {
+        if (provider.isLoading) {
+          return Scaffold(body: CustomLoader());
+        }
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      widget.onFriendsListStateChanged(_groups.isNotEmpty);
-    });
-
-    // Show loader if loading
-    if (_isLoading) {
-      return Scaffold(body: CustomLoader());
-    }
-
-    // Show error if there is one
-    if (_error != null) {
-      return Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.error_outline, size: 48, color: Colors.red),
-              SizedBox(height: 16),
-              Text(
-                _error!,
-                style: TextStyle(color: Colors.red),
-                textAlign: TextAlign.center,
+        if (provider.error != null) {
+          return Scaffold(
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.error_outline, size: 48, color: Colors.red),
+                  SizedBox(height: 16),
+                  Text(
+                    provider.error!,
+                    style: TextStyle(color: Colors.red),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () => provider.loadGroups(forceRefresh: true),
+                    child: Text('Retry')
+                  ),
+                ],
               ),
-              SizedBox(height: 16),
-              ElevatedButton(onPressed: _loadFriends, child: Text('Retry')),
-            ],
-          ),
-        ),
-      );
-    }
+            ),
+          );
+        }
 
-    return Scaffold(
-      body: RefreshIndicator(
-        onRefresh: _loadFriends,
-        child: _groups.isNotEmpty
-            ? _GroupsListView(
-                groups: _groups,
-                scaffoldKey: widget.scaffoldKey,
-                pageController: widget.pageController,
-              )
-            : _NoGroupsView(onAddFriends: () {}),
-      ),
+        return Scaffold(
+          body: RefreshIndicator(
+            onRefresh: () => provider.loadGroups(forceRefresh: true),
+            child: provider.groups.isNotEmpty
+                ? _GroupsListView(
+                    scaffoldKey: widget.scaffoldKey,
+                    pageController: widget.pageController,
+                  )
+                : _NoGroupsView(onAddFriends: () {}),
+          ),
+        );
+      }
     );
   }
 }
@@ -351,12 +262,10 @@ class _NoFriendsViewState extends State<_NoGroupsView> {
 }
 
 class _GroupsListView extends StatefulWidget {
-  final List<dynamic> groups;
   final GlobalKey<ScaffoldState> scaffoldKey;
   final PageController? pageController;
 
   const _GroupsListView({
-    required this.groups,
     required this.scaffoldKey,
     this.pageController,
   });
@@ -426,6 +335,9 @@ class _FriendsListViewState extends State<_GroupsListView> {
 
     final double buttonFontSize = width * 0.04;
     final double buttonIconSize = width * 0.05;
+
+    // Get groups from provider
+    final groups = context.watch<GroupProvider>().groups;
 
     return CustomScrollView(
       controller: _scrollController,
@@ -504,63 +416,61 @@ class _FriendsListViewState extends State<_GroupsListView> {
           ), // <-- This adds vertical space (16 pixels)
         ),
         SliverList(
-          delegate: SliverChildBuilderDelegate((
-            BuildContext context,
-            int index,
-          ) {
-            final double width = MediaQuery.of(context).size.width;
-            final double avatarSize = width * 0.12; // Responsive avatar size
-            final double imageSize =
-                width * 0.13; // Slightly larger for the image
+          delegate: SliverChildBuilderDelegate(
+            (BuildContext context, int index) {
+              final group = groups[index];
+              final double width = MediaQuery.of(context).size.width;
+              final double avatarSize = width * 0.12;
+              final double imageSize = width * 0.13;
 
-            return Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: width * 0.04, // 2.5% of screen width
-                vertical: width * 0.01, // 1.5% of screen width
-              ),
-              child: Card(
-                color: Colors.white,
-                elevation: 2,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(
-                    width * 0.04,
-                  ), // Responsive border radius
+              return Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: width * 0.04,
+                  vertical: width * 0.01,
                 ),
-                margin: EdgeInsets.symmetric(vertical: width * 0.01),
-                child: ListTile(
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: width * 0.03,
-                    vertical: width * 0.015,
+                child: Card(
+                  color: Colors.white,
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(width * 0.04),
                   ),
-                  leading: CircleAvatar(
-                    radius: avatarSize / 2.2,
-                    backgroundColor: Theme.of(
-                      context,
-                    ).colorScheme.inversePrimary.withOpacity(0.7),
-                    child: ClipOval(
-                      child: CachedNetworkImage(
-                        imageUrl:
-                            widget.groups[index]['profile_picture_url'] ?? '',
-                        placeholder: (context, url) => CustomLoader(
-                          size: avatarSize * 0.6,
-                          isButtonLoader: true,
+                  margin: EdgeInsets.symmetric(vertical: width * 0.01),
+                  child: ListTile(
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: width * 0.03,
+                      vertical: width * 0.015,
+                    ),
+                    leading: CircleAvatar(
+                      radius: avatarSize / 2.2,
+                      backgroundColor: Theme.of(context)
+                          .colorScheme
+                          .inversePrimary
+                          .withOpacity(0.7),
+                      child: ClipOval(
+                        child: CachedNetworkImage(
+                          imageUrl: group['profile_picture_url'] ?? '',
+                          placeholder: (context, url) => CustomLoader(
+                            size: avatarSize * 0.6,
+                            isButtonLoader: true,
+                          ),
+                          errorWidget: (context, url, error) =>
+                              Icon(Icons.groups_2_outlined, size: avatarSize * 0.6),
+                          width: imageSize,
+                          height: imageSize,
+                          fit: BoxFit.cover,
                         ),
-                        errorWidget: (context, url, error) =>
-                            Icon(Icons.groups_2_outlined, size: avatarSize * 0.6),
-                        width: imageSize,
-                        height: imageSize,
-                        fit: BoxFit.cover,
                       ),
                     ),
-                  ),
-                  title: Text(
-                    widget.groups[index]['name']?.toString() ?? 'Group Name not fetched',
-                    style: groupNameStyle,
+                    title: Text(
+                      group['name']?.toString() ?? 'Group Name not fetched',
+                      style: groupNameStyle,
+                    ),
                   ),
                 ),
-              ),
-            );
-          }, childCount: widget.groups.length),
+              );
+            },
+            childCount: groups.length,
+          ),
         ),
         SliverToBoxAdapter(
           child: Padding(
@@ -595,7 +505,7 @@ class _FriendsListViewState extends State<_GroupsListView> {
                       style: _getFriendCountStyle(false, width),
                     ),
                     Text(
-                      '${widget.groups.length}',
+                      '${groups.length}',
                       style: _getFriendCountStyle(true, width),
                     ),
                     Text(

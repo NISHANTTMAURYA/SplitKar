@@ -42,7 +42,8 @@ class GroupProvider extends ChangeNotifier {
   final NotificationService _notificationService = NotificationService();
   static final _logger = Logger('GroupProvider');
 
-  List<Map<String, dynamic>> _users = [];
+  List<Map<String, dynamic>> _groups = [];
+  List<Map<String, dynamic>> _users = []; // Add users list
   String? _error;
   bool _isLoading = false;
   bool _isLoadingMore = false;
@@ -59,7 +60,8 @@ class GroupProvider extends ChangeNotifier {
   String? _invitationError;
 
   // Getters
-  List<Map<String, dynamic>> get users => _users;
+  List<Map<String, dynamic>> get groups => _groups;
+  List<Map<String, dynamic>> get users => _users; // Add users getter
   String? get error => _error;
   bool get isLoading => _isLoading;
   bool get isLoadingMore => _isLoadingMore;
@@ -80,23 +82,35 @@ class GroupProvider extends ChangeNotifier {
     try {
       _isLoading = true;
       _error = null;
-      _currentPage = 1;
-      _users = []; // Clear existing users
       notifyListeners();
 
       final result = await _service.getAllUsers(
-        page: _currentPage,
+        page: 1,
         searchQuery: _searchQuery,
       );
 
-      // Get all users from the response
-      final allUsers = List<Map<String, dynamic>>.from(result['users']);
-      
-      // Update pagination state
+      _users = List<Map<String, dynamic>>.from(result['users']);
       _updatePaginationState(result['pagination']);
-      
-      // Store all users
-      _users = allUsers;
+      _error = null;
+    } catch (e) {
+      _error = e.toString();
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // Load initial users
+  Future<void> loadGroups({bool forceRefresh = false}) async {
+    if (_isLoading) return;
+
+    try {
+      _isLoading = true;
+      _error = null;
+      notifyListeners();
+
+      final groups = await _service.getGroups(forceRefresh: forceRefresh);
+      _groups = groups;
       _error = null;
     } catch (e) {
       _error = e.toString();
@@ -112,14 +126,14 @@ class GroupProvider extends ChangeNotifier {
 
     _searchQuery = query;
     _currentPage = 1;
-    _users = []; // Clear existing users
+    _groups = []; // Clear existing users
     _hasMore = true; // Reset pagination
-    await loadUsers();
+    await loadGroups();
   }
 
   // Reset state when sheet is closed
   void resetState() {
-    _users = [];
+    _groups = [];
     _error = null;
     _isLoading = false;
     _isLoadingMore = false;
@@ -160,7 +174,7 @@ class GroupProvider extends ChangeNotifier {
       final newUsers = List<Map<String, dynamic>>.from(result['users']);
       
       // Add new users to the existing list
-      _users.addAll(newUsers);
+      _groups.addAll(newUsers);
       
       // Update pagination state
       _updatePaginationState(result['pagination']);
@@ -321,8 +335,7 @@ class GroupProvider extends ChangeNotifier {
       // If accepted, refresh groups list
       if (accept) {
         await _service.clearCache();
-        await _service.getGroups(forceRefresh: true);
-        await refreshGroups();
+        await loadGroups(forceRefresh: true);
       }
 
       // Clear any errors

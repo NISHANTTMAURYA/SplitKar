@@ -43,6 +43,7 @@ class FriendsProvider extends ChangeNotifier {
   static final _logger = Logger('FriendsProvider');
 
   List<Map<String, dynamic>> _potentialFriends = [];
+  List<Map<String, dynamic>> _friends = [];
   String? _error;
   bool _isLoading = false;
   bool _isLoadingMore = false;
@@ -56,6 +57,7 @@ class FriendsProvider extends ChangeNotifier {
 
   // Getters
   List<Map<String, dynamic>> get potentialFriends => _potentialFriends;
+  List<Map<String, dynamic>> get friends => _friends;
   String? get error => _error;
   bool get isLoading => _isLoading;
   bool get isLoadingMore => _isLoadingMore;
@@ -65,6 +67,23 @@ class FriendsProvider extends ChangeNotifier {
 
   // TODO: Add request cancellation
   bool _isRequestCancelled = false;
+
+  Future<void> loadFriends({bool forceRefresh = false}) async {
+    try {
+      _isLoading = true;
+      _error = null;
+      notifyListeners();
+
+      final friends = await _service.getFriends(forceRefresh: forceRefresh);
+      _friends = friends;
+      _error = null;
+    } catch (e) {
+      _error = e.toString();
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
 
   // Load initial potential friends
   Future<void> loadPotentialFriends() async {
@@ -148,11 +167,11 @@ class FriendsProvider extends ChangeNotifier {
       final requestId = result['request_id'].toString();
 
       // Update the user's status in the list
-      final index = _potentialFriends.indexWhere(
+      final index = _friends.indexWhere(
         (u) => u['profile_code'] == profileCode,
       );
       if (index != -1) {
-        _potentialFriends[index]['friend_request_status'] = 'sent';
+        _friends[index]['friend_request_status'] = 'sent';
       }
 
       // TODO: Remove alert creation - will be handled by backend
@@ -189,12 +208,12 @@ class FriendsProvider extends ChangeNotifier {
 
   // Filter users
   List<Map<String, dynamic>> filterUsers(String query) {
-    if (_potentialFriends == null) return [];
-    if (query.isEmpty) return _potentialFriends;
+    if (_friends == null) return [];
+    if (query.isEmpty) return _friends;
 
     final searchQuery = query.toLowerCase();
 
-    return _potentialFriends.where((user) {
+    return _friends.where((user) {
       final username = user['username']?.toString().toLowerCase() ?? '';
       final profileCode = user['profile_code']?.toString().toLowerCase() ?? '';
 
@@ -227,6 +246,7 @@ class FriendsProvider extends ChangeNotifier {
 
   // Clear state (useful when navigating away)
   void clear() {
+    _friends = [];
     _potentialFriends = [];
     _error = null;
     _isLoading = false;
@@ -265,24 +285,9 @@ class FriendsProvider extends ChangeNotifier {
     }
   }
 
-  // Add method to refresh friends list
+  // Update the refreshFriends method
   Future<void> refreshFriends() async {
-    try {
-      _logger.info('Refreshing friends list...');
-      _isLoading = true;
-      notifyListeners();
-      
-      await _service.clearCache();
-      await _service.getFriends(forceRefresh: true);
-      
-      _isLoading = false;
-      notifyListeners();
-    } catch (e) {
-      _logger.severe('Error refreshing friends: $e');
-      _error = e.toString();
-      _isLoading = false;
-      notifyListeners();
-    }
+    await loadFriends(forceRefresh: true);
   }
 
   Future<void> respondToFriendRequest(
@@ -307,6 +312,7 @@ class FriendsProvider extends ChangeNotifier {
       if (accept) {
         // Force refresh the friends list
         await refreshFriends();
+        notifyListeners();
       }
 
       // Refresh pending requests to update the alerts

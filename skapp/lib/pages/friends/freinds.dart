@@ -34,7 +34,7 @@ class FreindsPage extends StatefulWidget {
 
   // Add a static method to reload friends
   static void reloadFriends() {
-    freindsKey.currentState?._loadFriends();
+    freindsKey.currentState?.refreshFriends();
   }
 
   static Widget friendsImage(BuildContext context, {double? opacity}) {
@@ -139,115 +139,81 @@ class FreindsPage extends StatefulWidget {
 }
 
 class _FreindsPageState extends State<FreindsPage> {
-  List<dynamic> _friends = [];
-  bool _isLoading = true;
-  String? _error;
   final FriendsService _friendsService = FriendsService();
-
-  // Make _loadFriends public so it can be called from outside
-  Future<void> _loadFriends() async {
-    if (!mounted) return;
-
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
-
-    try {
-      final friends = await _friendsService.getFriends(
-        forceRefresh: true,
-      ); // Always force refresh
-      if (mounted) {
-        setState(() {
-          _friends = friends;
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _error = e.toString();
-          _isLoading = false;
-        });
-      }
-    }
-  }
-
-  // Add public method to refresh friends
-  Future<void> refreshFriends() async {
-    await _loadFriends();
-  }
 
   @override
   void initState() {
     super.initState();
-    _loadFriends();
-  }
-
-  bool _isImagePreloaded = false;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (!_isImagePreloaded) {
-      precacheImage(
-        const AssetImage('assets/images/freinds_scroll.jpg'),
-        context,
-      );
-      _isImagePreloaded = true;
-    }
+    // Load friends when page is first created
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<FriendsProvider>().loadFriends();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-    final double height = MediaQuery.of(context).size.height;
-    final double baseSize = width < height ? width : height;
-    final double statusBarHeight = MediaQuery.of(context).padding.top;
+    return Consumer<FriendsProvider>(
+      builder: (context, friendsProvider, child) {
+        final width = MediaQuery.of(context).size.width;
+        final double height = MediaQuery.of(context).size.height;
+        final double baseSize = width < height ? width : height;
+        final double statusBarHeight = MediaQuery.of(context).padding.top;
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      widget.onFriendsListStateChanged(_friends.isNotEmpty);
-    });
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          widget.onFriendsListStateChanged(friendsProvider.friends.isNotEmpty);
+        });
 
-    // Show loader if loading
-    if (_isLoading) {
-      return Scaffold(body: CustomLoader());
-    }
+        // Show loader if loading
+        if (friendsProvider.isLoading) {
+          return Scaffold(body: CustomLoader());
+        }
 
-    // Show error if there is one
-    if (_error != null) {
-      return Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.error_outline, size: 48, color: Colors.red),
-              SizedBox(height: 16),
-              Text(
-                _error!,
-                style: TextStyle(color: Colors.red),
-                textAlign: TextAlign.center,
+        // Show error if there is one
+        if (friendsProvider.error != null) {
+          return Scaffold(
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.error_outline, size: 48, color: Colors.red),
+                  SizedBox(height: 16),
+                  Text(
+                    friendsProvider.error!,
+                    style: TextStyle(color: Colors.red),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () => friendsProvider.refreshFriends(),
+                    child: Text('Retry')
+                  ),
+                ],
               ),
-              SizedBox(height: 16),
-              ElevatedButton(onPressed: _loadFriends, child: Text('Retry')),
-            ],
-          ),
-        ),
-      );
-    }
+            ),
+          );
+        }
 
-    return Scaffold(
-      body: RefreshIndicator(
-        onRefresh: _loadFriends,
-        child: _friends.isNotEmpty
-            ? _FriendsListView(
-                friends: _friends,
-                scaffoldKey: widget.scaffoldKey,
-                pageController: widget.pageController,
-              )
-            : _NoFriendsView(onAddFriends: () {}),
-      ),
+        return Scaffold(
+          body: RefreshIndicator(
+            onRefresh: () => friendsProvider.refreshFriends(),
+            child: friendsProvider.friends.isNotEmpty
+                ? _FriendsListView(
+                    friends: friendsProvider.friends,
+                    scaffoldKey: widget.scaffoldKey,
+                    pageController: widget.pageController,
+                  )
+                : _NoFriendsView(onAddFriends: () {}),
+          ),
+        );
+      },
     );
+  }
+
+  // Keep this method for backward compatibility
+  Future<void> refreshFriends() async {
+    if (mounted) {
+      await context.read<FriendsProvider>().refreshFriends();
+    }
   }
 }
 
