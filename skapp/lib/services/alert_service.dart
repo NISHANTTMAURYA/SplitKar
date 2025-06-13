@@ -209,29 +209,46 @@ class AlertService extends ChangeNotifier {
   ) async {
     if (_processingAlerts.contains(alertId)) return;
 
+    // Store the alert for potential rollback
+    final alertToRemove = _alerts.firstWhere((a) => a.id == alertId);
+    final originalAlerts = List<AlertItem>.from(_alerts);
+    final originalCounts = List<AlertCategoryCount>.from(_categoryCounts);
+
     try {
-      // Start processing and notify UI
-      _processingAlerts.add(alertId);
-      notifyListeners();
-
-      // Execute the action
-      await action();
-
-      // Optimistically remove the alert and update counts
+      // Immediately update UI optimistically
       _alerts.removeWhere((a) => a.id == alertId);
       _updateCategoryCounts();
       notifyListeners();
 
-      // No need to fetch alerts again - the optimistic update is sufficient
+      // Start processing in background
+      _processingAlerts.add(alertId);
+
+      // Execute the action in background
+      await action();
+
+      // Action successful, no need to do anything as UI is already updated
     } catch (e) {
       _logger.severe('Error handling alert action: $e');
       
-      // On error, refresh alerts to ensure correct state
-      await fetchAlerts(context);
+      // Rollback optimistic update on error
+      _alerts = originalAlerts;
+      _categoryCounts = originalCounts;
+      notifyListeners();
+
+      // Show error to user
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to process action: ${e.toString()}'),
+            backgroundColor: Colors.red[400],
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+      
       rethrow;
     } finally {
       _processingAlerts.remove(alertId);
-      notifyListeners();
     }
   }
 

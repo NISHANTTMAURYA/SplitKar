@@ -576,118 +576,131 @@ class _AlertSheetState extends State<AlertSheet> with SingleTickerProviderStateM
 
     return Hero(
       tag: 'alert_${alert.id}',
-      child: Card(
-        margin: const EdgeInsets.only(bottom: 16),
-        elevation: 2,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            color: alert.requiresResponse
-                ? Theme.of(context).colorScheme.primary.withOpacity(0.05)
-                : (alert.isRead
-                    ? Theme.of(context).cardColor
-                    : Theme.of(context).colorScheme.primary.withOpacity(0.05)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: Stack(
+      child: AnimatedSlide(
+        duration: const Duration(milliseconds: 300),
+        offset: isProcessing ? const Offset(-1.0, 0.0) : Offset.zero,
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 200),
+          opacity: isProcessing ? 0.0 : 1.0,
+          child: AnimatedSize(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            child: Card(
+              key: ValueKey(alert.id),
+              margin: const EdgeInsets.only(bottom: 16),
+              elevation: 2,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  color: alert.requiresResponse
+                      ? Theme.of(context).colorScheme.primary.withOpacity(0.05)
+                      : (alert.isRead
+                          ? Theme.of(context).cardColor
+                          : Theme.of(context).colorScheme.primary.withOpacity(0.05)),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    CircleAvatar(
-                      backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                      child: alert.imageUrl != null && alert.imageUrl!.isNotEmpty
-                          ? ClipOval(
-                              child: CachedNetworkImage(
-                                imageUrl: alert.imageUrl!,
-                                width: 40,
-                                height: 40,
-                                fit: BoxFit.cover,
-                                placeholder: (context, url) => Icon(
-                                  alert.icon,
+                    ListTile(
+                      leading: Stack(
+                        children: [
+                          CircleAvatar(
+                            backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                            child: alert.imageUrl != null && alert.imageUrl!.isNotEmpty
+                                ? ClipOval(
+                                    child: CachedNetworkImage(
+                                      imageUrl: alert.imageUrl!,
+                                      width: 40,
+                                      height: 40,
+                                      fit: BoxFit.cover,
+                                      placeholder: (context, url) => Icon(
+                                        alert.icon,
+                                        color: Theme.of(context).colorScheme.primary,
+                                      ),
+                                      errorWidget: (context, url, error) => Icon(
+                                        alert.icon,
+                                        color: Theme.of(context).colorScheme.primary,
+                                      ),
+                                    ),
+                                  )
+                                : Icon(
+                                    alert.icon,
+                                    color: Theme.of(context).colorScheme.primary,
+                                  ),
+                          ),
+                          if (!alert.isRead && !alert.requiresResponse)
+                            Positioned(
+                              right: 0,
+                              top: 0,
+                              child: Container(
+                                width: 12,
+                                height: 12,
+                                decoration: BoxDecoration(
                                   color: Theme.of(context).colorScheme.primary,
-                                ),
-                                errorWidget: (context, url, error) => Icon(
-                                  alert.icon,
-                                  color: Theme.of(context).colorScheme.primary,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: Theme.of(context).scaffoldBackgroundColor,
+                                    width: 2,
+                                  ),
                                 ),
                               ),
-                            )
-                          : Icon(
-                              alert.icon,
-                              color: Theme.of(context).colorScheme.primary,
                             ),
-                    ),
-                    if (!alert.isRead && !alert.requiresResponse)
-                      Positioned(
-                        right: 0,
-                        top: 0,
-                        child: Container(
-                          width: 12,
-                          height: 12,
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.primary,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: Theme.of(context).scaffoldBackgroundColor,
-                              width: 2,
-                            ),
-                          ),
+                        ],
+                      ),
+                      title: Text(
+                        alert.title,
+                        style: GoogleFonts.cabin(
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                  ],
-                ),
-                title: Text(
-                  alert.title,
-                  style: GoogleFonts.cabin(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      alert.subtitle,
-                      style: GoogleFonts.cabin(
-                        color: Theme.of(context).colorScheme.onBackground,
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            alert.subtitle,
+                            style: GoogleFonts.cabin(
+                              color: Theme.of(context).colorScheme.onBackground,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            _formatTimestamp(alert.timestamp),
+                            style: GoogleFonts.cabin(
+                              color: Colors.grey[600],
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _formatTimestamp(alert.timestamp),
-                      style: GoogleFonts.cabin(
-                        color: Colors.grey[600],
-                        fontSize: 12,
+                    if (alert.actions.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: alert.actions.map((action) {
+                            return Padding(
+                              padding: const EdgeInsets.only(left: 8.0),
+                              child: TextButton.icon(
+                                onPressed: isProcessing ? null : action.onPressed,
+                                style: TextButton.styleFrom(
+                                  foregroundColor: action.color,
+                                ),
+                                icon: isProcessing 
+                                  ? const CustomLoader(size: 16, isButtonLoader: true)
+                                  : Icon(action.label == 'Accept' ? Icons.check : Icons.close),
+                                label: Text(action.label),
+                              ),
+                            );
+                          }).toList(),
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ),
-              if (alert.actions.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: alert.actions.map((action) {
-                      return Padding(
-                        padding: const EdgeInsets.only(left: 8.0),
-                        child: TextButton.icon(
-                          onPressed: isProcessing ? null : action.onPressed,
-                          style: TextButton.styleFrom(
-                            foregroundColor: action.color,
-                          ),
-                          icon: isProcessing 
-                            ? const CustomLoader(size: 16, isButtonLoader: true)
-                            : Icon(action.label == 'Accept' ? Icons.check : Icons.close),
-                          label: Text(action.label),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ),
-            ],
+            ),
           ),
         ),
       ),
