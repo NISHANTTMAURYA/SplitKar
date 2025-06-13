@@ -1,0 +1,659 @@
+Restarted application in 3,311ms.
+I/flutter (12777): Display refresh rate: 60.000003814697266
+I/flutter (12777): INFO: 2025-06-14 02:19:32.497155: Token validation - Online status: true
+I/flutter (12777): INFO: 2025-06-14 02:19:32.504513: Validating token with backend...
+I/flutter (12777): Display refresh rate: 60.000003814697266
+I/flutter (12777): INFO: 2025-06-14 02:19:32.755310: Token validation response status: 200
+I/flutter (12777): INFO: 2025-06-14 02:19:32.761463: Token validated successfully with backend
+I/flutter (12777): INFO: 2025-06-14 02:19:32.763411: Token validation - Online status: true
+I/flutter (12777): INFO: 2025-06-14 02:19:32.763574: Validating token with backend...
+I/flutter (12777): INFO: 2025-06-14 02:19:32.797587: Token validation response status: 200
+I/flutter (12777): INFO: 2025-06-14 02:19:32.805714: Token validated successfully with backend
+W/WindowOnBackDispatcher(12777): OnBackInvokedCallback is not enabled for the application.
+W/WindowOnBackDispatcher(12777): Set 'android:enableOnBackInvokedCallback="true"' in the application manifest.
+I/flutter (12777): WARNING: 2025-06-14 02:19:33.417045: Setting profile error: null
+I/flutter (12777): INFO: 2025-06-14 02:19:33.423130: === Loading groups in provider ===
+I/flutter (12777): INFO: 2025-06-14 02:19:33.423376: Force refresh: false
+I/flutter (12777): INFO: 2025-06-14 02:19:33.423563: Current groups in state: 0 groups
+I/flutter (12777): INFO: 2025-06-14 02:19:33.424450: === Starting getGroups ===
+I/flutter (12777): INFO: 2025-06-14 02:19:33.424586: Force refresh: false
+I/flutter (12777): INFO: 2025-06-14 02:19:33.462320: Loaded cached data:
+I/flutter (12777): INFO: 2025-06-14 02:19:33.462640: - Name: Found
+I/flutter (12777): INFO: 2025-06-14 02:19:33.462853: - Email: Found
+I/flutter (12777): INFO: 2025-06-14 02:19:33.463169: - Photo URL: Found
+I/flutter (12777): INFO: 2025-06-14 02:19:33.463460: - Username: Found
+I/flutter (12777): INFO: 2025-06-14 02:19:33.464280: Updating profile state:
+I/flutter (12777): INFO: 2025-06-14 02:19:33.464480: - Current name: null
+I/flutter (12777): INFO: 2025-06-14 02:19:33.464628: - New name: Abhijeet Yadav
+I/flutter (12777): INFO: 2025-06-14 02:19:33.464785: - Current email: null
+I/flutter (12777): INFO: 2025-06-14 02:19:33.464889: - New email: abhijeetyadav33xb@gmail.com
+I/flutter (12777): INFO: 2025-06-14 02:19:33.465090: - Current photoUrl: null
+I/flutter (12777): INFO: 2025-06-14 02:19:33.465235: - New photoUrl: https://lh3.googleusercontent.com/a/ACg8ocIjgz4h9ZSPtAdennYk-YPQWRFWdvEzsLt6aBGckoSffuAt_9A=s999
+I/flutter (12777): INFO: 2025-06-14 02:19:33.465432: - Current username: null
+I/flutter (12777): INFO: 2025-06-14 02:19:33.465526: - New username: abhijeetyadav33xb
+I/flutter (12777): INFO: 2025-06-14 02:19:33.465733: - Current firstName: null
+I/flutter (12777): INFO: 2025-06-14 02:19:33.465835: - New firstName: null
+I/flutter (12777): INFO: 2025-06-14 02:19:33.466032: - Current lastName: null
+I/flutter (12777): INFO: 2025-06-14 02:19:33.466132: - New lastName: null
+I/flutter (12777): INFO: 2025-06-14 02:19:33.466511: Profile state updated successfully
+I/flutter (12777): WARNING: 2025-06-14 02:19:33.466683: Setting profile error: null
+I/flutter (12777): INFO: 2025-06-14 02:19:33.627445: Cache expiry from storage: 2025-06-14T02:11:43.002063
+I/flutter (12777): INFO: 2025-06-14 02:19:33.639069: Cache validation:
+I/flutter (12777): INFO: 2025-06-14 02:19:33.639451: - Current time: 2025-06-14 02:19:33.638803
+I/flutter (12777): INFO: 2025-06-14 02:19:33.639558: - Expiry time: 2025-06-14 02:11:43.002063
+I/flutter (12777): INFO: 2025-06-14 02:19:33.639655: - Is valid: false
+I/flutter (12777): INFO: 2025-06-14 02:19:33.639830: Profile data loading decision:
+I/flutter (12777): INFO: 2025-06-14 02:19:33.639924: - Online status: true
+I/flutter (12777): INFO: 2025-06-14 02:19:33.640020: - Cache valid: false
+I/flutter (12777): INFO: 2025-06-14 02:19:33.640124: Cache invalid, missing, or force refresh - making API call
+I/flutter (12777): INFO: 2025-06-14 02:19:33.704267: Making API call to /profile/
+I/flutter (12777): INFO: 2025-06-14 02:19:33.731420: Cached user ID from token
+I/flutter (12777): INFO: 2025-06-14 02:19:33.741023: Online status: true
+I/flutter (12777): INFO: 2025-06-14 02:19:33.741486: No cached groups data available
+I/flutter (12777): INFO: 2025-06-14 02:19:33.741626: Fetching fresh groups data. Force refresh: false
+I/flutter (12777): INFO: 2025-06-14 02:19:33.742510: === Fetching groups from API ===
+I/flutter (12777): INFO: 2025-06-14 02:19:33.748171: Profile API response status: 200
+I/flutter (12777): INFO: 2025-06-14 02:19:33.749520: Profile API response body: {"id":33,"username":"abhijeetyadav33xb","email":"abhijeetyadav33xb@gmail.com","first_name":"Abhijeet","last_name":"Yadav","profile_picture_url":"https://lh3.googleusercontent.com/a/ACg8ocIjgz4h9ZSPtAdennYk-YPQWRFWdvEzsLt6aBGckoSffuAt_9A=s999"}
+I/flutter (12777): INFO: 2025-06-14 02:19:33.749743: Full profile API response: {"id":33,"username":"abhijeetyadav33xb","email":"abhijeetyadav33xb@gmail.com","first_name":"Abhijeet","last_name":"Yadav","profile_picture_url":"https://lh3.googleusercontent.com/a/ACg8ocIjgz4h9ZSPtAdennYk-YPQWRFWdvEzsLt6aBGckoSffuAt_9A=s999"}
+I/flutter (12777): INFO: 2025-06-14 02:19:33.750228: Parsed profile details:
+I/flutter (12777): INFO: 2025-06-14 02:19:33.750490: - Photo URL: https://lh3.googleusercontent.com/a/ACg8ocIjgz4h9ZSPtAdennYk-YPQWRFWdvEzsLt6aBGckoSffuAt_9A=s999
+I/flutter (12777): INFO: 2025-06-14 02:19:33.750712: - Email: abhijeetyadav33xb@gmail.com
+I/flutter (12777): INFO: 2025-06-14 02:19:33.750837: - Name: Abhijeet Yadav
+I/flutter (12777): INFO: 2025-06-14 02:19:33.751037: - Username: abhijeetyadav33xb
+I/flutter (12777): INFO: 2025-06-14 02:19:33.753595: Making request to: http://192.168.29.203:8000/api/group/list/
+I/flutter (12777): INFO: 2025-06-14 02:19:33.769842: Cache expiry set to: 2025-06-14T02:24:33.769702
+I/flutter (12777): INFO: 2025-06-14 02:19:33.770092: Profile Details cached successfully
+I/flutter (12777): INFO: 2025-06-14 02:19:33.770263: Updating ProfileNotifier with new data...
+I/flutter (12777): INFO: 2025-06-14 02:19:33.770437: Updating profile state:
+I/flutter (12777): INFO: 2025-06-14 02:19:33.770531: - Current name: Abhijeet Yadav
+I/flutter (12777): INFO: 2025-06-14 02:19:33.770610: - New name: Abhijeet Yadav
+I/flutter (12777): INFO: 2025-06-14 02:19:33.770689: - Current email: abhijeetyadav33xb@gmail.com
+I/flutter (12777): INFO: 2025-06-14 02:19:33.770762: - New email: abhijeetyadav33xb@gmail.com
+I/flutter (12777): INFO: 2025-06-14 02:19:33.770836: - Current photoUrl: https://lh3.googleusercontent.com/a/ACg8ocIjgz4h9ZSPtAdennYk-YPQWRFWdvEzsLt6aBGckoSffuAt_9A=s999
+I/flutter (12777): INFO: 2025-06-14 02:19:33.770972: - New photoUrl: https://lh3.googleusercontent.com/a/ACg8ocIjgz4h9ZSPtAdennYk-YPQWRFWdvEzsLt6aBGckoSffuAt_9A=s999
+I/flutter (12777): INFO: 2025-06-14 02:19:33.771071: - Current username: abhijeetyadav33xb
+I/flutter (12777): INFO: 2025-06-14 02:19:33.771146: - New username: abhijeetyadav33xb
+I/flutter (12777): INFO: 2025-06-14 02:19:33.771219: - Current firstName: null
+I/flutter (12777): INFO: 2025-06-14 02:19:33.771316: - New firstName: Abhijeet
+I/flutter (12777): INFO: 2025-06-14 02:19:33.771389: - Current lastName: null
+I/flutter (12777): INFO: 2025-06-14 02:19:33.771485: - New lastName: Yadav
+I/flutter (12777): INFO: 2025-06-14 02:19:33.771566: Profile state updated successfully
+I/flutter (12777): WARNING: 2025-06-14 02:19:33.771707: Setting profile error: null
+I/flutter (12777): INFO: 2025-06-14 02:19:33.771812: ProfileNotifier updated successfully
+I/flutter (12777): INFO: 2025-06-14 02:19:33.775506: Fetching friend requests and group invitations...
+I/flutter (12777): INFO: 2025-06-14 02:19:33.778873: Response status code from groups API: 200
+I/flutter (12777): INFO: 2025-06-14 02:19:33.779293: Raw API response: []
+I/flutter (12777): INFO: 2025-06-14 02:19:33.780843: Fetched 0 groups from API
+I/flutter (12777): INFO: 2025-06-14 02:19:33.781963: Parsed groups data: []
+I/flutter (12777): INFO: 2025-06-14 02:19:33.823417: Using cached user ID
+I/flutter (12777): INFO: 2025-06-14 02:19:33.835842: Cached 0 groups
+I/flutter (12777): INFO: 2025-06-14 02:19:33.870321: Response status code from pending requests API: 200
+I/flutter (12777): INFO: 2025-06-14 02:19:33.871778: Fetched pending requests: {sent_requests: [], received_requests: []}
+I/flutter (12777): INFO: 2025-06-14 02:19:33.907243: Response status code from pending invitations API: 200
+I/flutter (12777): INFO: 2025-06-14 02:19:33.908184: Fetched pending invitations: {sent_invitations: [], received_invitations: []}
+D/ViewRootImplExtImpl(12777): the up motion event handled by client, just return
+I/flutter (12777): INFO: 2025-06-14 02:19:34.940558: === Loading groups in provider ===
+I/flutter (12777): INFO: 2025-06-14 02:19:34.940827: Force refresh: true
+I/flutter (12777): INFO: 2025-06-14 02:19:34.940903: Current groups in state: 0 groups
+I/flutter (12777): INFO: 2025-06-14 02:19:34.941046: === Starting getGroups ===
+I/flutter (12777): INFO: 2025-06-14 02:19:34.941121: Force refresh: true
+I/flutter (12777): INFO: 2025-06-14 02:19:34.950949: Using cached user ID
+I/flutter (12777): INFO: 2025-06-14 02:19:34.951470: Loaded 0 groups from cache
+I/flutter (12777): INFO: 2025-06-14 02:19:34.953641: Online status: true
+I/flutter (12777): INFO: 2025-06-14 02:19:34.953779: Current cached groups: 0 groups
+I/flutter (12777): INFO: 2025-06-14 02:19:34.953882: Cached groups data: []
+I/flutter (12777): INFO: 2025-06-14 02:19:34.953959: Fetching fresh groups data. Force refresh: true
+I/flutter (12777): INFO: 2025-06-14 02:19:34.954043: === Fetching groups from API ===
+I/flutter (12777): INFO: 2025-06-14 02:19:34.955555: Making request to: http://192.168.29.203:8000/api/group/list/
+I/flutter (12777): INFO: 2025-06-14 02:19:34.985720: Response status code from groups API: 200
+I/flutter (12777): INFO: 2025-06-14 02:19:34.986089: Raw API response: []
+I/flutter (12777): INFO: 2025-06-14 02:19:34.986245: Fetched 0 groups from API
+I/flutter (12777): INFO: 2025-06-14 02:19:34.986359: Parsed groups data: []
+I/flutter (12777): INFO: 2025-06-14 02:19:34.990980: Using cached user ID
+I/flutter (12777): INFO: 2025-06-14 02:19:34.996035: Cached 0 groups
+D/ViewRootImplExtImpl(12777): the up motion event handled by client, just return
+I/flutter (12777): INFO: 2025-06-14 02:19:35.633596: Current route: /main
+I/flutter (12777): INFO: 2025-06-14 02:19:35.633882: Selected index: 0
+D/ViewRootImplExtImpl(12777): the up motion event handled by client, just return
+I/flutter (12777): INFO: 2025-06-14 02:19:36.248394: Profile Settings button pressed
+I/flutter (12777): INFO: 2025-06-14 02:19:36.248803: Current route: /main
+I/flutter (12777): INFO: 2025-06-14 02:19:36.252270: Navigating to settings page
+I/flutter (12777): INFO: 2025-06-14 02:19:36.252630: Attempting to navigate to settings
+I/flutter (12777): INFO: 2025-06-14 02:19:36.252777: Current route: null
+I/flutter (12777): INFO: 2025-06-14 02:19:36.252882: Navigating to settings page
+I/flutter (12777): INFO: 2025-06-14 02:19:36.288493: Current route: /main
+I/flutter (12777): INFO: 2025-06-14 02:19:36.288718: Selected index: 0
+W/WindowOnBackDispatcher(12777): OnBackInvokedCallback is not enabled for the application.
+W/WindowOnBackDispatcher(12777): Set 'android:enableOnBackInvokedCallback="true"' in the application manifest.
+D/ViewRootImplExtImpl(12777): wrapConfigInfoIntoFlags rotation=0, smallestScreenWidthDp=354, relayoutAsync=true, flags=0, newFlags=23199744, residentWS=false, title=com.example.skapp/com.example.skapp.MainActivity
+D/VRI[MainActivity](12777): relayoutWindow result, sizeChanged:false, surfaceControlChanged:false, transformHintChanged:false, mSurfaceSize:Point(1240, 2772), mLastSurfaceSize:Point(1240, 2772), mWidth:1240, mHeight:2772, requestedWidth:1240, requestedHeight:2772, transformHint:0, installOrientation:0, displayRotation:0, isSurfaceValid:true, attr.flag:-2122252032, tmpFrames:ClientWindowFrames{frame=[0,0][1240,2772] display=[0,0][1240,2772] parentFrame=[0,0][1240,2772]}, relayoutAsync:true, mSyncSeqId:0
+W/VRI[MainActivity](12777): updateBlastSurfaceIfNeeded, surfaceSize:Point(1240, 2772), lastSurfaceSize:Point(1240, 2772), format:-3, blastBufferQueue:android.graphics.BLASTBufferQueue@f7d7caa
+D/ViewRootImplExtImpl(12777): the up motion event handled by client, just return
+I/flutter (12777): INFO: 2025-06-14 02:19:37.077001: Logout option pressed
+I/flutter (12777): INFO: 2025-06-14 02:19:37.085173: Using cached user ID
+I/flutter (12777): INFO: 2025-06-14 02:19:37.116065: Groups cache cleared
+I/flutter (12777): INFO: 2025-06-14 02:19:37.119636: Using cached user ID
+I/flutter (12777): INFO: 2025-06-14 02:19:37.124194: Friends cache cleared
+I/flutter (12777): INFO: 2025-06-14 02:19:37.125788: Starting sign out process...
+I/flutter (12777): INFO: 2025-06-14 02:19:37.184258: Successfully signed out
+I/flutter (12777): INFO: 2025-06-14 02:19:37.215433: Clearing profile state
+D/ViewRootImplExtImpl(12777): the up motion event handled by client, just return
+I/flutter (12777): INFO: 2025-06-14 02:19:38.190865: Starting Google Sign-In
+D/callGcSupression(12777): java.lang.NullPointerException: Attempt to invoke virtual method 'java.lang.Object java.lang.reflect.Method.invoke(java.lang.Object, java.lang.Object[])' on a null object reference
+D/ScrollOptim [SceneManager](12777): updateCurrentActivity: mCurrentActivityName=null, isOptEnable=true, isAnimAheadEnable=true, isFrameInsertEnable=true, InsertNum=1, isEnabledForScrollChanged=false
+D/callGcSupression(12777): java.lang.NullPointerException: Attempt to invoke virtual method 'java.lang.Object java.lang.reflect.Method.invoke(java.lang.Object, java.lang.Object[])' on a null object reference
+D/ResourcesManagerExtImpl(12777): applyConfigurationToAppResourcesLocked app.getDisplayId() return callback.displayId:0
+D/ScrollOptim [SceneManager](12777): updateCurrentActivity: mCurrentActivityName=com.google.android.gms.auth.api.signin.internal.SignInHubActivity, isOptEnable=true, isAnimAheadEnable=true, isFrameInsertEnable=true, InsertNum=1, isEnabledForScrollChanged=false
+D/ActivityThread(12777): ComponentInfo{com.example.skapp/com.google.android.gms.auth.api.signin.internal.SignInHubActivity} checkFinished=false 2
+D/ResourcesManagerExtImpl(12777): applyConfigurationToAppResourcesLocked app.getDisplayId() return callback.displayId:0
+D/WindowManager(12777): Add to mViews: com.android.internal.policy.DecorView{10a0c89 I.E...... R.....I. 0,0-0,0 alpha=1.0 viewInfo = }[SignInHubActivity],pkg= com.example.skapp
+D/skia    (12777): setRusSupported enable 0
+D/ViewRootImplExtImpl(12777): onDisplayChanged -1 for VRI android.view.ViewRootImpl@338a0bc
+D/VRI[MainActivity](12777): onFocusEvent false
+D/callGcSupression(12777): java.lang.NullPointerException: Attempt to invoke virtual method 'java.lang.Object java.lang.reflect.Method.invoke(java.lang.Object, java.lang.Object[])' on a null object reference
+D/ResourcesManagerExtImpl(12777): applyConfigurationToAppResourcesLocked app.getDisplayId() return callback.displayId:0
+D/callGcSupression(12777): java.lang.NullPointerException: Attempt to invoke virtual method 'java.lang.Object java.lang.reflect.Method.invoke(java.lang.Object, java.lang.Object[])' on a null object reference
+D/ScrollOptim [SceneManager](12777): updateCurrentActivity: mCurrentActivityName=null, isOptEnable=true, isAnimAheadEnable=true, isFrameInsertEnable=true, InsertNum=1, isEnabledForScrollChanged=false
+E/OplusBracketLog(12777): [OplusViewMirrorManager] updateHostViewRootIfNeeded, not support android.view.ViewRootImpl@338a0bc
+D/ViewRootImplExtImpl(12777): wrapConfigInfoIntoFlags rotation=0, smallestScreenWidthDp=354, relayoutAsync=false, flags=0, newFlags=23199744, residentWS=false, title=com.example.skapp/com.google.android.gms.auth.api.signin.internal.SignInHubActivity
+D/VRI[SignInHubActivity](12777): relayoutWindow result, sizeChanged:true, surfaceControlChanged:true, transformHintChanged:false, mSurfaceSize:Point(1240, 2772), mLastSurfaceSize:Point(0, 0), mWidth:-1, mHeight:-1, requestedWidth:1240, requestedHeight:2772, transformHint:0, installOrientation:0, displayRotation:0, isSurfaceValid:true, attr.flag:25231616, tmpFrames:ClientWindowFrames{frame=[0,0][1240,2772] display=[0,0][1240,2772] parentFrame=[0,0][0,0]}, relayoutAsync:false, mSyncSeqId:0
+W/VRI[SignInHubActivity](12777): updateBlastSurfaceIfNeeded, surfaceSize:Point(1240, 2772), lastSurfaceSize:Point(0, 0), format:-2, blastBufferQueue:null
+D/BufferQueueConsumer(12777): [](id:31e90000001c,api:0,p:-1,c:12777) connect: controlledByApp=false
+W/libc    (12777): Access denied finding property "vendor.display.enable_optimal_refresh_rate"
+D/BufferQueueProducer(12777): [VRI[SignInHubActivity]#28(BLAST Consumer)28](id:31e90000001c,api:1,p:12777,c:12777) connect: api=1 producerControlledByApp=true
+I/SurfaceControl(12777):  setExtendedRangeBrightness sc=Surface(name=com.example.skapp/com.google.android.gms.auth.api.signin.internal.SignInHubActivity)/@0x8635766,currentBufferRatio=1.0,desiredRatio=1.0
+D/BLASTBufferQueue(12777): [VRI[SignInHubActivity]#28](f:0,a:1) acquireNextBufferLocked size=1240x2772 mFrameNumber=1 applyTransaction=true mTimestamp=147566087261571(auto) mPendingTransactions.size=0 graphicBufferId=54876797141119 transform=0
+D/VRI[SignInHubActivity](12777): Received frameCommittedCallback lastAttemptedDrawFrameNum=1 didProduceBuffer=true syncBuffer=false
+D/VRI[SignInHubActivity](12777): draw finished. seqId=0
+D/ViewRootImplExtImpl(12777): setMaxDequeuedBufferCount: 2
+D/callGcSupression(12777): java.lang.NullPointerException: Attempt to invoke virtual method 'java.lang.Object java.lang.reflect.Method.invoke(java.lang.Object, java.lang.Object[])' on a null object reference
+W/VRI[SignInHubActivity](12777): handleResized, msg:, frameChanged:false, configChanged:false, displayChanged:false, attachedFrameChanged:false, compatScaleChanged:false, pendingDragResizing=false
+D/VRI[SignInHubActivity](12777): Received frameCommittedCallback lastAttemptedDrawFrameNum=2 didProduceBuffer=false syncBuffer=false
+D/VRI[SignInHubActivity](12777): draw finished. seqId=0
+D/OplusScrollToTopManager(12777): com.example.skapp/com.example.skapp.MainActivity,This com.android.internal.policy.DecorView{86714fd V.E...... R....... 0,0-1240,2772 aid=0 alpha=1.0 viewInfo = }[MainActivity] change focus to false
+D/callGcSupression(12777): java.lang.NullPointerException: Attempt to invoke virtual method 'java.lang.Object java.lang.reflect.Method.invoke(java.lang.Object, java.lang.Object[])' on a null object reference
+D/ScrollOptim [SceneManager](12777): updateCurrentActivity: mCurrentActivityName=com.google.android.gms.auth.api.signin.internal.SignInHubActivity, isOptEnable=true, isAnimAheadEnable=true, isFrameInsertEnable=true, InsertNum=1, isEnabledForScrollChanged=false
+D/ActivityThread(12777): ComponentInfo{com.example.skapp/com.google.android.gms.auth.api.signin.internal.SignInHubActivity} checkFinished=false 4
+D/ResourcesManagerExtImpl(12777): applyConfigurationToAppResourcesLocked app.getDisplayId() return callback.displayId:0
+D/VRI[SignInHubActivity](12777): onFocusEvent true
+D/ViewRootImplExtImpl(12777): wrapConfigInfoIntoFlags rotation=0, smallestScreenWidthDp=354, relayoutAsync=true, flags=0, newFlags=23199744, residentWS=false, title=com.example.skapp/com.google.android.gms.auth.api.signin.internal.SignInHubActivity
+D/VRI[SignInHubActivity](12777): relayoutWindow result, sizeChanged:false, surfaceControlChanged:false, transformHintChanged:false, mSurfaceSize:Point(1240, 2772), mLastSurfaceSize:Point(1240, 2772), mWidth:1240, mHeight:2772, requestedWidth:1240, requestedHeight:2772, transformHint:0, installOrientation:0, displayRotation:0, isSurfaceValid:true, attr.flag:25231616, tmpFrames:ClientWindowFrames{frame=[0,0][1240,2772] display=[0,0][1240,2772] parentFrame=[0,0][1240,2772]}, relayoutAsync:true, mSyncSeqId:0
+W/VRI[SignInHubActivity](12777): updateBlastSurfaceIfNeeded, surfaceSize:Point(1240, 2772), lastSurfaceSize:Point(1240, 2772), format:-2, blastBufferQueue:android.graphics.BLASTBufferQueue@e30efd8
+D/callGcSupression(12777): java.lang.NullPointerException: Attempt to invoke virtual method 'java.lang.Object java.lang.reflect.Method.invoke(java.lang.Object, java.lang.Object[])' on a null object reference
+D/ScrollOptim [SceneManager](12777): updateCurrentActivity: mCurrentActivityName=null, isOptEnable=true, isAnimAheadEnable=true, isFrameInsertEnable=true, InsertNum=1, isEnabledForScrollChanged=false
+D/VRI[SignInHubActivity](12777): onFocusEvent false
+D/callGcSupression(12777): java.lang.NullPointerException: Attempt to invoke virtual method 'java.lang.Object java.lang.reflect.Method.invoke(java.lang.Object, java.lang.Object[])' on a null object reference
+D/ScrollOptim [SceneManager](12777): updateCurrentActivity: mCurrentActivityName=com.example.skapp.MainActivity, isOptEnable=true, isAnimAheadEnable=true, isFrameInsertEnable=true, InsertNum=1, isEnabledForScrollChanged=false
+D/ActivityThread(12777): ComponentInfo{com.example.skapp/com.example.skapp.MainActivity} checkFinished=false 4
+D/ResourcesManagerExtImpl(12777): applyConfigurationToAppResourcesLocked app.getDisplayId() return callback.displayId:0
+D/VRI[SignInHubActivity](12777): dispatchAppVisibility visible:false
+I/flutter (12777): INFO: 2025-06-14 02:19:41.050103: Account: GoogleSignInAccount:{displayName: Invincible Gamers Network, email: invinciblegamersnetwork@gmail.com, id: 106871909568948094435, photoUrl: https://lh3.googleusercontent.com/a/ACg8ocKwQQBwnB-nInfZxedUu9UO2-Xn6cm6XmRP0dAMUbZdIrlswA=s96-c, serverAuthCode: 4/0AUJR-x6rblVdsCj8IeR4pNT29Ylc2vevRWuYVtLO6naKRRvSyC0k9AGGBMnGGYVSZJ4jOw}
+D/VRI[MainActivity](12777): onFocusEvent true
+D/VRI[SignInHubActivity](12777): visibilityChanged oldVisibility=true newVisibility=false
+D/callGcSupression(12777): java.lang.NullPointerException: Attempt to invoke virtual method 'java.lang.Object java.lang.reflect.Method.invoke(java.lang.Object, java.lang.Object[])' on a null object reference
+D/VRI[SignInHubActivity](12777): setWindowStopped stopped:true
+D/OplusScrollToTopManager(12777): com.example.skapp/com.google.android.gms.auth.api.signin.internal.SignInHubActivity,window dying
+D/OplusScrollToTopManager(12777): com.example.skapp/com.google.android.gms.auth.api.signin.internal.SignInHubActivity,unregisterSystemUIBroadcastReceiver 
+D/OplusScrollToTopManager(12777): com.example.skapp/com.google.android.gms.auth.api.signin.internal.SignInHubActivity, unregisterSystemUIBroadcastReceiver failed java.lang.IllegalArgumentException: Receiver not registered: android.view.OplusScrollToTopManager$2@285268f
+W/WindowOnBackDispatcher(12777): sendCancelIfRunning: isInProgress=false callback=android.view.ViewRootImpl$$ExternalSyntheticLambda11@14d0ca8
+D/HWUI    (12777): RenderProxy::destroy: this=0xb4000072a319d900, mContext=0xb4000072a8668000
+D/HWUI    (12777): SkiaOpenGLPipeline::setSurface: this=0xb4000072a4b3c400, surface=NULL
+D/BufferQueueProducer(12777): [VRI[SignInHubActivity]#28(BLAST Consumer)28](id:31e90000001c,api:1,p:12777,c:12777) disconnect: api 1
+D/BLASTBufferQueue(12777): [VRI[SignInHubActivity]#28](f:0,a:1) destructor()
+D/BufferQueueConsumer(12777): [VRI[SignInHubActivity]#28(BLAST Consumer)28](id:31e90000001c,api:0,p:-1,c:12777) disconnect
+I/flutter (12777): INFO: 2025-06-14 02:19:41.092534: Google Auth: GoogleSignInAuthentication:Instance of 'GoogleSignInTokenData'
+I/flutter (12777): INFO: 2025-06-14 02:19:41.093076: ID Token length: 1148
+I/flutter (12777): INFO: 2025-06-14 02:19:41.093266: Using high-res profile picture URL: https://lh3.googleusercontent.com/a/ACg8ocKwQQBwnB-nInfZxedUu9UO2-Xn6cm6XmRP0dAMUbZdIrlswA=s999
+I/flutter (12777): INFO: 2025-06-14 02:19:41.093397: Making API call to: http://192.168.29.203:8000/api/auth/google/
+I/flutter (12777): INFO: 2025-06-14 02:19:41.296351: HTTP Response Status: 200
+I/flutter (12777): INFO: 2025-06-14 02:19:41.297063: HTTP Response Body: {"refresh":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImV4cCI6MTc0OTkzNDE4MSwiaWF0IjoxNzQ5ODQ3NzgxLCJqdGkiOiIyZmFiNGE2MTYwMTU0MjUwYTJhNWI1YTA4ZTY4Nzg2NyIsInVzZXJfaWQiOjE5fQ.tR-sqznEOsfrYltY9631pJEiPTrDwyDS6KWZ0qlS8Og","access":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzQ5ODQ5NTgxLCJpYXQiOjE3NDk4NDc3ODEsImp0aSI6ImFkZTAwZmY5OTVhODQ3NTdiNGNjYjVhOGQ1NDk2OWRmIiwidXNlcl9pZCI6MTl9.s9CGkkyI47TAYVmvLVQIWaUywl1OGrSgwLy70DAAwVw","user":{"id":19,"username":"invinciblegamersnetwork","email":"invinciblegamersnetwork@gmail.com","first_name":"Invincible","last_name":"Gamers Network","profile_picture_url":"https://lh3.googleusercontent.com/a/ACg8ocKwQQBwnB-nInfZxedUu9UO2-Xn6cm6XmRP0dAMUbZdIrlswA=s999"}}
+I/flutter (12777): INFO: 2025-06-14 02:19:41.297465: Successfully decoded response data
+I/flutter (12777): WARNING: 2025-06-14 02:19:41.397342: Setting profile error: null
+I/flutter (12777): INFO: 2025-06-14 02:19:41.397760: === Loading groups in provider ===
+I/flutter (12777): INFO: 2025-06-14 02:19:41.397883: Force refresh: false
+I/flutter (12777): INFO: 2025-06-14 02:19:41.397969: Current groups in state: 0 groups
+I/flutter (12777): INFO: 2025-06-14 02:19:41.398102: === Starting getGroups ===
+I/flutter (12777): INFO: 2025-06-14 02:19:41.398214: Force refresh: false
+I/flutter (12777): INFO: 2025-06-14 02:19:41.399163: Loaded cached data:
+I/flutter (12777): INFO: 2025-06-14 02:19:41.399321: - Name: Not found
+I/flutter (12777): INFO: 2025-06-14 02:19:41.399413: - Email: Not found
+I/flutter (12777): INFO: 2025-06-14 02:19:41.399497: - Photo URL: Not found
+I/flutter (12777): INFO: 2025-06-14 02:19:41.399581: - Username: Not found
+W/WindowOnBackDispatcher(12777): OnBackInvokedCallback is not enabled for the application.
+W/WindowOnBackDispatcher(12777): Set 'android:enableOnBackInvokedCallback="true"' in the application manifest.
+I/flutter (12777): INFO: 2025-06-14 02:19:41.402789: Cache expiry from storage: null
+I/flutter (12777): INFO: 2025-06-14 02:19:41.403075: No cache expiry found - cache is invalid
+I/flutter (12777): INFO: 2025-06-14 02:19:41.403184: Profile data loading decision:
+I/flutter (12777): INFO: 2025-06-14 02:19:41.403260: - Online status: true
+I/flutter (12777): INFO: 2025-06-14 02:19:41.403327: - Cache valid: false
+I/flutter (12777): INFO: 2025-06-14 02:19:41.403396: Cache invalid, missing, or force refresh - making API call
+I/flutter (12777): INFO: 2025-06-14 02:19:41.434164: Using cached user ID
+I/flutter (12777): INFO: 2025-06-14 02:19:41.434809: Making API call to /profile/
+I/flutter (12777): INFO: 2025-06-14 02:19:41.437608: Online status: true
+I/flutter (12777): INFO: 2025-06-14 02:19:41.437831: No cached groups data available
+I/flutter (12777): INFO: 2025-06-14 02:19:41.437964: Fetching fresh groups data. Force refresh: false
+I/flutter (12777): INFO: 2025-06-14 02:19:41.438044: === Fetching groups from API ===
+I/flutter (12777): INFO: 2025-06-14 02:19:41.440397: Making request to: http://192.168.29.203:8000/api/group/list/
+I/flutter (12777): INFO: 2025-06-14 02:19:41.473737: Profile API response status: 200
+I/flutter (12777): INFO: 2025-06-14 02:19:41.474298: Profile API response body: {"id":19,"username":"invinciblegamersnetwork","email":"invinciblegamersnetwork@gmail.com","first_name":"Invincible","last_name":"Gamers Network","profile_picture_url":"https://lh3.googleusercontent.com/a/ACg8ocKwQQBwnB-nInfZxedUu9UO2-Xn6cm6XmRP0dAMUbZdIrlswA=s999"}
+I/flutter (12777): INFO: 2025-06-14 02:19:41.474493: Full profile API response: {"id":19,"username":"invinciblegamersnetwork","email":"invinciblegamersnetwork@gmail.com","first_name":"Invincible","last_name":"Gamers Network","profile_picture_url":"https://lh3.googleusercontent.com/a/ACg8ocKwQQBwnB-nInfZxedUu9UO2-Xn6cm6XmRP0dAMUbZdIrlswA=s999"}
+I/flutter (12777): INFO: 2025-06-14 02:19:41.474769: Parsed profile details:
+I/flutter (12777): INFO: 2025-06-14 02:19:41.475047: - Photo URL: https://lh3.googleusercontent.com/a/ACg8ocKwQQBwnB-nInfZxedUu9UO2-Xn6cm6XmRP0dAMUbZdIrlswA=s999
+I/flutter (12777): INFO: 2025-06-14 02:19:41.475175: - Email: invinciblegamersnetwork@gmail.com
+I/flutter (12777): INFO: 2025-06-14 02:19:41.475273: - Name: Invincible Gamers Network
+I/flutter (12777): INFO: 2025-06-14 02:19:41.475356: - Username: invinciblegamersnetwork
+I/flutter (12777): INFO: 2025-06-14 02:19:41.476973: Response status code from groups API: 200
+I/flutter (12777): INFO: 2025-06-14 02:19:41.477188: Raw API response: [{"id":45,"name":"hi","description":"hi ","created_by":"invinciblegamersnetwork","member_count":3,"created_at":"2025-06-13T20:23:24.813403Z","is_creator":true,"group_type":"regular","trip_details":null},{"id":44,"name":"huh","description":"huh","created_by":"invinciblegamersnetwork","member_count":5,"created_at":"2025-06-13T20:01:58.878176Z","is_creator":true,"group_type":"regular","trip_details":null},{"id":43,"name":"huaa","description":"huaa","created_by":"invinciblegamersnetwork","member_count":5,"created_at":"2025-06-13T20:01:43.972310Z","is_creator":true,"group_type":"regular","trip_details":null}]
+I/flutter (12777): INFO: 2025-06-14 02:19:41.477916: Fetched 3 groups from API
+I/flutter (12777): INFO: 2025-06-14 02:19:41.478225: Parsed groups data: [{id: 45, name: hi, description: hi , created_by: invinciblegamersnetwork, member_count: 3, created_at: 2025-06-13T20:23:24.813403Z, is_creator: true, group_type: regular, trip_details: null}, {id: 44, name: huh, description: huh, created_by: invinciblegamersnetwork, member_count: 5, created_at: 2025-06-13T20:01:58.878176Z, is_creator: true, group_type: regular, trip_details: null}, {id: 43, name: huaa, description: huaa, created_by: invinciblegamersnetwork, member_count: 5, created_at: 2025-06-13T20:01:43.972310Z, is_creator: true, group_type: regular, trip_details: null}]
+I/flutter (12777): INFO: 2025-06-14 02:19:41.484209: Using cached user ID
+I/flutter (12777): INFO: 2025-06-14 02:19:41.495548: Cached 3 groups
+I/flutter (12777): Debug - Scroll Values:
+I/flutter (12777): scrollOffset: 0.0
+I/flutter (12777): Debug - Animation Values:
+I/flutter (12777): scrollOffset: 0.0
+I/flutter (12777): Debug - Gap Calculation:
+I/flutter (12777): rawGap: 16.0
+I/flutter (12777): clampedGap: 16.0
+I/flutter (12777): easedGap: 15.744
+I/flutter (12777): INFO: 2025-06-14 02:19:41.639789: Cache expiry set to: 2025-06-14T02:24:41.639694
+I/flutter (12777): INFO: 2025-06-14 02:19:41.640060: Profile Details cached successfully
+I/flutter (12777): INFO: 2025-06-14 02:19:41.640244: Updating ProfileNotifier with new data...
+I/flutter (12777): INFO: 2025-06-14 02:19:41.640419: Updating profile state:
+I/flutter (12777): INFO: 2025-06-14 02:19:41.640574: - Current name: null
+I/flutter (12777): INFO: 2025-06-14 02:19:41.640666: - New name: Invincible Gamers Network
+I/flutter (12777): INFO: 2025-06-14 02:19:41.640768: - Current email: null
+I/flutter (12777): INFO: 2025-06-14 02:19:41.640859: - New email: invinciblegamersnetwork@gmail.com
+I/flutter (12777): INFO: 2025-06-14 02:19:41.640948: - Current photoUrl: null
+I/flutter (12777): INFO: 2025-06-14 02:19:41.641028: - New photoUrl: https://lh3.googleusercontent.com/a/ACg8ocKwQQBwnB-nInfZxedUu9UO2-Xn6cm6XmRP0dAMUbZdIrlswA=s999
+I/flutter (12777): INFO: 2025-06-14 02:19:41.641125: - Current username: null
+I/flutter (12777): INFO: 2025-06-14 02:19:41.641214: - New username: invinciblegamersnetwork
+I/flutter (12777): INFO: 2025-06-14 02:19:41.641302: - Current firstName: null
+I/flutter (12777): INFO: 2025-06-14 02:19:41.641408: - New firstName: Invincible
+I/flutter (12777): INFO: 2025-06-14 02:19:41.641499: - Current lastName: null
+I/flutter (12777): INFO: 2025-06-14 02:19:41.641594: - New lastName: Gamers Network
+I/flutter (12777): INFO: 2025-06-14 02:19:41.641677: Profile state updated successfully
+I/flutter (12777): WARNING: 2025-06-14 02:19:41.641803: Setting profile error: null
+I/flutter (12777): INFO: 2025-06-14 02:19:41.641913: ProfileNotifier updated successfully
+I/flutter (12777): INFO: 2025-06-14 02:19:41.642102: Fetching friend requests and group invitations...
+I/flutter (12777): Debug - Scroll Values:
+I/flutter (12777): scrollOffset: 0.0
+I/flutter (12777): Debug - Animation Values:
+I/flutter (12777): scrollOffset: 0.0
+I/flutter (12777): Debug - Gap Calculation:
+I/flutter (12777): rawGap: 16.0
+I/flutter (12777): clampedGap: 16.0
+I/flutter (12777): easedGap: 15.744
+D/ViewRootImplExtImpl(12777): wrapConfigInfoIntoFlags rotation=0, smallestScreenWidthDp=354, relayoutAsync=true, flags=0, newFlags=23199744, residentWS=false, title=com.example.skapp/com.example.skapp.MainActivity
+D/VRI[MainActivity](12777): relayoutWindow result, sizeChanged:false, surfaceControlChanged:false, transformHintChanged:false, mSurfaceSize:Point(1240, 2772), mLastSurfaceSize:Point(1240, 2772), mWidth:1240, mHeight:2772, requestedWidth:1240, requestedHeight:2772, transformHint:0, installOrientation:0, displayRotation:0, isSurfaceValid:true, attr.flag:-2122252032, tmpFrames:ClientWindowFrames{frame=[0,0][1240,2772] display=[0,0][1240,2772] parentFrame=[0,0][1240,2772]}, relayoutAsync:true, mSyncSeqId:0
+W/VRI[MainActivity](12777): updateBlastSurfaceIfNeeded, surfaceSize:Point(1240, 2772), lastSurfaceSize:Point(1240, 2772), format:-3, blastBufferQueue:android.graphics.BLASTBufferQueue@f7d7caa
+I/SurfaceControl(12777):  setExtendedRangeBrightness sc=Surface(name=com.example.skapp/com.example.skapp.MainActivity)/@0x2e67c38,currentBufferRatio=1.0,desiredRatio=1.0
+I/flutter (12777): INFO: 2025-06-14 02:19:41.787699: Response status code from pending requests API: 200
+I/flutter (12777): INFO: 2025-06-14 02:19:41.788241: Fetched pending requests: {sent_requests: [], received_requests: []}
+I/flutter (12777): INFO: 2025-06-14 02:19:41.819516: Response status code from pending invitations API: 200
+I/flutter (12777): INFO: 2025-06-14 02:19:41.820289: Fetched pending invitations: {sent_invitations: [{invitation_id: 71, group_id: 44, group_name: huh, group_description: huh, invited_by_username: invinciblegamersnetwork, invited_by_profile_code: INVINCI@Q18N, invited_user_username: Suneeta, invited_user_profile_code: SUNEETA@FVJV, status: pending, created_at: 2025-06-13T20:01:58.890609Z, expires_at: null}, {invitation_id: 73, group_id: 45, group_name: hi, group_description: hi , invited_by_username: invinciblegamersnetwork, invited_by_profile_code: INVINCI@Q18N, invited_user_username: crce.10259.ceb, invited_user_profile_code: CRCE102@ES4D, status: pending, created_at: 2025-06-13T20:23:24.817675Z, expires_at: null}], received_invitations: [{invitation_id: 78, group_id: 46, group_name: hehe, group_description: he, invited_by_username: team4ingineers, invited_by_profile_code: TEAM4IN@DBX9, invited_user_username: invinciblegamersnetwork, invited_user_profile_code: INVINCI@Q18N, status: pending, created_at: 2025-06-13T20:27:09.2
+D/OplusScrollToTopManager(12777): com.example.skapp/com.example.skapp.MainActivity,This com.android.internal.policy.DecorView{86714fd V.E...... R....... 0,0-1240,2772 aid=0 alpha=1.0 viewInfo = }[MainActivity] change focus to true
+I/flutter (12777): Debug - Scroll Values:
+I/flutter (12777): scrollOffset: 7.285714285714278
+I/flutter (12777): Debug - Animation Values:
+I/flutter (12777): scrollOffset: 7.285714285714278
+I/flutter (12777): Debug - Gap Calculation:
+I/flutter (12777): rawGap: 19.739999999999995
+I/flutter (12777): clampedGap: 19.739999999999995
+I/flutter (12777): easedGap: 19.350332399999996
+I/flutter (12777): Debug - Scroll Values:
+I/flutter (12777): scrollOffset: 15.000000000000114
+I/flutter (12777): Debug - Animation Values:
+I/flutter (12777): scrollOffset: 15.000000000000114
+I/flutter (12777): Debug - Gap Calculation:
+I/flutter (12777): rawGap: 23.70000000000006
+I/flutter (12777): clampedGap: 23.70000000000006
+I/flutter (12777): easedGap: 23.138310000000057
+D/ViewRootImplExtImpl(12777): the up motion event handled by client, just return
+I/flutter (12777): Debug - Scroll Values:
+I/flutter (12777): scrollOffset: 0.0
+I/flutter (12777): Debug - Animation Values:
+I/flutter (12777): scrollOffset: 0.0
+I/flutter (12777): Debug - Gap Calculation:
+I/flutter (12777): rawGap: 16.0
+I/flutter (12777): clampedGap: 16.0
+I/flutter (12777): easedGap: 15.744
+I/VelocityTracker(12777): LSQ2 speed rezero
+D/ViewRootImplExtImpl(12777): the up motion event handled by client, just return
+D/ViewRootImplExtImpl(12777): the up motion event handled by client, just return
+I/flutter (12777): INFO: 2025-06-14 02:19:45.570577: === Loading groups in provider ===
+I/flutter (12777): INFO: 2025-06-14 02:19:45.571149: Force refresh: true
+I/flutter (12777): INFO: 2025-06-14 02:19:45.571243: Current groups in state: 3 groups
+I/flutter (12777): INFO: 2025-06-14 02:19:45.571338: === Starting getGroups ===
+I/flutter (12777): INFO: 2025-06-14 02:19:45.571452: Force refresh: true
+I/flutter (12777): INFO: 2025-06-14 02:19:45.591696: Using cached user ID
+I/flutter (12777): INFO: 2025-06-14 02:19:45.592440: Loaded 3 groups from cache
+I/flutter (12777): INFO: 2025-06-14 02:19:45.596285: Online status: true
+I/flutter (12777): INFO: 2025-06-14 02:19:45.596437: Current cached groups: 3 groups
+I/flutter (12777): INFO: 2025-06-14 02:19:45.596580: Cached groups data: [{id: 45, name: hi, description: hi , created_by: invinciblegamersnetwork, member_count: 3, created_at: 2025-06-13T20:23:24.813403Z, is_creator: true, group_type: regular, trip_details: null}, {id: 44, name: huh, description: huh, created_by: invinciblegamersnetwork, member_count: 5, created_at: 2025-06-13T20:01:58.878176Z, is_creator: true, group_type: regular, trip_details: null}, {id: 43, name: huaa, description: huaa, created_by: invinciblegamersnetwork, member_count: 5, created_at: 2025-06-13T20:01:43.972310Z, is_creator: true, group_type: regular, trip_details: null}]
+I/flutter (12777): INFO: 2025-06-14 02:19:45.596680: Fetching fresh groups data. Force refresh: true
+I/flutter (12777): INFO: 2025-06-14 02:19:45.596771: === Fetching groups from API ===
+I/flutter (12777): INFO: 2025-06-14 02:19:45.598804: Making request to: http://192.168.29.203:8000/api/group/list/
+I/flutter (12777): INFO: 2025-06-14 02:19:45.626374: Response status code from groups API: 200
+I/flutter (12777): INFO: 2025-06-14 02:19:45.626679: Raw API response: [{"id":45,"name":"hi","description":"hi ","created_by":"invinciblegamersnetwork","member_count":3,"created_at":"2025-06-13T20:23:24.813403Z","is_creator":true,"group_type":"regular","trip_details":null},{"id":44,"name":"huh","description":"huh","created_by":"invinciblegamersnetwork","member_count":5,"created_at":"2025-06-13T20:01:58.878176Z","is_creator":true,"group_type":"regular","trip_details":null},{"id":43,"name":"huaa","description":"huaa","created_by":"invinciblegamersnetwork","member_count":5,"created_at":"2025-06-13T20:01:43.972310Z","is_creator":true,"group_type":"regular","trip_details":null}]
+I/flutter (12777): INFO: 2025-06-14 02:19:45.627013: Fetched 3 groups from API
+I/flutter (12777): INFO: 2025-06-14 02:19:45.627153: Parsed groups data: [{id: 45, name: hi, description: hi , created_by: invinciblegamersnetwork, member_count: 3, created_at: 2025-06-13T20:23:24.813403Z, is_creator: true, group_type: regular, trip_details: null}, {id: 44, name: huh, description: huh, created_by: invinciblegamersnetwork, member_count: 5, created_at: 2025-06-13T20:01:58.878176Z, is_creator: true, group_type: regular, trip_details: null}, {id: 43, name: huaa, description: huaa, created_by: invinciblegamersnetwork, member_count: 5, created_at: 2025-06-13T20:01:43.972310Z, is_creator: true, group_type: regular, trip_details: null}]
+I/flutter (12777): INFO: 2025-06-14 02:19:45.634110: Using cached user ID
+I/flutter (12777): INFO: 2025-06-14 02:19:45.640537: Cached 3 groups
+I/flutter (12777): Debug - Scroll Values:
+I/flutter (12777): scrollOffset: 0.0
+I/flutter (12777): Debug - Animation Values:
+I/flutter (12777): scrollOffset: 0.0
+I/flutter (12777): Debug - Gap Calculation:
+I/flutter (12777): rawGap: 16.0
+I/flutter (12777): clampedGap: 16.0
+I/flutter (12777): easedGap: 15.744
+D/ViewRootImplExtImpl(12777): the up motion event handled by client, just return
+I/flutter (12777): INFO: 2025-06-14 02:19:46.286364: === Loading groups in provider ===
+I/flutter (12777): INFO: 2025-06-14 02:19:46.286715: Force refresh: true
+I/flutter (12777): INFO: 2025-06-14 02:19:46.286854: Current groups in state: 3 groups
+I/flutter (12777): INFO: 2025-06-14 02:19:46.287073: === Starting getGroups ===
+I/flutter (12777): INFO: 2025-06-14 02:19:46.287165: Force refresh: true
+I/flutter (12777): INFO: 2025-06-14 02:19:46.298481: Using cached user ID
+I/flutter (12777): INFO: 2025-06-14 02:19:46.298979: Loaded 3 groups from cache
+I/flutter (12777): INFO: 2025-06-14 02:19:46.301336: Online status: true
+I/flutter (12777): INFO: 2025-06-14 02:19:46.301488: Current cached groups: 3 groups
+I/flutter (12777): INFO: 2025-06-14 02:19:46.301618: Cached groups data: [{id: 45, name: hi, description: hi , created_by: invinciblegamersnetwork, member_count: 3, created_at: 2025-06-13T20:23:24.813403Z, is_creator: true, group_type: regular, trip_details: null}, {id: 44, name: huh, description: huh, created_by: invinciblegamersnetwork, member_count: 5, created_at: 2025-06-13T20:01:58.878176Z, is_creator: true, group_type: regular, trip_details: null}, {id: 43, name: huaa, description: huaa, created_by: invinciblegamersnetwork, member_count: 5, created_at: 2025-06-13T20:01:43.972310Z, is_creator: true, group_type: regular, trip_details: null}]
+I/flutter (12777): INFO: 2025-06-14 02:19:46.301739: Fetching fresh groups data. Force refresh: true
+I/flutter (12777): INFO: 2025-06-14 02:19:46.301800: === Fetching groups from API ===
+I/flutter (12777): INFO: 2025-06-14 02:19:46.308213: Making request to: http://192.168.29.203:8000/api/group/list/
+I/flutter (12777): INFO: 2025-06-14 02:19:46.339057: Response status code from groups API: 200
+I/flutter (12777): INFO: 2025-06-14 02:19:46.339402: Raw API response: [{"id":45,"name":"hi","description":"hi ","created_by":"invinciblegamersnetwork","member_count":3,"created_at":"2025-06-13T20:23:24.813403Z","is_creator":true,"group_type":"regular","trip_details":null},{"id":44,"name":"huh","description":"huh","created_by":"invinciblegamersnetwork","member_count":5,"created_at":"2025-06-13T20:01:58.878176Z","is_creator":true,"group_type":"regular","trip_details":null},{"id":43,"name":"huaa","description":"huaa","created_by":"invinciblegamersnetwork","member_count":5,"created_at":"2025-06-13T20:01:43.972310Z","is_creator":true,"group_type":"regular","trip_details":null}]
+I/flutter (12777): INFO: 2025-06-14 02:19:46.339694: Fetched 3 groups from API
+I/flutter (12777): INFO: 2025-06-14 02:19:46.339841: Parsed groups data: [{id: 45, name: hi, description: hi , created_by: invinciblegamersnetwork, member_count: 3, created_at: 2025-06-13T20:23:24.813403Z, is_creator: true, group_type: regular, trip_details: null}, {id: 44, name: huh, description: huh, created_by: invinciblegamersnetwork, member_count: 5, created_at: 2025-06-13T20:01:58.878176Z, is_creator: true, group_type: regular, trip_details: null}, {id: 43, name: huaa, description: huaa, created_by: invinciblegamersnetwork, member_count: 5, created_at: 2025-06-13T20:01:43.972310Z, is_creator: true, group_type: regular, trip_details: null}]
+I/flutter (12777): INFO: 2025-06-14 02:19:46.342719: Using cached user ID
+I/flutter (12777): INFO: 2025-06-14 02:19:46.349097: Cached 3 groups
+I/flutter (12777): Debug - Scroll Values:
+I/flutter (12777): scrollOffset: 0.0
+I/flutter (12777): Debug - Animation Values:
+I/flutter (12777): scrollOffset: 0.0
+I/flutter (12777): Debug - Gap Calculation:
+I/flutter (12777): rawGap: 16.0
+I/flutter (12777): clampedGap: 16.0
+I/flutter (12777): easedGap: 15.744
+D/ViewRootImplExtImpl(12777): the up motion event handled by client, just return
+W/WindowOnBackDispatcher(12777): OnBackInvokedCallback is not enabled for the application.
+W/WindowOnBackDispatcher(12777): Set 'android:enableOnBackInvokedCallback="true"' in the application manifest.
+D/ViewRootImplExtImpl(12777): the up motion event handled by client, just return
+I/flutter (12777): INFO: 2025-06-14 02:19:51.612705: Response status code from group invitation accept API: 200
+I/flutter (12777): INFO: 2025-06-14 02:19:51.616626: Successfully accepted group invitation: {message: Successfully joined the group, group: {id: 46, name: hehe, description: he, member_count: 3, created_by: team4ingineers}, invitation: {id: 78, status: accepted, accepted_at: 2025-06-13T20:49:52.243242Z}}
+I/flutter (12777): INFO: 2025-06-14 02:19:51.617096: Response from invitation response: {message: Successfully joined the group, group: {id: 46, name: hehe, description: he, member_count: 3, created_by: team4ingineers}, invitation: {id: 78, status: accepted, accepted_at: 2025-06-13T20:49:52.243242Z}}
+I/flutter (12777): INFO: 2025-06-14 02:19:51.617320: Using group name from response: hehe
+I/flutter (12777): INFO: 2025-06-14 02:19:51.623485: Using cached user ID
+I/flutter (12777): INFO: 2025-06-14 02:19:51.666327: Groups cache cleared
+I/flutter (12777): INFO: 2025-06-14 02:19:51.666656: === Loading groups in provider ===
+I/flutter (12777): INFO: 2025-06-14 02:19:51.666774: Force refresh: true
+I/flutter (12777): INFO: 2025-06-14 02:19:51.666861: Current groups in state: 3 groups
+I/flutter (12777): INFO: 2025-06-14 02:19:51.667105: === Starting getGroups ===
+I/flutter (12777): INFO: 2025-06-14 02:19:51.667237: Force refresh: true
+I/flutter (12777): INFO: 2025-06-14 02:19:51.685116: Using cached user ID
+I/flutter (12777): INFO: 2025-06-14 02:19:51.696684: Online status: true
+I/flutter (12777): INFO: 2025-06-14 02:19:51.696970: No cached groups data available
+I/flutter (12777): INFO: 2025-06-14 02:19:51.697106: Fetching fresh groups data. Force refresh: true
+I/flutter (12777): INFO: 2025-06-14 02:19:51.697220: === Fetching groups from API ===
+I/flutter (12777): INFO: 2025-06-14 02:19:51.700097: Making request to: http://192.168.29.203:8000/api/group/list/
+I/flutter (12777): INFO: 2025-06-14 02:19:51.724995: Response status code from groups API: 200
+I/flutter (12777): INFO: 2025-06-14 02:19:51.725427: Raw API response: [{"id":46,"name":"hehe","description":"he","created_by":"team4ingineers","member_count":3,"created_at":"2025-06-13T20:27:09.197590Z","is_creator":false,"group_type":"regular","trip_details":null},{"id":45,"name":"hi","description":"hi ","created_by":"invinciblegamersnetwork","member_count":3,"created_at":"2025-06-13T20:23:24.813403Z","is_creator":true,"group_type":"regular","trip_details":null},{"id":44,"name":"huh","description":"huh","created_by":"invinciblegamersnetwork","member_count":5,"created_at":"2025-06-13T20:01:58.878176Z","is_creator":true,"group_type":"regular","trip_details":null},{"id":43,"name":"huaa","description":"huaa","created_by":"invinciblegamersnetwork","member_count":5,"created_at":"2025-06-13T20:01:43.972310Z","is_creator":true,"group_type":"regular","trip_details":null}]
+I/flutter (12777): INFO: 2025-06-14 02:19:51.725865: Fetched 4 groups from API
+I/flutter (12777): INFO: 2025-06-14 02:19:51.726507: Parsed groups data: [{id: 46, name: hehe, description: he, created_by: team4ingineers, member_count: 3, created_at: 2025-06-13T20:27:09.197590Z, is_creator: false, group_type: regular, trip_details: null}, {id: 45, name: hi, description: hi , created_by: invinciblegamersnetwork, member_count: 3, created_at: 2025-06-13T20:23:24.813403Z, is_creator: true, group_type: regular, trip_details: null}, {id: 44, name: huh, description: huh, created_by: invinciblegamersnetwork, member_count: 5, created_at: 2025-06-13T20:01:58.878176Z, is_creator: true, group_type: regular, trip_details: null}, {id: 43, name: huaa, description: huaa, created_by: invinciblegamersnetwork, member_count: 5, created_at: 2025-06-13T20:01:43.972310Z, is_creator: true, group_type: regular, trip_details: null}]
+I/flutter (12777): INFO: 2025-06-14 02:19:51.734819: Using cached user ID
+I/flutter (12777): INFO: 2025-06-14 02:19:51.751256: Cached 4 groups
+I/flutter (12777): Debug - Scroll Values:
+I/flutter (12777): scrollOffset: 0.0
+I/flutter (12777): Debug - Animation Values:
+I/flutter (12777): scrollOffset: 0.0
+I/flutter (12777): Debug - Gap Calculation:
+I/flutter (12777): rawGap: 16.0
+I/flutter (12777): clampedGap: 16.0
+I/flutter (12777): easedGap: 15.744
+D/ViewRootImplExtImpl(12777): the up motion event handled by client, just return
+D/ViewRootImplExtImpl(12777): the up motion event handled by client, just return
+I/flutter (12777): Debug - Scroll Values:
+I/flutter (12777): scrollOffset: 6.599888392857167
+I/flutter (12777): Debug - Animation Values:
+I/flutter (12777): scrollOffset: 6.599888392857167
+I/flutter (12777): Debug - Gap Calculation:
+I/flutter (12777): rawGap: 19.387942708333345
+I/flutter (12777): clampedGap: 19.387942708333345
+I/flutter (12777): easedGap: 19.012050385871728
+I/flutter (12777): Debug - Scroll Values:
+I/flutter (12777): scrollOffset: 57.82840401785717
+I/flutter (12777): Debug - Animation Values:
+I/flutter (12777): scrollOffset: 57.82840401785717
+I/flutter (12777): Debug - Gap Calculation:
+I/flutter (12777): rawGap: 45.68524739583334
+I/flutter (12777): clampedGap: 45.68524739583334
+I/flutter (12777): easedGap: 43.59810556621485
+I/VelocityTracker(12777): LSQ2 speed rezero
+D/ViewRootImplExtImpl(12777): the up motion event handled by client, just return
+I/flutter (12777): Debug - Scroll Values:
+I/flutter (12777): scrollOffset: 73.37137276785717
+I/flutter (12777): Debug - Animation Values:
+I/flutter (12777): scrollOffset: 73.37137276785717
+I/flutter (12777): Debug - Gap Calculation:
+I/flutter (12777): rawGap: 53.66397135416668
+I/flutter (12777): clampedGap: 53.66397135416668
+I/flutter (12777): easedGap: 50.78414953266586
+I/flutter (12777): Debug - Scroll Values:
+I/flutter (12777): scrollOffset: 95.80000000000007
+I/flutter (12777): Debug - Animation Values:
+I/flutter (12777): scrollOffset: 95.80000000000007
+I/flutter (12777): Debug - Gap Calculation:
+I/flutter (12777): rawGap: 65.17733333333337
+I/flutter (12777): clampedGap: 65.17733333333337
+I/flutter (12777): easedGap: 60.929248552888915
+D/ViewRootImplExtImpl(12777): the up motion event handled by client, just return
+I/flutter (12777): INFO: 2025-06-14 02:19:55.340824: Current route: /main
+I/flutter (12777): INFO: 2025-06-14 02:19:55.341134: Selected index: 0
+D/ViewRootImplExtImpl(12777): the up motion event handled by client, just return
+I/flutter (12777): INFO: 2025-06-14 02:19:55.900539: Profile Settings button pressed
+I/flutter (12777): INFO: 2025-06-14 02:19:55.900854: Current route: /main
+I/flutter (12777): INFO: 2025-06-14 02:19:55.901688: Navigating to settings page
+I/flutter (12777): INFO: 2025-06-14 02:19:55.901834: Attempting to navigate to settings
+I/flutter (12777): INFO: 2025-06-14 02:19:55.901939: Current route: null
+I/flutter (12777): INFO: 2025-06-14 02:19:55.902027: Navigating to settings page
+I/flutter (12777): INFO: 2025-06-14 02:19:55.938556: Current route: /main
+I/flutter (12777): INFO: 2025-06-14 02:19:55.938834: Selected index: 0
+W/WindowOnBackDispatcher(12777): OnBackInvokedCallback is not enabled for the application.
+W/WindowOnBackDispatcher(12777): Set 'android:enableOnBackInvokedCallback="true"' in the application manifest.
+D/ViewRootImplExtImpl(12777): wrapConfigInfoIntoFlags rotation=0, smallestScreenWidthDp=354, relayoutAsync=true, flags=0, newFlags=23199744, residentWS=false, title=com.example.skapp/com.example.skapp.MainActivity
+D/VRI[MainActivity](12777): relayoutWindow result, sizeChanged:false, surfaceControlChanged:false, transformHintChanged:false, mSurfaceSize:Point(1240, 2772), mLastSurfaceSize:Point(1240, 2772), mWidth:1240, mHeight:2772, requestedWidth:1240, requestedHeight:2772, transformHint:0, installOrientation:0, displayRotation:0, isSurfaceValid:true, attr.flag:-2122252032, tmpFrames:ClientWindowFrames{frame=[0,0][1240,2772] display=[0,0][1240,2772] parentFrame=[0,0][1240,2772]}, relayoutAsync:true, mSyncSeqId:0
+W/VRI[MainActivity](12777): updateBlastSurfaceIfNeeded, surfaceSize:Point(1240, 2772), lastSurfaceSize:Point(1240, 2772), format:-3, blastBufferQueue:android.graphics.BLASTBufferQueue@f7d7caa
+
+======== Exception caught by image resource service ================================================
+The following ArgumentError was thrown resolving an image codec:
+Invalid argument(s): No host specified in URI
+
+When the exception was thrown, this was the stack: 
+#0      _HttpClient._openUrl (dart:_http/http_impl.dart:3019:9)
+#1      _HttpClient.openUrl (dart:_http/http_impl.dart:2875:7)
+#2      IOClient.send (package:http/src/io_client.dart:117:38)
+#3      HttpFileService.get (package:flutter_cache_manager/src/web/file_service.dart:37:44)
+#4      WebHelper._download (package:flutter_cache_manager/src/web/web_helper.dart:115:24)
+#5      WebHelper._updateFile (package:flutter_cache_manager/src/web/web_helper.dart:96:28)
+<asynchronous suspension>
+#6      WebHelper._downloadOrAddToQueue (package:flutter_cache_manager/src/web/web_helper.dart:64:7)
+<asynchronous suspension>
+Image provider: CachedNetworkImageProvider("", scale: 1.0)
+Image key: CachedNetworkImageProvider("", scale: 1.0)
+====================================================================================================
+I/VelocityTracker(12777): LSQ2 speed rezero
+D/ViewRootImplExtImpl(12777): the up motion event handled by client, just return
+D/ViewRootImplExtImpl(12777): the up motion event handled by client, just return
+I/flutter (12777): INFO: 2025-06-14 02:19:57.008279: Logout option pressed
+I/flutter (12777): INFO: 2025-06-14 02:19:57.014849: Using cached user ID
+I/flutter (12777): INFO: 2025-06-14 02:19:57.026183: Groups cache cleared
+I/flutter (12777): INFO: 2025-06-14 02:19:57.029139: Using cached user ID
+I/flutter (12777): INFO: 2025-06-14 02:19:57.033915: Friends cache cleared
+I/flutter (12777): INFO: 2025-06-14 02:19:57.034179: Starting sign out process...
+I/flutter (12777): INFO: 2025-06-14 02:19:57.075994: Successfully signed out
+I/flutter (12777): INFO: 2025-06-14 02:19:57.102707: Clearing profile state
+D/ViewRootImplExtImpl(12777): the up motion event handled by client, just return
+I/flutter (12777): INFO: 2025-06-14 02:19:57.896192: Starting Google Sign-In
+D/callGcSupression(12777): java.lang.NullPointerException: Attempt to invoke virtual method 'java.lang.Object java.lang.reflect.Method.invoke(java.lang.Object, java.lang.Object[])' on a null object reference
+D/ScrollOptim [SceneManager](12777): updateCurrentActivity: mCurrentActivityName=null, isOptEnable=true, isAnimAheadEnable=true, isFrameInsertEnable=true, InsertNum=1, isEnabledForScrollChanged=false
+D/callGcSupression(12777): java.lang.NullPointerException: Attempt to invoke virtual method 'java.lang.Object java.lang.reflect.Method.invoke(java.lang.Object, java.lang.Object[])' on a null object reference
+D/ResourcesManagerExtImpl(12777): applyConfigurationToAppResourcesLocked app.getDisplayId() return callback.displayId:0
+D/ScrollOptim [SceneManager](12777): updateCurrentActivity: mCurrentActivityName=com.google.android.gms.auth.api.signin.internal.SignInHubActivity, isOptEnable=true, isAnimAheadEnable=true, isFrameInsertEnable=true, InsertNum=1, isEnabledForScrollChanged=false
+D/ActivityThread(12777): ComponentInfo{com.example.skapp/com.google.android.gms.auth.api.signin.internal.SignInHubActivity} checkFinished=false 2
+D/ResourcesManagerExtImpl(12777): applyConfigurationToAppResourcesLocked app.getDisplayId() return callback.displayId:0
+D/WindowManager(12777): Add to mViews: com.android.internal.policy.DecorView{20e5675 I.E...... R.....I. 0,0-0,0 alpha=1.0 viewInfo = }[SignInHubActivity],pkg= com.example.skapp
+D/skia    (12777): setRusSupported enable 0
+D/ViewRootImplExtImpl(12777): onDisplayChanged -1 for VRI android.view.ViewRootImpl@9c63498
+D/VRI[MainActivity](12777): onFocusEvent false
+D/callGcSupression(12777): java.lang.NullPointerException: Attempt to invoke virtual method 'java.lang.Object java.lang.reflect.Method.invoke(java.lang.Object, java.lang.Object[])' on a null object reference
+D/ResourcesManagerExtImpl(12777): applyConfigurationToAppResourcesLocked app.getDisplayId() return callback.displayId:0
+D/callGcSupression(12777): java.lang.NullPointerException: Attempt to invoke virtual method 'java.lang.Object java.lang.reflect.Method.invoke(java.lang.Object, java.lang.Object[])' on a null object reference
+D/ScrollOptim [SceneManager](12777): updateCurrentActivity: mCurrentActivityName=null, isOptEnable=true, isAnimAheadEnable=true, isFrameInsertEnable=true, InsertNum=1, isEnabledForScrollChanged=false
+E/OplusBracketLog(12777): [OplusViewMirrorManager] updateHostViewRootIfNeeded, not support android.view.ViewRootImpl@9c63498
+D/ViewRootImplExtImpl(12777): wrapConfigInfoIntoFlags rotation=0, smallestScreenWidthDp=354, relayoutAsync=false, flags=0, newFlags=23199744, residentWS=false, title=com.example.skapp/com.google.android.gms.auth.api.signin.internal.SignInHubActivity
+D/VRI[SignInHubActivity](12777): relayoutWindow result, sizeChanged:true, surfaceControlChanged:true, transformHintChanged:false, mSurfaceSize:Point(1240, 2772), mLastSurfaceSize:Point(0, 0), mWidth:-1, mHeight:-1, requestedWidth:1240, requestedHeight:2772, transformHint:0, installOrientation:0, displayRotation:0, isSurfaceValid:true, attr.flag:25231616, tmpFrames:ClientWindowFrames{frame=[0,0][1240,2772] display=[0,0][1240,2772] parentFrame=[0,0][0,0]}, relayoutAsync:false, mSyncSeqId:0
+W/VRI[SignInHubActivity](12777): updateBlastSurfaceIfNeeded, surfaceSize:Point(1240, 2772), lastSurfaceSize:Point(0, 0), format:-2, blastBufferQueue:null
+D/BufferQueueConsumer(12777): [](id:31e90000001d,api:0,p:-1,c:12777) connect: controlledByApp=false
+W/libc    (12777): Access denied finding property "vendor.display.enable_optimal_refresh_rate"
+D/BufferQueueProducer(12777): [VRI[SignInHubActivity]#29(BLAST Consumer)29](id:31e90000001d,api:1,p:12777,c:12777) connect: api=1 producerControlledByApp=true
+I/SurfaceControl(12777):  setExtendedRangeBrightness sc=Surface(name=com.example.skapp/com.google.android.gms.auth.api.signin.internal.SignInHubActivity)/@0xa67ec62,currentBufferRatio=1.0,desiredRatio=1.0
+D/BLASTBufferQueue(12777): [VRI[SignInHubActivity]#29](f:0,a:1) acquireNextBufferLocked size=1240x2772 mFrameNumber=1 applyTransaction=true mTimestamp=147585730379741(auto) mPendingTransactions.size=0 graphicBufferId=54876797141123 transform=0
+D/VRI[SignInHubActivity](12777): Received frameCommittedCallback lastAttemptedDrawFrameNum=1 didProduceBuffer=true syncBuffer=false
+D/VRI[SignInHubActivity](12777): draw finished. seqId=0
+D/ViewRootImplExtImpl(12777): setMaxDequeuedBufferCount: 2
+D/callGcSupression(12777): java.lang.NullPointerException: Attempt to invoke virtual method 'java.lang.Object java.lang.reflect.Method.invoke(java.lang.Object, java.lang.Object[])' on a null object reference
+W/VRI[SignInHubActivity](12777): handleResized, msg:, frameChanged:false, configChanged:false, displayChanged:false, attachedFrameChanged:false, compatScaleChanged:false, pendingDragResizing=false
+D/VRI[SignInHubActivity](12777): Received frameCommittedCallback lastAttemptedDrawFrameNum=2 didProduceBuffer=false syncBuffer=false
+D/VRI[SignInHubActivity](12777): draw finished. seqId=0
+D/OplusScrollToTopManager(12777): com.example.skapp/com.example.skapp.MainActivity,This com.android.internal.policy.DecorView{86714fd V.E...... R....... 0,0-1240,2772 aid=0 alpha=1.0 viewInfo = }[MainActivity] change focus to false
+D/callGcSupression(12777): java.lang.NullPointerException: Attempt to invoke virtual method 'java.lang.Object java.lang.reflect.Method.invoke(java.lang.Object, java.lang.Object[])' on a null object reference
+D/ScrollOptim [SceneManager](12777): updateCurrentActivity: mCurrentActivityName=com.google.android.gms.auth.api.signin.internal.SignInHubActivity, isOptEnable=true, isAnimAheadEnable=true, isFrameInsertEnable=true, InsertNum=1, isEnabledForScrollChanged=false
+D/ActivityThread(12777): ComponentInfo{com.example.skapp/com.google.android.gms.auth.api.signin.internal.SignInHubActivity} checkFinished=false 4
+D/ResourcesManagerExtImpl(12777): applyConfigurationToAppResourcesLocked app.getDisplayId() return callback.displayId:0
+D/ViewRootImplExtImpl(12777): wrapConfigInfoIntoFlags rotation=0, smallestScreenWidthDp=354, relayoutAsync=true, flags=0, newFlags=23199744, residentWS=false, title=com.example.skapp/com.google.android.gms.auth.api.signin.internal.SignInHubActivity
+D/VRI[SignInHubActivity](12777): relayoutWindow result, sizeChanged:false, surfaceControlChanged:false, transformHintChanged:false, mSurfaceSize:Point(1240, 2772), mLastSurfaceSize:Point(1240, 2772), mWidth:1240, mHeight:2772, requestedWidth:1240, requestedHeight:2772, transformHint:0, installOrientation:0, displayRotation:0, isSurfaceValid:true, attr.flag:25231616, tmpFrames:ClientWindowFrames{frame=[0,0][1240,2772] display=[0,0][1240,2772] parentFrame=[0,0][1240,2772]}, relayoutAsync:true, mSyncSeqId:0
+W/VRI[SignInHubActivity](12777): updateBlastSurfaceIfNeeded, surfaceSize:Point(1240, 2772), lastSurfaceSize:Point(1240, 2772), format:-2, blastBufferQueue:android.graphics.BLASTBufferQueue@ec08474
+D/VRI[SignInHubActivity](12777): onFocusEvent true
+D/callGcSupression(12777): java.lang.NullPointerException: Attempt to invoke virtual method 'java.lang.Object java.lang.reflect.Method.invoke(java.lang.Object, java.lang.Object[])' on a null object reference
+D/ScrollOptim [SceneManager](12777): updateCurrentActivity: mCurrentActivityName=null, isOptEnable=true, isAnimAheadEnable=true, isFrameInsertEnable=true, InsertNum=1, isEnabledForScrollChanged=false
+D/VRI[SignInHubActivity](12777): onFocusEvent false
+D/callGcSupression(12777): java.lang.NullPointerException: Attempt to invoke virtual method 'java.lang.Object java.lang.reflect.Method.invoke(java.lang.Object, java.lang.Object[])' on a null object reference
+D/ScrollOptim [SceneManager](12777): updateCurrentActivity: mCurrentActivityName=com.example.skapp.MainActivity, isOptEnable=true, isAnimAheadEnable=true, isFrameInsertEnable=true, InsertNum=1, isEnabledForScrollChanged=false
+D/ActivityThread(12777): ComponentInfo{com.example.skapp/com.example.skapp.MainActivity} checkFinished=false 4
+D/ResourcesManagerExtImpl(12777): applyConfigurationToAppResourcesLocked app.getDisplayId() return callback.displayId:0
+I/flutter (12777): INFO: 2025-06-14 02:20:01.230416: Account: GoogleSignInAccount:{displayName: MentorConnect CRCE, email: crce.mentorconnect@gmail.com, id: 113964488738381662948, photoUrl: https://lh3.googleusercontent.com/a/ACg8ocI_kAH9QJ5zx3Mk70m7NzLIW7mR3Jew6utUkEvWIifIW3xAgg=s96-c, serverAuthCode: 4/0AUJR-x5Tj75jn8UKnEXPkCyQIYI5vVHKMUuznihrfdHF_1SS0QLjqSpOba7VqNLRLDdiQg}
+D/VRI[SignInHubActivity](12777): dispatchAppVisibility visible:false
+D/VRI[SignInHubActivity](12777): visibilityChanged oldVisibility=true newVisibility=false
+D/VRI[MainActivity](12777): onFocusEvent true
+D/HWUI    (12777): RenderProxy::destroy: this=0xb4000072887e5b00, mContext=0xb4000072a8676000
+D/HWUI    (12777): SkiaOpenGLPipeline::setSurface: this=0xb40000736f66d800, surface=NULL
+D/BufferQueueProducer(12777): [VRI[SignInHubActivity]#29(BLAST Consumer)29](id:31e90000001d,api:1,p:12777,c:12777) disconnect: api 1
+D/ViewRootImplExtImpl(12777): wrapConfigInfoIntoFlags rotation=0, smallestScreenWidthDp=354, relayoutAsync=false, flags=0, newFlags=23199744, residentWS=false, title=com.example.skapp/com.google.android.gms.auth.api.signin.internal.SignInHubActivity
+D/VRI[SignInHubActivity](12777): relayoutWindow result, sizeChanged:false, surfaceControlChanged:true, transformHintChanged:false, mSurfaceSize:Point(1240, 2772), mLastSurfaceSize:Point(1240, 2772), mWidth:1240, mHeight:2772, requestedWidth:1240, requestedHeight:2772, transformHint:0, installOrientation:0, displayRotation:0, isSurfaceValid:false, attr.flag:25231616, tmpFrames:ClientWindowFrames{frame=[0,0][1240,2772] display=[0,0][1240,2772] parentFrame=[0,0][0,0]}, relayoutAsync:false, mSyncSeqId:0
+D/BLASTBufferQueue(12777): [VRI[SignInHubActivity]#29](f:0,a:1) destructor()
+D/BufferQueueConsumer(12777): [VRI[SignInHubActivity]#29(BLAST Consumer)29](id:31e90000001d,api:0,p:-1,c:12777) disconnect
+D/callGcSupression(12777): java.lang.NullPointerException: Attempt to invoke virtual method 'java.lang.Object java.lang.reflect.Method.invoke(java.lang.Object, java.lang.Object[])' on a null object reference
+D/VRI[SignInHubActivity](12777): setWindowStopped stopped:true
+D/OplusScrollToTopManager(12777): com.example.skapp/com.google.android.gms.auth.api.signin.internal.SignInHubActivity,window dying
+D/OplusScrollToTopManager(12777): com.example.skapp/com.google.android.gms.auth.api.signin.internal.SignInHubActivity,unregisterSystemUIBroadcastReceiver 
+D/OplusScrollToTopManager(12777): com.example.skapp/com.google.android.gms.auth.api.signin.internal.SignInHubActivity, unregisterSystemUIBroadcastReceiver failed java.lang.IllegalArgumentException: Receiver not registered: android.view.OplusScrollToTopManager$2@ea8465b
+W/WindowOnBackDispatcher(12777): sendCancelIfRunning: isInProgress=false callback=android.view.ViewRootImpl$$ExternalSyntheticLambda11@c360244
+D/HWUI    (12777): RenderProxy::destroy: this=0xb4000072887e5b00, mContext=0xb4000072a8676000
+D/HWUI    (12777): SkiaOpenGLPipeline::setSurface: this=0xb40000736f66d800, surface=NULL
+I/flutter (12777): INFO: 2025-06-14 02:20:01.279242: Google Auth: GoogleSignInAuthentication:Instance of 'GoogleSignInTokenData'
+I/flutter (12777): INFO: 2025-06-14 02:20:01.279613: ID Token length: 1122
+I/flutter (12777): INFO: 2025-06-14 02:20:01.279744: Using high-res profile picture URL: https://lh3.googleusercontent.com/a/ACg8ocI_kAH9QJ5zx3Mk70m7NzLIW7mR3Jew6utUkEvWIifIW3xAgg=s999
+I/flutter (12777): INFO: 2025-06-14 02:20:01.279864: Making API call to: http://192.168.29.203:8000/api/auth/google/
+I/flutter (12777): INFO: 2025-06-14 02:20:01.432699: HTTP Response Status: 200
+I/flutter (12777): INFO: 2025-06-14 02:20:01.433311: HTTP Response Body: {"refresh":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImV4cCI6MTc0OTkzNDIwMiwiaWF0IjoxNzQ5ODQ3ODAyLCJqdGkiOiJhOTE0YmE3MTJmZDg0MjNlOTc1YmY5NzUzZWYwNzJlZCIsInVzZXJfaWQiOjM0fQ.zmgYC0mwWE6BM-GGcBCQS44DZWYuVmtSE4-GHbqopYE","access":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzQ5ODQ5NjAyLCJpYXQiOjE3NDk4NDc4MDIsImp0aSI6IjVhZWI4ZTcyZjVkOTQ3YmY4M2JkN2M1MmJkMmQyN2IzIiwidXNlcl9pZCI6MzR9.M1rOPfwVakpPq5DlL7qbpNixEnh_K6riDOGI8ttEzPg","user":{"id":34,"username":"crce.mentorconnect","email":"crce.mentorconnect@gmail.com","first_name":"MentorConnect","last_name":"CRCE","profile_picture_url":"https://lh3.googleusercontent.com/a/ACg8ocI_kAH9QJ5zx3Mk70m7NzLIW7mR3Jew6utUkEvWIifIW3xAgg=s999"}}
+I/flutter (12777): INFO: 2025-06-14 02:20:01.433648: Successfully decoded response data
+I/flutter (12777): WARNING: 2025-06-14 02:20:01.524244: Setting profile error: null
+I/flutter (12777): INFO: 2025-06-14 02:20:01.524651: === Loading groups in provider ===
+I/flutter (12777): INFO: 2025-06-14 02:20:01.524784: Force refresh: false
+I/flutter (12777): INFO: 2025-06-14 02:20:01.524937: Current groups in state: 0 groups
+I/flutter (12777): INFO: 2025-06-14 02:20:01.525044: === Starting getGroups ===
+I/flutter (12777): INFO: 2025-06-14 02:20:01.525123: Force refresh: false
+I/flutter (12777): INFO: 2025-06-14 02:20:01.526200: Loaded cached data:
+I/flutter (12777): INFO: 2025-06-14 02:20:01.526349: - Name: Not found
+I/flutter (12777): INFO: 2025-06-14 02:20:01.526456: - Email: Not found
+I/flutter (12777): INFO: 2025-06-14 02:20:01.526562: - Photo URL: Not found
+I/flutter (12777): INFO: 2025-06-14 02:20:01.526650: - Username: Not found
+W/WindowOnBackDispatcher(12777): OnBackInvokedCallback is not enabled for the application.
+W/WindowOnBackDispatcher(12777): Set 'android:enableOnBackInvokedCallback="true"' in the application manifest.
+I/flutter (12777): INFO: 2025-06-14 02:20:01.530517: Cache expiry from storage: null
+I/flutter (12777): INFO: 2025-06-14 02:20:01.530709: No cache expiry found - cache is invalid
+I/flutter (12777): INFO: 2025-06-14 02:20:01.530827: Profile data loading decision:
+I/flutter (12777): INFO: 2025-06-14 02:20:01.530957: - Online status: true
+I/flutter (12777): INFO: 2025-06-14 02:20:01.531299: - Cache valid: false
+I/flutter (12777): INFO: 2025-06-14 02:20:01.531390: Cache invalid, missing, or force refresh - making API call
+I/flutter (12777): INFO: 2025-06-14 02:20:01.532017: Using cached user ID
+I/flutter (12777): INFO: 2025-06-14 02:20:01.552878: Online status: true
+I/flutter (12777): INFO: 2025-06-14 02:20:01.553132: No cached groups data available
+I/flutter (12777): INFO: 2025-06-14 02:20:01.553223: Fetching fresh groups data. Force refresh: false
+I/flutter (12777): INFO: 2025-06-14 02:20:01.553375: === Fetching groups from API ===
+I/flutter (12777): INFO: 2025-06-14 02:20:01.554216: Making API call to /profile/
+I/flutter (12777): INFO: 2025-06-14 02:20:01.566536: Making request to: http://192.168.29.203:8000/api/group/list/
+I/flutter (12777): INFO: 2025-06-14 02:20:01.607599: Response status code from groups API: 200
+I/flutter (12777): INFO: 2025-06-14 02:20:01.607984: Raw API response: []
+I/flutter (12777): INFO: 2025-06-14 02:20:01.608220: Fetched 0 groups from API
+I/flutter (12777): INFO: 2025-06-14 02:20:01.608369: Parsed groups data: []
+I/flutter (12777): INFO: 2025-06-14 02:20:01.610133: Profile API response status: 200
+I/flutter (12777): INFO: 2025-06-14 02:20:01.610306: Profile API response body: {"id":34,"username":"crce.mentorconnect","email":"crce.mentorconnect@gmail.com","first_name":"MentorConnect","last_name":"CRCE","profile_picture_url":"https://lh3.googleusercontent.com/a/ACg8ocI_kAH9QJ5zx3Mk70m7NzLIW7mR3Jew6utUkEvWIifIW3xAgg=s999"}
+I/flutter (12777): INFO: 2025-06-14 02:20:01.610432: Full profile API response: {"id":34,"username":"crce.mentorconnect","email":"crce.mentorconnect@gmail.com","first_name":"MentorConnect","last_name":"CRCE","profile_picture_url":"https://lh3.googleusercontent.com/a/ACg8ocI_kAH9QJ5zx3Mk70m7NzLIW7mR3Jew6utUkEvWIifIW3xAgg=s999"}
+I/flutter (12777): INFO: 2025-06-14 02:20:01.610691: Parsed profile details:
+I/flutter (12777): INFO: 2025-06-14 02:20:01.610837: - Photo URL: https://lh3.googleusercontent.com/a/ACg8ocI_kAH9QJ5zx3Mk70m7NzLIW7mR3Jew6utUkEvWIifIW3xAgg=s999
+I/flutter (12777): INFO: 2025-06-14 02:20:01.611115: - Email: crce.mentorconnect@gmail.com
+I/flutter (12777): INFO: 2025-06-14 02:20:01.611228: - Name: MentorConnect CRCE
+I/flutter (12777): INFO: 2025-06-14 02:20:01.611326: - Username: crce.mentorconnect
+I/flutter (12777): INFO: 2025-06-14 02:20:01.616723: Using cached user ID
+I/flutter (12777): INFO: 2025-06-14 02:20:01.629756: Cached 0 groups
+I/flutter (12777): INFO: 2025-06-14 02:20:01.663004: Cache expiry set to: 2025-06-14T02:25:01.662859
+I/flutter (12777): INFO: 2025-06-14 02:20:01.663392: Profile Details cached successfully
+I/flutter (12777): INFO: 2025-06-14 02:20:01.663575: Updating ProfileNotifier with new data...
+I/flutter (12777): INFO: 2025-06-14 02:20:01.663715: Updating profile state:
+I/flutter (12777): INFO: 2025-06-14 02:20:01.663841: - Current name: null
+I/flutter (12777): INFO: 2025-06-14 02:20:01.663927: - New name: MentorConnect CRCE
+I/flutter (12777): INFO: 2025-06-14 02:20:01.664011: - Current email: null
+I/flutter (12777): INFO: 2025-06-14 02:20:01.664146: - New email: crce.mentorconnect@gmail.com
+I/flutter (12777): INFO: 2025-06-14 02:20:01.664474: - Current photoUrl: null
+I/flutter (12777): INFO: 2025-06-14 02:20:01.664798: - New photoUrl: https://lh3.googleusercontent.com/a/ACg8ocI_kAH9QJ5zx3Mk70m7NzLIW7mR3Jew6utUkEvWIifIW3xAgg=s999
+I/flutter (12777): INFO: 2025-06-14 02:20:01.665204: - Current username: null
+I/flutter (12777): INFO: 2025-06-14 02:20:01.665517: - New username: crce.mentorconnect
+I/flutter (12777): INFO: 2025-06-14 02:20:01.665631: - Current firstName: null
+I/flutter (12777): INFO: 2025-06-14 02:20:01.665714: - New firstName: MentorConnect
+I/flutter (12777): INFO: 2025-06-14 02:20:01.665800: - Current lastName: null
+I/flutter (12777): INFO: 2025-06-14 02:20:01.665915: - New lastName: CRCE
+I/flutter (12777): INFO: 2025-06-14 02:20:01.666005: Profile state updated successfully
+I/flutter (12777): WARNING: 2025-06-14 02:20:01.666136: Setting profile error: null
+I/flutter (12777): INFO: 2025-06-14 02:20:01.666251: ProfileNotifier updated successfully
+I/flutter (12777): INFO: 2025-06-14 02:20:01.666448: Fetching friend requests and group invitations...
+I/flutter (12777): INFO: 2025-06-14 02:20:01.732735: Response status code from pending requests API: 200
+I/flutter (12777): INFO: 2025-06-14 02:20:01.733322: Fetched pending requests: {sent_requests: [], received_requests: []}
+I/flutter (12777): INFO: 2025-06-14 02:20:01.776841: Response status code from pending invitations API: 200
+I/flutter (12777): INFO: 2025-06-14 02:20:01.777285: Fetched pending invitations: {sent_invitations: [], received_invitations: []}
+D/ViewRootImplExtImpl(12777): wrapConfigInfoIntoFlags rotation=0, smallestScreenWidthDp=354, relayoutAsync=true, flags=0, newFlags=23199744, residentWS=false, title=com.example.skapp/com.example.skapp.MainActivity
+D/VRI[MainActivity](12777): relayoutWindow result, sizeChanged:false, surfaceControlChanged:false, transformHintChanged:false, mSurfaceSize:Point(1240, 2772), mLastSurfaceSize:Point(1240, 2772), mWidth:1240, mHeight:2772, requestedWidth:1240, requestedHeight:2772, transformHint:0, installOrientation:0, displayRotation:0, isSurfaceValid:true, attr.flag:-2122252032, tmpFrames:ClientWindowFrames{frame=[0,0][1240,2772] display=[0,0][1240,2772] parentFrame=[0,0][1240,2772]}, relayoutAsync:true, mSyncSeqId:0
+W/VRI[MainActivity](12777): updateBlastSurfaceIfNeeded, surfaceSize:Point(1240, 2772), lastSurfaceSize:Point(1240, 2772), format:-3, blastBufferQueue:android.graphics.BLASTBufferQueue@f7d7caa
+I/SurfaceControl(12777):  setExtendedRangeBrightness sc=Surface(name=com.example.skapp/com.example.skapp.MainActivity)/@0x2e67c38,currentBufferRatio=1.0,desiredRatio=1.0
+D/OplusScrollToTopManager(12777): com.example.skapp/com.example.skapp.MainActivity,This com.android.internal.policy.DecorView{86714fd V.E...... R....... 0,0-1240,2772 aid=0 alpha=1.0 viewInfo = }[MainActivity] change focus to true
+D/ViewRootImplExtImpl(12777): the up motion event handled by client, just return
+I/flutter (12777): INFO: 2025-06-14 02:20:02.581538: === Loading groups in provider ===
+I/flutter (12777): INFO: 2025-06-14 02:20:02.582093: Force refresh: true
+I/flutter (12777): INFO: 2025-06-14 02:20:02.582193: Current groups in state: 0 groups
+I/flutter (12777): INFO: 2025-06-14 02:20:02.582299: === Starting getGroups ===
+I/flutter (12777): INFO: 2025-06-14 02:20:02.582395: Force refresh: true
+I/flutter (12777): INFO: 2025-06-14 02:20:02.590253: Using cached user ID
+I/flutter (12777): INFO: 2025-06-14 02:20:02.590595: Loaded 0 groups from cache
+I/flutter (12777): INFO: 2025-06-14 02:20:02.593789: Online status: true
+I/flutter (12777): INFO: 2025-06-14 02:20:02.593939: Current cached groups: 0 groups
+I/flutter (12777): INFO: 2025-06-14 02:20:02.594036: Cached groups data: []
+I/flutter (12777): INFO: 2025-06-14 02:20:02.594102: Fetching fresh groups data. Force refresh: true
+I/flutter (12777): INFO: 2025-06-14 02:20:02.594177: === Fetching groups from API ===
+I/flutter (12777): INFO: 2025-06-14 02:20:02.595768: Making request to: http://192.168.29.203:8000/api/group/list/
+I/flutter (12777): INFO: 2025-06-14 02:20:02.614446: Response status code from groups API: 200
+I/flutter (12777): INFO: 2025-06-14 02:20:02.614681: Raw API response: []
+I/flutter (12777): INFO: 2025-06-14 02:20:02.614808: Fetched 0 groups from API
+I/flutter (12777): INFO: 2025-06-14 02:20:02.614938: Parsed groups data: []
+I/flutter (12777): INFO: 2025-06-14 02:20:02.616931: Using cached user ID
+I/flutter (12777): INFO: 2025-06-14 02:20:02.625169: Cached 0 groups

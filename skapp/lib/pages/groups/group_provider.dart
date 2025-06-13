@@ -105,6 +105,10 @@ class GroupProvider extends ChangeNotifier {
     if (_isLoading) return;
 
     try {
+      _logger.info('=== Loading groups in provider ===');
+      _logger.info('Force refresh: $forceRefresh');
+      _logger.info('Current groups in state: ${_groups.length} groups');
+      
       _isLoading = true;
       _error = null;
       notifyListeners();
@@ -317,9 +321,15 @@ class GroupProvider extends ChangeNotifier {
         accept,
       );
 
+      _logger.info('Response from invitation response: $result');
+      
+      // Get group name from the response
+      final groupName = result['group']['name'];
+      _logger.info('Using group name from response: $groupName');
+
       // Remove the invitation from the list
       _pendingInvitations.removeWhere(
-        (invitation) => invitation['id'] == invitationId
+        (invitation) => invitation['invitation_id'] == invitationId
       );
 
       // Show success notification
@@ -327,8 +337,8 @@ class GroupProvider extends ChangeNotifier {
         context,
         title: accept ? 'Invitation Accepted' : 'Invitation Declined',
         message: accept 
-          ? 'You have joined the group'
-          : 'You have declined the invitation',
+          ? 'You have joined $groupName'
+          : 'You have declined the invitation to $groupName',
         icon: accept ? Icons.check_circle : Icons.cancel,
       );
 

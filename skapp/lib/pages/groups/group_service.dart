@@ -8,8 +8,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class GroupsService {
   static final _logger = Logger('GroupsService');
-  static const String _groupsCacheKey = 'cached_groups';
-  static const String _groupsCacheExpiryKey = 'groups_cache_expiry';
+  static const String _groupsCacheKeyPrefix = 'cached_groups_';
+  static const String _groupsCacheExpiryKeyPrefix = 'groups_cache_expiry_';
   static const Duration _cacheValidity = Duration(minutes: 5);
 
   var client = http.Client();
@@ -19,11 +19,22 @@ class GroupsService {
 
   List<Map<String, dynamic>>? _cachedGroups;
 
+  // Helper method to get user-specific cache keys
+  Future<Map<String, String>> _getCacheKeys() async {
+    final userId = await _authService.getUserId();
+    return {
+      'groups': '${_groupsCacheKeyPrefix}${userId ?? ""}',
+      'expiry': '${_groupsCacheExpiryKeyPrefix}${userId ?? ""}'
+    };
+  }
+
   Future<void> _initPrefs() async {
     try {
       _prefs = await SharedPreferences.getInstance();
+      final cacheKeys = await _getCacheKeys();
+      
       // Load cached groups
-      final cachedData = _prefs.getString(_groupsCacheKey);
+      final cachedData = _prefs.getString(cacheKeys['groups']!);
       if (cachedData != null) {
         _cachedGroups = List<Map<String, dynamic>>.from(
           jsonDecode(cachedData).map((x) => Map<String, dynamic>.from(x)),
@@ -37,7 +48,8 @@ class GroupsService {
 
   Future<bool> _isCacheValid() async {
     try {
-      final cacheExpiry = _prefs.getString(_groupsCacheExpiryKey);
+      final cacheKeys = await _getCacheKeys();
+      final cacheExpiry = _prefs.getString(cacheKeys['expiry']!);
       _logger.info('Cache expiry from storage: $cacheExpiry');
 
       if (cacheExpiry == null) {
@@ -63,9 +75,10 @@ class GroupsService {
 
   Future<void> _cacheGroupsData(List<Map<String, dynamic>> groups) async {
     try {
-      await _prefs.setString(_groupsCacheKey, jsonEncode(groups));
+      final cacheKeys = await _getCacheKeys();
+      await _prefs.setString(cacheKeys['groups']!, jsonEncode(groups));
       await _prefs.setString(
-        _groupsCacheExpiryKey,
+        cacheKeys['expiry']!,
         DateTime.now().add(_cacheValidity).toIso8601String(),
       );
       _logger.info('Cached ${groups.length} groups');
@@ -76,11 +89,14 @@ class GroupsService {
 
   Future<List<Map<String, dynamic>>> _fetchGroupsFromApi() async {
     try {
+      _logger.info('=== Fetching groups from API ===');
       String? token = await _authService.getToken();
       if (token == null) {
         _logger.warning('No authentication token available');
         throw 'Session expired. Please log in again.';
       }
+      
+      _logger.info('Making request to: $baseUrl/group/list/');
 
       final response = await client.get(
         Uri.parse('$baseUrl/group/list/'),
@@ -95,11 +111,14 @@ class GroupsService {
       );
 
       if (response.statusCode == 200) {
+        _logger.info('Raw API response: ${response.body}');
+        
         final List<Map<String, dynamic>> groups =
             List<Map<String, dynamic>>.from(
               jsonDecode(response.body).map((x) => Map<String, dynamic>.from(x)),
             );
         _logger.info('Fetched ${groups.length} groups from API');
+        _logger.info('Parsed groups data: $groups');
 
         // Cache the fresh data
         await _cacheGroupsData(groups);
@@ -124,12 +143,22 @@ class GroupsService {
     bool forceRefresh = false,
   }) async {
     try {
+      _logger.info('=== Starting getGroups ===');
+      _logger.info('Force refresh: $forceRefresh');
+      
       // Initialize preferences and load cached data
       await _initPrefs();
 
       // Check online status
       final isOnline = await _authService.isOnline();
       _logger.info('Online status: $isOnline');
+      
+      if (_cachedGroups != null) {
+        _logger.info('Current cached groups: ${_cachedGroups!.length} groups');
+        _logger.info('Cached groups data: $_cachedGroups');
+      } else {
+        _logger.info('No cached groups data available');
+      }
 
       if (isOnline) {
         // When online and force refresh is true or no cache exists, fetch fresh data
@@ -537,8 +566,9 @@ class GroupsService {
   Future<void> clearCache() async {
     try {
       _prefs = await SharedPreferences.getInstance();
-      await _prefs.remove(_groupsCacheKey);
-      await _prefs.remove(_groupsCacheExpiryKey);
+      final cacheKeys = await _getCacheKeys();
+      await _prefs.remove(cacheKeys['groups']!);
+      await _prefs.remove(cacheKeys['expiry']!);
       _cachedGroups = null;
       _logger.info('Groups cache cleared');
     } catch (e) {

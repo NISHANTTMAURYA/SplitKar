@@ -326,4 +326,19 @@ class FriendsProvider extends ChangeNotifier {
     }
     notifyListeners();
   }
+
+  // Reset state (useful when logging out)
+  void resetState() {
+    _potentialFriends = [];
+    _friends = [];
+    _error = null;
+    _isLoading = false;
+    _isLoadingMore = false;
+    _pendingRequests.clear();
+    _currentPage = 1;
+    _totalPages = 1;
+    _hasMore = true;
+    _searchQuery = '';
+    notifyListeners();
+  }
 }
