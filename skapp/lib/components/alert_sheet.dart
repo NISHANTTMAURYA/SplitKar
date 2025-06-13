@@ -1,23 +1,66 @@
 /*
- * Dynamic Alert System
- * ------------------
- * This system is designed to handle various types of alerts in a flexible and organized way.
+ * Alert Sheet Component
+ * -------------------
+ * This component handles the UI presentation of all alerts in the app.
  * 
- * Key Features:
- * 1. Categorization: Alerts are automatically grouped by category
- * 2. UI Organization: Alerts requiring response are shown first
- * 3. Backend Integration: Alerts are fetched directly from backend
+ * COMPONENT STRUCTURE:
+ * ==================
+ * 1. Main Components:
+ *    - AlertSheet: Bottom sheet container
+ *    - AlertList: List of alerts grouped by category
+ *    - AlertCard: Individual alert display
  * 
- * Alert Types:
- * 1. Static Alerts: 
- *    - Notifications that don't require response
- *    - Stored in database
- *    - Read status tracked in database
+ * HOW TO MODIFY:
+ * =============
  * 
- * 2. Interactive Alerts:
- *    - Friend requests, group invites etc.
- *    - Fetched from separate endpoints
- *    - Actions trigger direct API calls
+ * 1. Styling Alert Cards:
+ *    - Find _buildAlertCard method
+ *    - Modify the Card widget properties
+ *    - Update colors, spacing, animations
+ *    Example:
+ *    ```
+ *    Card(
+ *      elevation: 2,
+ *      shape: RoundedRectangleBorder(...),
+ *      child: YourCustomContent(),
+ *    )
+ *    ```
+ * 
+ * 2. Adding New Alert Types:
+ *    - Add case in _buildAlertContent
+ *    - Create custom layout for new type
+ *    Example:
+ *    ```
+ *    case AlertCategory.newType:
+ *      return NewTypeAlertContent(
+ *        alert: alert,
+ *        onAction: handleAction,
+ *      );
+ *    ```
+ * 
+ * 3. Modifying Animations:
+ *    - Update AnimatedContainer durations
+ *    - Modify transition curves
+ *    - Adjust Hero animations
+ * 
+ * 4. Alert Actions:
+ *    - Add new action buttons in _buildActions
+ *    - Handle new action types
+ *    - Update action styling
+ * 
+ * 5. Layout Changes:
+ *    - Modify DraggableScrollableSheet properties
+ *    - Update padding and margins
+ *    - Adjust list view parameters
+ * 
+ * BEST PRACTICES:
+ * =============
+ * - Keep UI consistent across alert types
+ * - Use theme colors for consistency
+ * - Handle all screen sizes
+ * - Add proper error states
+ * - Include loading indicators
+ * - Maintain accessibility
  */
 
 import 'package:flutter/material.dart';
@@ -164,26 +207,14 @@ class AlertSheet extends StatefulWidget {
       context: context,
       child: Builder(
         builder: (context) {
-          // Load both friend requests and group invitations
-          final friendsProvider = Provider.of<FriendsProvider>(
-            context,
-            listen: false,
-          );
-          final groupProvider = Provider.of<GroupProvider>(
-            context,
-            listen: false,
-          );
+          // Only fetch alerts once through AlertService
+          // This will internally fetch both friend requests and group invitations
           final alertService = Provider.of<AlertService>(
             context,
             listen: false,
           );
           
-          // Load pending requests and invitations
-          Future.wait([
-            friendsProvider.loadPendingRequests(context),
-            groupProvider.loadPendingInvitations(context),
-            alertService.fetchAlerts(context),
-          ]).catchError((error) {
+          alertService.fetchAlerts(context).catchError((error) {
             AlertSheet._logger.severe('Error loading alerts: $error');
           });
 
@@ -205,6 +236,7 @@ class _AlertSheetState extends State<AlertSheet> with SingleTickerProviderStateM
   late TabController _tabController;
   AlertCategory? _selectedFilter;
   static final _logger = Logger('AlertSheet');
+  Map<String, bool> _loadingAlerts = {};
 
   @override
   void initState() {
@@ -693,7 +725,6 @@ class _AlertSheetState extends State<AlertSheet> with SingleTickerProviderStateM
                       ),
                     ],
                   ),
-                  isThreeLine: true,
                 ),
                 if (alert.actions.isNotEmpty)
                   Padding(
@@ -706,20 +737,36 @@ class _AlertSheetState extends State<AlertSheet> with SingleTickerProviderStateM
                           child: TextButton(
                             onPressed: () async {
                               try {
+                                // Prevent multiple taps
+                                if (!mounted) return;
+                                
+                                // Show loading indicator
+                                setState(() {
+                                  // Add loading state for this specific alert
+                                  _loadingAlerts[alert.id] = true;
+                                });
+
                                 // Execute the action
                                 await action.onPressed();
                                 
-                                // Refresh data using the providers
-                                if (context.mounted) {
-                                  // Refresh groups list
-                                  await context.read<GroupProvider>().loadGroups(forceRefresh: true);
-                                  
-                                  // Refresh alerts
+                                if (!mounted) return;
+
+                                // Remove the alert from the list
+                                setState(() {
+                                  widget.alerts.removeWhere((a) => a.id == alert.id);
+                                  _loadingAlerts.remove(alert.id);
+                                });
+
+                                // Then refresh the data
+                                if (mounted) {
                                   await context.read<AlertService>().fetchAlerts(context);
                                 }
                               } catch (e) {
                                 AlertSheet._logger.severe('Error executing action: $e');
-                                if (context.mounted) {
+                                if (mounted) {
+                                  setState(() {
+                                    _loadingAlerts.remove(alert.id);
+                                  });
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: Text('Error: $e'),
@@ -731,16 +778,19 @@ class _AlertSheetState extends State<AlertSheet> with SingleTickerProviderStateM
                             },
                             style: TextButton.styleFrom(
                               foregroundColor: action.color,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
                             ),
-                            child: Text(
-                              action.label,
-                              style: GoogleFonts.cabin(
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
+                            child: _loadingAlerts[alert.id] == true
+                                ? SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        action.color ?? Theme.of(context).primaryColor,
+                                      ),
+                                    ),
+                                  )
+                                : Text(action.label),
                           ),
                         );
                       }).toList(),

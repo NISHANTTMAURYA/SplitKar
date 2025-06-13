@@ -1,21 +1,58 @@
 /*
  * Alert Service
  * ------------
- * This service is a thin wrapper for backend alert APIs.
- * It handles:
- * 1. Fetching alerts from backend
- * 2. Marking alerts as read
- * 3. Managing alert UI state
+ * This service handles all alert-related operations in the app.
  * 
- * Alert Types:
- * 1. Static Alerts:
- *    - Can be marked as read
- *    - Stay in list but marked as read
+ * HOW TO EXTEND THIS SYSTEM:
+ * =========================
  * 
- * 2. Responsive Alerts:
- *    - Friend requests, group invites etc.
- *    - Fetched from separate endpoints
- *    - Actions trigger direct API calls
+ * 1. Adding a New Alert Type:
+ *    a) Add new category to AlertCategory enum
+ *    b) Create helper method like _createNewTypeAlert
+ *    c) Add handling in fetchAlerts
+ *    Example:
+ *    ```
+ *    enum AlertCategory {
+ *      friendRequest,
+ *      groupInvite,
+ *      newAlertType  // <-- Add here
+ *    }
+ *    ```
+ * 
+ * 2. Modifying Alert Appearance:
+ *    a) Update _buildAlertCard in alert_sheet.dart
+ *    b) Modify styles in respective UI sections
+ *    Example:
+ *    ```
+ *    case AlertCategory.newAlertType:
+ *      return CustomAlertCard(
+ *        // Custom styling here
+ *      );
+ *    ```
+ * 
+ * 3. Adding New Actions:
+ *    a) Create new AlertAction instances
+ *    b) Add handling in respective provider classes
+ *    Example:
+ *    ```
+ *    AlertAction(
+ *      label: 'New Action',
+ *      onPressed: () => handleNewAction(),
+ *    )
+ *    ```
+ * 
+ * 4. Alert Lifecycle:
+ *    - Creation: Through service methods
+ *    - Display: Managed by AlertSheet
+ *    - Actions: Handled by respective providers
+ *    - Cleanup: Automatic through service
+ * 
+ * 5. Best Practices:
+ *    - Keep alert content concise
+ *    - Use consistent styling
+ *    - Handle all error cases
+ *    - Clean up alerts after action
+ *    - Log important events
  */
 
 import 'package:flutter/material.dart';
