@@ -454,7 +454,8 @@ class _AddFriendsSheetState extends State<AddFriendsSheet> {
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: () async {
-        if (_isCreatingGroup) {
+        final provider = context.read<GroupProvider>();
+        if (provider.isLoading) {
           return false;
         }
         return true;
@@ -465,59 +466,29 @@ class _AddFriendsSheetState extends State<AddFriendsSheet> {
           borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: SafeArea(
-          child: Stack(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const SizedBox(height: 8),
-                  Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[300],
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Create Group',
-                    style: GoogleFonts.cabin(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Expanded(
-                    child: _buildContent(),
-                  ),
-                ],
-              ),
-              if (_isCreatingGroup)
-                Positioned.fill(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.3),
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                    ),
-                    child: Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const CustomLoader(),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Creating group...',
-                            style: GoogleFonts.cabin(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+              const SizedBox(height: 8),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
                 ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Create Group',
+                style: GoogleFonts.cabin(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Expanded(
+                child: _buildContent(),
+              ),
             ],
           ),
         ),
@@ -529,7 +500,22 @@ class _AddFriendsSheetState extends State<AddFriendsSheet> {
     return Consumer<GroupProvider>(
       builder: (context, provider, child) {
         if (provider.isLoading) {
-          return const Center(child: CustomLoader());
+          return Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const CustomLoader(),
+                const SizedBox(height: 16),
+                Text(
+                  'Creating group...',
+                  style: GoogleFonts.cabin(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          );
         }
 
         if (provider.error != null) {
@@ -647,15 +633,13 @@ class _AddFriendsSheetState extends State<AddFriendsSheet> {
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: ElevatedButton(
-                onPressed: (_isCreatingGroup || provider.selectedUsers.isEmpty)
+                onPressed: provider.selectedUsers.isEmpty
                     ? null
                     : () async {
                         if (!_validateForm()) return;
                         
                         // Hide keyboard before showing loading
                         FocusScope.of(context).unfocus();
-                        
-                        setState(() => _isCreatingGroup = true);
                         
                         try {
                           final success = await provider.createGroupAndInvite(
@@ -672,15 +656,11 @@ class _AddFriendsSheetState extends State<AddFriendsSheet> {
                                 : null,
                           );
                           
-                          if (mounted) {
-                            setState(() => _isCreatingGroup = false);
-                            if (success) {
-                              Navigator.pop(context, true);
-                            }
+                          if (mounted && success) {
+                            Navigator.pop(context, true);
                           }
                         } catch (e) {
                           if (mounted) {
-                            setState(() => _isCreatingGroup = false);
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(e.toString()),
@@ -697,9 +677,7 @@ class _AddFriendsSheetState extends State<AddFriendsSheet> {
                   ),
                 ),
                 child: Text(
-                  _isCreatingGroup 
-                    ? 'Creating Group...'
-                    : 'Create Group (${provider.selectedUsers.length} selected)',
+                  'Create Group (${provider.selectedUsers.length} selected)',
                   style: GoogleFonts.cabin(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,

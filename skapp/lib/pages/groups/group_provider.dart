@@ -213,6 +213,10 @@ class GroupProvider extends ChangeNotifier {
     try {
       _logger.info('Starting batch group creation process...');
       
+      // Set loading state
+      _isLoading = true;
+      notifyListeners();
+      
       final result = await _service.batchCreateGroup(
         name: name,
         description: description,
@@ -235,33 +239,20 @@ class GroupProvider extends ChangeNotifier {
           message: 'Group created and invitations sent to ${_selectedUsers.length} members',
           icon: Icons.group_add,
         );
-
-        // TODO: Remove alert creation - will be handled by backend
-        /*
-        final alertService = Provider.of<AlertService>(context, listen: false);
-        alertService.addAlert(
-          AlertItem(
-            title: 'New Group Created',
-            subtitle: 'You created a new group: $name',
-            icon: Icons.group,
-            type: 'group_created_${result['group']['id']}',
-            timestamp: DateTime.now(),
-            category: AlertCategory.groupInvite,
-            requiresResponse: false,
-            actions: [],
-          ),
-        );
-        */
       }
 
       // Clear selected users and reset state
       _selectedUsers.clear();
+      _error = null;
+      _isLoading = false;
       notifyListeners();
 
       return true;
     } catch (e) {
       _logger.severe('Error in createGroupAndInvite: $e');
       _error = e.toString();
+      _isLoading = false;
+      
       if (context.mounted) {
         _notificationService.showAppNotification(
           context,
@@ -270,6 +261,7 @@ class GroupProvider extends ChangeNotifier {
           icon: Icons.error,
         );
       }
+      
       notifyListeners();
       return false;
     }
