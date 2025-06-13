@@ -166,29 +166,21 @@ class FriendsProvider extends ChangeNotifier {
       final result = await _service.sendFriendRequest(profileCode);
       final requestId = result['request_id'].toString();
 
-      // Update the user's status in the list
-      final index = _friends.indexWhere(
+      // Update the user's status in both friends and potential friends lists
+      final friendIndex = _friends.indexWhere(
         (u) => u['profile_code'] == profileCode,
       );
-      if (index != -1) {
-        _friends[index]['friend_request_status'] = 'sent';
+      if (friendIndex != -1) {
+        _friends[friendIndex]['friend_request_status'] = 'sent';
       }
 
-      // TODO: Remove alert creation - will be handled by backend
-      /* 
-      final alertService = Provider.of<AlertService>(context, listen: false);
-      final alertItem = AlertItem(
-        title: 'Pending Friend Request',
-        subtitle: 'Waiting for $username to respond',
-        icon: Icons.pending_outlined,
-        type: 'friend_request_sent_$requestId',
-        timestamp: DateTime.now(),
-        category: AlertCategory.friendRequest,
-        requiresResponse: false,
-        actions: [],
+      // Update potential friends list
+      final potentialIndex = _potentialFriends.indexWhere(
+        (u) => u['profile_code'] == profileCode,
       );
-      alertService.addAlert(alertItem);
-      */
+      if (potentialIndex != -1) {
+        _potentialFriends[potentialIndex]['friend_request_status'] = 'sent';
+      }
 
       // Show success notification
       _notificationService.showAppNotification(
@@ -200,6 +192,9 @@ class FriendsProvider extends ChangeNotifier {
 
       // Force refresh the alerts to ensure they appear
       await loadPendingRequests(context);
+      
+      // Notify listeners after all state updates
+      notifyListeners();
     } finally {
       _pendingRequests.remove(profileCode);
       notifyListeners();
