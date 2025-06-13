@@ -13,6 +13,7 @@ class AddFriendsSheet extends StatefulWidget {
 
   static Future<bool> show(BuildContext context) {
     return showModalBottomSheet<bool>(
+      barrierColor: Colors.deepPurple[400],
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,

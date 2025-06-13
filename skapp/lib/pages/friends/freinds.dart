@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:skapp/widgets/custom_loader.dart';
 import 'package:skapp/pages/friends/add_friends_sheet.dart';
 import 'package:skapp/pages/friends/friends_provider.dart';
+import 'package:skapp/services/alert_service.dart';
 
 class FreindsPage extends StatefulWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
@@ -33,8 +34,16 @@ class FreindsPage extends StatefulWidget {
   State<FreindsPage> createState() => _FreindsPageState();
 
   // Add a static method to reload friends
-  static void reloadFriends() {
-    freindsKey.currentState?.refreshFriends();
+  static Future<void> reloadFriends() async {
+    final context = freindsKey.currentContext;
+    if (context != null) {
+      final friendsProvider = Provider.of<FriendsProvider>(context, listen: false);
+      await friendsProvider.refreshFriends();
+      if (context.mounted) {
+        final alertService = Provider.of<AlertService>(context, listen: false);
+        await alertService.fetchAlerts(context);
+      }
+    }
   }
 
   static Widget friendsImage(BuildContext context, {double? opacity}) {
@@ -87,6 +96,7 @@ class FreindsPage extends StatefulWidget {
         highlightColor: Colors.deepPurple.withOpacity(0.1),
         onTap: () {
           showModalBottomSheet(
+            barrierColor: Colors.deepPurple[400],
             context: context,
             isScrollControlled: true,
             backgroundColor: Colors.transparent,
@@ -140,6 +150,20 @@ class FreindsPage extends StatefulWidget {
 
 class _FreindsPageState extends State<FreindsPage> {
   final FriendsService _friendsService = FriendsService();
+
+  Future<void> refreshFriends() async {
+    await refreshAll();
+  }
+
+  Future<void> refreshAll() async {
+    if (mounted) {
+      await context.read<FriendsProvider>().refreshFriends();
+      if (context.mounted) {
+        final alertService = Provider.of<AlertService>(context, listen: false);
+        await alertService.fetchAlerts(context);
+      }
+    }
+  }
 
   @override
   void initState() {
@@ -195,25 +219,19 @@ class _FreindsPageState extends State<FreindsPage> {
 
         return Scaffold(
           body: RefreshIndicator(
-            onRefresh: () => friendsProvider.refreshFriends(),
+            onRefresh: refreshAll,
             child: friendsProvider.friends.isNotEmpty
                 ? _FriendsListView(
                     friends: friendsProvider.friends,
                     scaffoldKey: widget.scaffoldKey,
                     pageController: widget.pageController,
+                    onRefresh: refreshAll,
                   )
                 : _NoFriendsView(onAddFriends: () {}),
           ),
         );
       },
     );
-  }
-
-  // Keep this method for backward compatibility
-  Future<void> refreshFriends() async {
-    if (mounted) {
-      await context.read<FriendsProvider>().refreshFriends();
-    }
   }
 }
 
@@ -288,10 +306,12 @@ class _FriendsListView extends StatefulWidget {
   final List<dynamic> friends;
   final GlobalKey<ScaffoldState> scaffoldKey;
   final PageController? pageController;
+  final Future<void> Function() onRefresh;
 
   const _FriendsListView({
     required this.friends,
     required this.scaffoldKey,
+    required this.onRefresh,
     this.pageController,
   });
 
@@ -361,188 +381,192 @@ class _FriendsListViewState extends State<_FriendsListView> {
     final double buttonFontSize = width * 0.04;
     final double buttonIconSize = width * 0.05;
 
-    return CustomScrollView(
-      controller: _scrollController,
-      slivers: [
-        // Image Header
-        SliverPersistentHeader(
-          pinned: false,
-          floating: true,
-          delegate: _ImageHeaderDelegate(
-            statusBarHeight: statusBarHeight,
-            scrollOffset: _scrollOffset,
-          ),
-        ),
-        // Purple container with animation
-        SliverAppBar(
-          pinned: true,
-          floating: false,
-          expandedHeight: 60,
-          toolbarHeight: 60,
-          backgroundColor: Colors.transparent,
-          flexibleSpace: LayoutBuilder(
-            builder: (context, constraints) {
-              print('Debug - Scroll Values:');
-              print('scrollOffset: $_scrollOffset');
-
-              return _FriendsHeaderDelegate(
-                context,
-                headerTextStyle: headerTextStyle,
-                buttonFontSize: buttonFontSize,
-                buttonIconSize: buttonIconSize,
-                scrollOffset: _scrollOffset,
-              ).build(
-                context,
-                constraints.maxHeight - constraints.minHeight,
-                constraints.maxHeight != constraints.minHeight,
-              );
-            },
-          ),
-        ),
-        SliverToBoxAdapter(
-          child: SizedBox(
-            height: 5,
-          ), // <-- This adds vertical space (16 pixels)
-        ),
-        SliverAppBar(
-          snap: true,
-          floating: true,
-          expandedHeight: 40,
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          flexibleSpace: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 20.0,
-                vertical: 10.0,
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Heyyloo, ${context.watch<ProfileNotifier>().username ?? 'User'} !!',
-                      style: greetingStyle,
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
-                    ),
-                  ),
-                ],
-              ),
+    return RefreshIndicator(
+      onRefresh: widget.onRefresh,
+      child: CustomScrollView(
+        controller: _scrollController,
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          // Image Header
+          SliverPersistentHeader(
+            pinned: false,
+            floating: true,
+            delegate: _ImageHeaderDelegate(
+              statusBarHeight: statusBarHeight,
+              scrollOffset: _scrollOffset,
             ),
           ),
-        ),
-
-        SliverToBoxAdapter(
-          child: SizedBox(
-            height: 5,
-          ), // <-- This adds vertical space (16 pixels)
-        ),
-        SliverList(
-          delegate: SliverChildBuilderDelegate((
-            BuildContext context,
-            int index,
-          ) {
-            final double width = MediaQuery.of(context).size.width;
-            final double avatarSize = width * 0.12; // Responsive avatar size
-            final double imageSize =
-                width * 0.13; // Slightly larger for the image
-
-            return Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: width * 0.04, // 2.5% of screen width
-                vertical: width * 0.01, // 1.5% of screen width
-              ),
-              child: Card(
-                color: Colors.white,
-                elevation: 2,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(
-                    width * 0.04,
-                  ), // Responsive border radius
-                ),
-                margin: EdgeInsets.symmetric(vertical: width * 0.01),
-                child: ListTile(
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: width * 0.03,
-                    vertical: width * 0.015,
-                  ),
-                  leading: CircleAvatar(
-                    radius: avatarSize / 2.2,
-                    backgroundColor: Theme.of(
-                      context,
-                    ).colorScheme.inversePrimary.withOpacity(0.7),
-                    child: ClipOval(
-                      child: CachedNetworkImage(
-                        imageUrl:
-                            widget.friends[index]['profile_picture_url'] ?? '',
-                        placeholder: (context, url) => CustomLoader(
-                          size: avatarSize * 0.6,
-                          isButtonLoader: true,
-                        ),
-                        errorWidget: (context, url, error) =>
-                            Icon(Icons.person, size: avatarSize * 0.6),
-                        width: imageSize,
-                        height: imageSize,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  ),
-                  title: Text(
-                    widget.friends[index]['username']?.toString() ?? 'No Name',
-                    style: friendNameStyle,
-                  ),
-                ),
-              ),
-            );
-          }, childCount: widget.friends.length),
-        ),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: EdgeInsets.symmetric(
-              vertical: MediaQuery.of(context).size.width * 0.03,
+          // Purple container with animation
+          SliverAppBar(
+            pinned: true,
+            floating: false,
+            expandedHeight: 60,
+            toolbarHeight: 60,
+            backgroundColor: Colors.transparent,
+            flexibleSpace: LayoutBuilder(
+              builder: (context, constraints) {
+                print('Debug - Scroll Values:');
+                print('scrollOffset: $_scrollOffset');
+      
+                return _FriendsHeaderDelegate(
+                  context,
+                  headerTextStyle: headerTextStyle,
+                  buttonFontSize: buttonFontSize,
+                  buttonIconSize: buttonIconSize,
+                  scrollOffset: _scrollOffset,
+                ).build(
+                  context,
+                  constraints.maxHeight - constraints.minHeight,
+                  constraints.maxHeight != constraints.minHeight,
+                );
+              },
             ),
-            child: Center(
-              child: Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: MediaQuery.of(context).size.width * 0.035,
-                  vertical: MediaQuery.of(context).size.width * 0.015,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.deepPurple.withOpacity(0.06),
-                  borderRadius: BorderRadius.circular(
-                    MediaQuery.of(context).size.width * 0.025,
-                  ),
-                  border: Border.all(color: Colors.deepPurple, width: 1),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.deepPurple.withOpacity(0.08),
-                      blurRadius: 4,
-                      offset: Offset(0.5, 1),
-                    ),
-                  ],
+          ),
+          SliverToBoxAdapter(
+            child: SizedBox(
+              height: 5,
+            ), // <-- This adds vertical space (16 pixels)
+          ),
+          SliverAppBar(
+            snap: true,
+            floating: true,
+            expandedHeight: 40,
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            flexibleSpace: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20.0,
+                  vertical: 10.0,
                 ),
                 child: Row(
-                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      'You have ',
-                      style: _getFriendCountStyle(false, width),
-                    ),
-                    Text(
-                      '${widget.friends.length}',
-                      style: _getFriendCountStyle(true, width),
-                    ),
-                    Text(
-                      ' friends 🎉',
-                      style: _getFriendCountStyle(false, width),
+                    Expanded(
+                      child: Text(
+                        'Heyyloo, ${context.watch<ProfileNotifier>().username ?? 'User'} !!',
+                        style: greetingStyle,
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
                     ),
                   ],
                 ),
               ),
             ),
           ),
-        ),
-      ],
+      
+          SliverToBoxAdapter(
+            child: SizedBox(
+              height: 5,
+            ), // <-- This adds vertical space (16 pixels)
+          ),
+          SliverList(
+            delegate: SliverChildBuilderDelegate((
+              BuildContext context,
+              int index,
+            ) {
+              final double width = MediaQuery.of(context).size.width;
+              final double avatarSize = width * 0.12; // Responsive avatar size
+              final double imageSize =
+                  width * 0.13; // Slightly larger for the image
+      
+              return Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: width * 0.04, // 2.5% of screen width
+                  vertical: width * 0.01, // 1.5% of screen width
+                ),
+                child: Card(
+                  color: Colors.white,
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(
+                      width * 0.04,
+                    ), // Responsive border radius
+                  ),
+                  margin: EdgeInsets.symmetric(vertical: width * 0.01),
+                  child: ListTile(
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: width * 0.03,
+                      vertical: width * 0.015,
+                    ),
+                    leading: CircleAvatar(
+                      radius: avatarSize / 2.2,
+                      backgroundColor: Theme.of(
+                        context,
+                      ).colorScheme.inversePrimary.withOpacity(0.7),
+                      child: ClipOval(
+                        child: CachedNetworkImage(
+                          imageUrl:
+                              widget.friends[index]['profile_picture_url'] ?? '',
+                          placeholder: (context, url) => CustomLoader(
+                            size: avatarSize * 0.6,
+                            isButtonLoader: true,
+                          ),
+                          errorWidget: (context, url, error) =>
+                              Icon(Icons.person, size: avatarSize * 0.6),
+                          width: imageSize,
+                          height: imageSize,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                    title: Text(
+                      widget.friends[index]['username']?.toString() ?? 'No Name',
+                      style: friendNameStyle,
+                    ),
+                  ),
+                ),
+              );
+            }, childCount: widget.friends.length),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                vertical: MediaQuery.of(context).size.width * 0.03,
+              ),
+              child: Center(
+                child: Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: MediaQuery.of(context).size.width * 0.035,
+                    vertical: MediaQuery.of(context).size.width * 0.015,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.deepPurple.withOpacity(0.06),
+                    borderRadius: BorderRadius.circular(
+                      MediaQuery.of(context).size.width * 0.025,
+                    ),
+                    border: Border.all(color: Colors.deepPurple, width: 1),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.deepPurple.withOpacity(0.08),
+                        blurRadius: 4,
+                        offset: Offset(0.5, 1),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'You have ',
+                        style: _getFriendCountStyle(false, width),
+                      ),
+                      Text(
+                        '${widget.friends.length}',
+                        style: _getFriendCountStyle(true, width),
+                      ),
+                      Text(
+                        ' friends 🎉',
+                        style: _getFriendCountStyle(false, width),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

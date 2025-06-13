@@ -9,6 +9,7 @@ import 'package:provider/provider.dart';
 import 'package:skapp/widgets/custom_loader.dart';
 import 'package:skapp/pages/groups/add_group_sheet.dart';
 // import 'package:skapp/pages/groups/friends_provider.dart';
+import 'package:skapp/services/alert_service.dart';
 
 class GroupsPage extends StatefulWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
@@ -135,6 +136,16 @@ class GroupsPage extends StatefulWidget {
 }
 
 class _GroupsPageState extends State<GroupsPage> {
+  Future<void> refreshAll() async {
+    if (mounted) {
+      await context.read<GroupProvider>().loadGroups(forceRefresh: true);
+      if (context.mounted) {
+        final alertService = Provider.of<AlertService>(context, listen: false);
+        await alertService.fetchAlerts(context);
+      }
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -180,11 +191,12 @@ class _GroupsPageState extends State<GroupsPage> {
 
         return Scaffold(
           body: RefreshIndicator(
-            onRefresh: () => provider.loadGroups(forceRefresh: true),
+            onRefresh: refreshAll,
             child: provider.groups.isNotEmpty
                 ? _GroupsListView(
                     scaffoldKey: widget.scaffoldKey,
                     pageController: widget.pageController,
+                    onRefresh: refreshAll,
                   )
                 : _NoGroupsView(onAddFriends: () {}),
           ),
@@ -264,9 +276,11 @@ class _NoFriendsViewState extends State<_NoGroupsView> {
 class _GroupsListView extends StatefulWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
   final PageController? pageController;
+  final Future<void> Function() onRefresh;
 
   const _GroupsListView({
     required this.scaffoldKey,
+    required this.onRefresh,
     this.pageController,
   });
 
@@ -339,186 +353,190 @@ class _FriendsListViewState extends State<_GroupsListView> {
     // Get groups from provider
     final groups = context.watch<GroupProvider>().groups;
 
-    return CustomScrollView(
-      controller: _scrollController,
-      slivers: [
-        // Image Header
-        SliverPersistentHeader(
-          pinned: false,
-          floating: true,
-          delegate: _ImageHeaderDelegate(
-            statusBarHeight: statusBarHeight,
-            scrollOffset: _scrollOffset,
-          ),
-        ),
-        // Purple container with animation
-        SliverAppBar(
-          pinned: true,
-          floating: false,
-          expandedHeight: 60,
-          toolbarHeight: 60,
-          backgroundColor: Colors.transparent,
-          flexibleSpace: LayoutBuilder(
-            builder: (context, constraints) {
-              print('Debug - Scroll Values:');
-              print('scrollOffset: $_scrollOffset');
-
-              return _FriendsHeaderDelegate(
-                context,
-                headerTextStyle: headerTextStyle,
-                buttonFontSize: buttonFontSize,
-                buttonIconSize: buttonIconSize,
-                scrollOffset: _scrollOffset,
-              ).build(
-                context,
-                constraints.maxHeight - constraints.minHeight,
-                constraints.maxHeight != constraints.minHeight,
-              );
-            },
-          ),
-        ),
-        SliverToBoxAdapter(
-          child: SizedBox(
-            height: 5,
-          ), // <-- This adds vertical space (16 pixels)
-        ),
-        SliverAppBar(
-          snap: true,
-          floating: true,
-          expandedHeight: 40,
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          flexibleSpace: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 20.0,
-                vertical: 10.0,
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Heyyloo, ${context.watch<ProfileNotifier>().username ?? 'User'} !!',
-                      style: greetingStyle,
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
-                    ),
-                  ),
-                ],
-              ),
+    return RefreshIndicator(
+      onRefresh: widget.onRefresh,
+      child: CustomScrollView(
+        controller: _scrollController,
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          // Image Header
+          SliverPersistentHeader(
+            pinned: false,
+            floating: true,
+            delegate: _ImageHeaderDelegate(
+              statusBarHeight: statusBarHeight,
+              scrollOffset: _scrollOffset,
             ),
           ),
-        ),
+          // Purple container with animation
+          SliverAppBar(
+            pinned: true,
+            floating: false,
+            expandedHeight: 60,
+            toolbarHeight: 60,
+            backgroundColor: Colors.transparent,
+            flexibleSpace: LayoutBuilder(
+              builder: (context, constraints) {
+                print('Debug - Scroll Values:');
+                print('scrollOffset: $_scrollOffset');
 
-        SliverToBoxAdapter(
-          child: SizedBox(
-            height: 5,
-          ), // <-- This adds vertical space (16 pixels)
-        ),
-        SliverList(
-          delegate: SliverChildBuilderDelegate(
-            (BuildContext context, int index) {
-              final group = groups[index];
-              final double width = MediaQuery.of(context).size.width;
-              final double avatarSize = width * 0.12;
-              final double imageSize = width * 0.13;
-
-              return Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: width * 0.04,
-                  vertical: width * 0.01,
-                ),
-                child: Card(
-                  color: Colors.white,
-                  elevation: 2,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(width * 0.04),
-                  ),
-                  margin: EdgeInsets.symmetric(vertical: width * 0.01),
-                  child: ListTile(
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: width * 0.03,
-                      vertical: width * 0.015,
-                    ),
-                    leading: CircleAvatar(
-                      radius: avatarSize / 2.2,
-                      backgroundColor: Theme.of(context)
-                          .colorScheme
-                          .inversePrimary
-                          .withOpacity(0.7),
-                      child: ClipOval(
-                        child: CachedNetworkImage(
-                          imageUrl: group['profile_picture_url'] ?? '',
-                          placeholder: (context, url) => CustomLoader(
-                            size: avatarSize * 0.6,
-                            isButtonLoader: true,
-                          ),
-                          errorWidget: (context, url, error) =>
-                              Icon(Icons.groups_2_outlined, size: avatarSize * 0.6),
-                          width: imageSize,
-                          height: imageSize,
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    ),
-                    title: Text(
-                      group['name']?.toString() ?? 'Group Name not fetched',
-                      style: groupNameStyle,
-                    ),
-                  ),
-                ),
-              );
-            },
-            childCount: groups.length,
-          ),
-        ),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: EdgeInsets.symmetric(
-              vertical: MediaQuery.of(context).size.width * 0.03,
+                return _FriendsHeaderDelegate(
+                  context,
+                  headerTextStyle: headerTextStyle,
+                  buttonFontSize: buttonFontSize,
+                  buttonIconSize: buttonIconSize,
+                  scrollOffset: _scrollOffset,
+                ).build(
+                  context,
+                  constraints.maxHeight - constraints.minHeight,
+                  constraints.maxHeight != constraints.minHeight,
+                );
+              },
             ),
-            child: Center(
-              child: Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: MediaQuery.of(context).size.width * 0.035,
-                  vertical: MediaQuery.of(context).size.width * 0.015,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.deepPurple.withOpacity(0.06),
-                  borderRadius: BorderRadius.circular(
-                    MediaQuery.of(context).size.width * 0.025,
-                  ),
-                  border: Border.all(color: Colors.deepPurple, width: 1),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.deepPurple.withOpacity(0.08),
-                      blurRadius: 4,
-                      offset: Offset(0.5, 1),
-                    ),
-                  ],
+          ),
+          SliverToBoxAdapter(
+            child: SizedBox(
+              height: 5,
+            ), // <-- This adds vertical space (16 pixels)
+          ),
+          SliverAppBar(
+            snap: true,
+            floating: true,
+            expandedHeight: 40,
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            flexibleSpace: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20.0,
+                  vertical: 10.0,
                 ),
                 child: Row(
-                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      'You have ',
-                      style: _getFriendCountStyle(false, width),
-                    ),
-                    Text(
-                      '${groups.length}',
-                      style: _getFriendCountStyle(true, width),
-                    ),
-                    Text(
-                      ' groups 🎉',
-                      style: _getFriendCountStyle(false, width),
+                    Expanded(
+                      child: Text(
+                        'Heyyloo, ${context.watch<ProfileNotifier>().username ?? 'User'} !!',
+                        style: greetingStyle,
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
                     ),
                   ],
                 ),
               ),
             ),
           ),
-        ),
-      ],
+
+          SliverToBoxAdapter(
+            child: SizedBox(
+              height: 5,
+            ), // <-- This adds vertical space (16 pixels)
+          ),
+          SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (BuildContext context, int index) {
+                final group = groups[index];
+                final double width = MediaQuery.of(context).size.width;
+                final double avatarSize = width * 0.12;
+                final double imageSize = width * 0.13;
+
+                return Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: width * 0.04,
+                    vertical: width * 0.01,
+                  ),
+                  child: Card(
+                    color: Colors.white,
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(width * 0.04),
+                    ),
+                    margin: EdgeInsets.symmetric(vertical: width * 0.01),
+                    child: ListTile(
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: width * 0.03,
+                        vertical: width * 0.015,
+                      ),
+                      leading: CircleAvatar(
+                        radius: avatarSize / 2.2,
+                        backgroundColor: Theme.of(context)
+                            .colorScheme
+                            .inversePrimary
+                            .withOpacity(0.7),
+                        child: ClipOval(
+                          child: CachedNetworkImage(
+                            imageUrl: group['profile_picture_url'] ?? '',
+                            placeholder: (context, url) => CustomLoader(
+                              size: avatarSize * 0.6,
+                              isButtonLoader: true,
+                            ),
+                            errorWidget: (context, url, error) =>
+                                Icon(Icons.groups_2_outlined, size: avatarSize * 0.6),
+                            width: imageSize,
+                            height: imageSize,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ),
+                      title: Text(
+                        group['name']?.toString() ?? 'Group Name not fetched',
+                        style: groupNameStyle,
+                      ),
+                    ),
+                  ),
+                );
+              },
+              childCount: groups.length,
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                vertical: MediaQuery.of(context).size.width * 0.03,
+              ),
+              child: Center(
+                child: Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: MediaQuery.of(context).size.width * 0.035,
+                    vertical: MediaQuery.of(context).size.width * 0.015,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.deepPurple.withOpacity(0.06),
+                    borderRadius: BorderRadius.circular(
+                      MediaQuery.of(context).size.width * 0.025,
+                    ),
+                    border: Border.all(color: Colors.deepPurple, width: 1),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.deepPurple.withOpacity(0.08),
+                        blurRadius: 4,
+                        offset: Offset(0.5, 1),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'You have ',
+                        style: _getFriendCountStyle(false, width),
+                      ),
+                      Text(
+                        '${groups.length}',
+                        style: _getFriendCountStyle(true, width),
+                      ),
+                      Text(
+                        ' groups 🎉',
+                        style: _getFriendCountStyle(false, width),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
