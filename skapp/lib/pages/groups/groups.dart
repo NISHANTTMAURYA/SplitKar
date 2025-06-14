@@ -78,11 +78,12 @@ class GroupsPage extends StatefulWidget {
     VoidCallback onAddFriends, {
     TextStyle? textStyle,
     double? iconSize,
+    required double width,
   }) {
     return Material(
       color: Colors.transparent,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(width * 0.03),
         side: BorderSide(
           color: Theme.of(context).colorScheme.inversePrimary,
           width: 2,
@@ -172,14 +173,14 @@ class _GroupsPageState extends State<GroupsPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.error_outline, size: 48, color: Colors.red),
-                  SizedBox(height: 16),
+                  Icon(Icons.error_outline, size: MediaQuery.of(context).size.width * 0.12, color: Colors.red),
+                  SizedBox(height: MediaQuery.of(context).size.height * 0.02),
                   Text(
                     provider.error!,
                     style: TextStyle(color: Colors.red),
                     textAlign: TextAlign.center,
                   ),
-                  SizedBox(height: 16),
+                  SizedBox(height: MediaQuery.of(context).size.height * 0.02),
                   ElevatedButton(
                     onPressed: () => provider.loadGroups(forceRefresh: true),
                     child: Text('Retry')
@@ -263,7 +264,16 @@ class _NoFriendsViewState extends State<_NoGroupsView> {
                 SizedBox(height: width * 0.05),
                 GroupsPage.friendsText(context),
                 SizedBox(height: width * 0.04),
-                GroupsPage.addGroupsButton(context, widget.onAddFriends),
+                GroupsPage.addGroupsButton(
+                  context,
+                  widget.onAddFriends,
+                  textStyle: TextStyle(
+                    color: Theme.of(context).colorScheme.inversePrimary,
+                    fontWeight: FontWeight.w800,
+                  ),
+                  iconSize: width * 0.05,
+                  width: width,
+                ),
                 SizedBox(height: width * 0.05),
               ],
             ),
@@ -367,14 +377,15 @@ class _FriendsListViewState extends State<_GroupsListView> {
             delegate: _ImageHeaderDelegate(
               statusBarHeight: statusBarHeight,
               scrollOffset: _scrollOffset,
+              screenHeight: height,
             ),
           ),
           // Purple container with animation
           SliverAppBar(
             pinned: true,
             floating: false,
-            expandedHeight: 60,
-            toolbarHeight: 60,
+            expandedHeight: height * 0.075,
+            toolbarHeight: height * 0.075,
             backgroundColor: Colors.transparent,
             flexibleSpace: LayoutBuilder(
               builder: (context, constraints) {
@@ -387,6 +398,8 @@ class _FriendsListViewState extends State<_GroupsListView> {
                   buttonFontSize: buttonFontSize,
                   buttonIconSize: buttonIconSize,
                   scrollOffset: _scrollOffset,
+                  screenWidth: width,
+                  screenHeight: height,
                 ).build(
                   context,
                   constraints.maxHeight - constraints.minHeight,
@@ -397,20 +410,20 @@ class _FriendsListViewState extends State<_GroupsListView> {
           ),
           SliverToBoxAdapter(
             child: SizedBox(
-              height: 5,
-            ), // <-- This adds vertical space (16 pixels)
+              height: height * 0.007,
+            ),
           ),
           SliverAppBar(
             snap: true,
             floating: true,
-            expandedHeight: 40,
+            expandedHeight: height * 0.05,
             backgroundColor: Colors.transparent,
             elevation: 0,
             flexibleSpace: SafeArea(
               child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20.0,
-                  vertical: 10.0,
+                padding: EdgeInsets.symmetric(
+                  horizontal: width * 0.05,
+                  vertical: height * 0.012,
                 ),
                 child: Row(
                   children: [
@@ -430,8 +443,8 @@ class _FriendsListViewState extends State<_GroupsListView> {
 
           SliverToBoxAdapter(
             child: SizedBox(
-              height: 5,
-            ), // <-- This adds vertical space (16 pixels)
+              height: height * 0.007,
+            ),
           ),
           SliverList(
             delegate: SliverChildBuilderDelegate(
@@ -566,6 +579,8 @@ class _FriendsHeaderDelegate extends SliverPersistentHeaderDelegate {
   final double buttonFontSize;
   final double buttonIconSize;
   final double scrollOffset;
+  final double screenWidth;
+  final double screenHeight;
 
   const _FriendsHeaderDelegate(
     this.context, {
@@ -573,6 +588,8 @@ class _FriendsHeaderDelegate extends SliverPersistentHeaderDelegate {
     required this.buttonFontSize,
     required this.buttonIconSize,
     required this.scrollOffset,
+    required this.screenWidth,
+    required this.screenHeight,
   });
 
   @override
@@ -628,6 +645,7 @@ class _FriendsHeaderDelegate extends SliverPersistentHeaderDelegate {
                         color: Theme.of(context).colorScheme.inversePrimary,
                       ),
                       iconSize: buttonIconSize,
+                      width: screenWidth,
                     ),
                   ),
                 ],
@@ -640,24 +658,28 @@ class _FriendsHeaderDelegate extends SliverPersistentHeaderDelegate {
   }
 
   @override
-  double get maxExtent => 60.0;
+  double get maxExtent => screenHeight * 0.075;
 
   @override
-  double get minExtent => 60.0;
+  double get minExtent => screenHeight * 0.075;
 
   @override
   bool shouldRebuild(covariant _FriendsHeaderDelegate oldDelegate) {
-    return true;
+    return oldDelegate.scrollOffset != scrollOffset ||
+        oldDelegate.screenWidth != screenWidth ||
+        oldDelegate.screenHeight != screenHeight;
   }
 }
 
 class _ImageHeaderDelegate extends SliverPersistentHeaderDelegate {
   final double statusBarHeight;
   final double scrollOffset;
+  final double screenHeight;
 
   const _ImageHeaderDelegate({
     required this.statusBarHeight,
     required this.scrollOffset,
+    required this.screenHeight,
   });
 
   @override
@@ -691,7 +713,7 @@ class _ImageHeaderDelegate extends SliverPersistentHeaderDelegate {
   }
 
   @override
-  double get maxExtent => 200 + statusBarHeight;
+  double get maxExtent => screenHeight * 0.25 + statusBarHeight;
 
   @override
   double get minExtent => 0;
@@ -699,6 +721,7 @@ class _ImageHeaderDelegate extends SliverPersistentHeaderDelegate {
   @override
   bool shouldRebuild(covariant _ImageHeaderDelegate oldDelegate) {
     return oldDelegate.statusBarHeight != statusBarHeight ||
-        oldDelegate.scrollOffset != scrollOffset;
+        oldDelegate.scrollOffset != scrollOffset ||
+        oldDelegate.screenHeight != screenHeight;
   }
 }
