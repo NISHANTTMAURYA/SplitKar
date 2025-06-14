@@ -1,0 +1,492 @@
+class AlertSheet extends StatefulWidget {
+  final AlertService alertService;
+  final VoidCallback? onClose;
+  static final _logger = Logger('AlertSheet');
+
+  const AlertSheet({
+    super.key,
+    required this.alertService,
+    this.onClose,
+  });
+
+  static Future<void> show(BuildContext context) {
+    return BottomSheetWrapper.show(
+      context: context,
+      child: Builder(
+        builder: (context) {
+          final alertService = Provider.of<AlertService>(context, listen: false);
+          return AlertSheet(alertService: alertService);
+        },
+      ),
+    );
+  }
+
+  @override
+  State<AlertSheet> createState() => _AlertSheetState();
+}
+
+class _AlertSheetState extends State<AlertSheet> {
+  static final _logger = Logger('AlertSheet');
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<AlertService>(
+      builder: (context, alertService, child) {
+        // Show loading state
+        if (alertService.isLoading) {
+          return Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).scaffoldBackgroundColor,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CustomLoader(size: 40),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Loading alerts...',
+                    style: GoogleFonts.cabin(
+                      fontSize: 16,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        // Show error state
+        if (alertService.error != null) {
+          return Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).scaffoldBackgroundColor,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.error_outline, size: 48, color: Colors.red[400]),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Error loading alerts',
+                      style: GoogleFonts.cabin(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.red[400],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      alertService.error!,
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.cabin(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextButton.icon(
+                      onPressed: () => alertService.fetchAlerts(context),
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+
+        return Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Activity',
+                      style: GoogleFonts.cabin(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Use separate widget for tab management
+              if (alertService.alerts.isNotEmpty)
+                AlertTabsWidget(alertService: alertService),
+
+              // Show empty state if no alerts
+              if (alertService.alerts.isEmpty)
+                Expanded(
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.notifications_none, size: 64, color: Colors.grey[400]),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No new activity',
+                          style: GoogleFonts.cabin(
+                            fontSize: 18,
+                            color: Colors.grey[600],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'You\'re all caught up!',
+                          style: GoogleFonts.cabin(fontSize: 14, color: Colors.grey[500]),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+// Separate widget to handle tab controller lifecycle
+class AlertTabsWidget extends StatefulWidget {
+  final AlertService alertService;
+
+  const AlertTabsWidget({
+    super.key,
+    required this.alertService,
+  });
+
+  @override
+  State<AlertTabsWidget> createState() => _AlertTabsWidgetState();
+}
+
+class _AlertTabsWidgetState extends State<AlertTabsWidget>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  AlertCategory? _selectedFilter;
+  List<AlertCategory> _categories = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _updateCategories();
+    _initializeTabController();
+  }
+
+  @override
+  void didUpdateWidget(AlertTabsWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    // Check if categories have changed
+    final oldCategories = _categories;
+    _updateCategories();
+
+    // Reinitialize tab controller if categories changed
+    if (!_listEquals(oldCategories, _categories)) {
+      _initializeTabController();
+    }
+  }
+
+  void _updateCategories() {
+    _categories = widget.alertService.categoryCounts
+        .where((count) => count.total > 0)
+        .map((count) => count.category)
+        .toList()
+      ..sort((a, b) {
+        // Sort by responsive alerts first, then by unread count
+        final aHasResponse = widget.alertService.alerts.any(
+          (alert) => alert.category == a && alert.requiresResponse,
+        );
+        final bHasResponse = widget.alertService.alerts.any(
+          (alert) => alert.category == b && alert.requiresResponse,
+        );
+        if (aHasResponse != bHasResponse) {
+          return aHasResponse ? -1 : 1;
+        }
+        // Then sort by unread count
+        final aCount = widget.alertService.categoryCounts
+            .firstWhere((c) => c.category == a)
+            .unread;
+        final bCount = widget.alertService.categoryCounts
+            .firstWhere((c) => c.category == b)
+            .unread;
+        return bCount.compareTo(aCount);
+      });
+  }
+
+  void _initializeTabController() {
+    // Dispose old controller if it exists
+    if (mounted) {
+      _tabController.dispose();
+    } else {
+      // Don't dispose if not mounted yet, just create new one
+    }
+
+    // Total tabs = 1 (All) + number of categories
+    final totalTabs = 1 + _categories.length;
+
+    _tabController = TabController(
+      length: totalTabs,
+      vsync: this,
+    );
+
+    _tabController.addListener(() {
+      if (!_tabController.indexIsChanging && mounted) {
+        setState(() {
+          _selectedFilter = _tabController.index == 0
+              ? null
+              : _categories[_tabController.index - 1];
+        });
+      }
+    });
+
+    // Reset filter if current selection is invalid
+    if (_selectedFilter != null && !_categories.contains(_selectedFilter)) {
+      _selectedFilter = null;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _tabController.index != 0) {
+          _tabController.animateTo(0);
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  List<Widget> _buildTabs() {
+    return [
+      // All tab
+      Tab(
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.all_inbox, size: 16),
+            const SizedBox(width: 4),
+            const Text('All'),
+            if (widget.alertService.totalCount > 0) ...[
+              const SizedBox(width: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  widget.alertService.totalCount.toString(),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+      // Category tabs
+      ..._categories.map((category) => Tab(
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(category.icon, size: 16),
+            const SizedBox(width: 4),
+            Text(category.displayName),
+            if (widget.alertService.categoryCounts
+                .firstWhere((c) => c.category == category)
+                .unread > 0) ...[
+              const SizedBox(width: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  widget.alertService.categoryCounts
+                    .firstWhere((c) => c.category == category)
+                    .unread
+                    .toString(),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      )),
+    ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Column(
+        children: [
+          Container(
+            height: 48,
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            child: TabBar(
+              controller: _tabController,
+              isScrollable: true,
+              tabAlignment: TabAlignment.start,
+              dividerColor: Colors.transparent,
+              indicatorSize: TabBarIndicatorSize.tab,
+              labelColor: Theme.of(context).colorScheme.primary,
+              unselectedLabelColor: Colors.grey,
+              tabs: _buildTabs(),
+            ),
+          ),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                // All alerts tab
+                _buildAlertList(context, null),
+                // Category specific tabs
+                ..._categories.map((category) =>
+                  _buildAlertList(context, category)
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAlertList(BuildContext context, AlertCategory? category) {
+    final alerts = category == null
+        ? widget.alertService.alerts
+        : widget.alertService.alerts.where((alert) => alert.category == category).toList();
+
+    if (alerts.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.notifications_none, size: 64, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            Text(
+              category == null ? 'No alerts' : 'No ${category.displayName.toLowerCase()}',
+              style: GoogleFonts.cabin(
+                fontSize: 18,
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.separated(
+      padding: const EdgeInsets.all(16),
+      itemCount: alerts.length,
+      separatorBuilder: (context, index) => const SizedBox(height: 12),
+      itemBuilder: (context, index) {
+        final alert = alerts[index];
+        return AlertCard(
+          alert: alert,
+          onAction: () {
+            // Handle alert action and potentially remove it
+            widget.alertService.removeAlert(alert.id);
+          },
+        );
+      },
+    );
+  }
+}
+
+// Helper function to compare lists
+bool _listEquals<T>(List<T>? a, List<T>? b) {
+  if (a == null) return b == null;
+  if (b == null || a.length != b.length) return false;
+  for (int index = 0; index < a.length; index += 1) {
+    if (a[index] != b[index]) return false;
+  }
+  return true;
+}
+
+// Placeholder for AlertCard widget
+class AlertCard extends StatelessWidget {
+  final AlertItem alert;
+  final VoidCallback? onAction;
+
+  const AlertCard({
+    super.key,
+    required this.alert,
+    this.onAction,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: ListTile(
+        leading: Icon(alert.icon),
+        title: Text(alert.title),
+        subtitle: Text(alert.subtitle),
+        trailing: alert.actions.isNotEmpty
+            ? ElevatedButton(
+                onPressed: () async {
+                  await alert.actions.first.onPressed();
+                  onAction?.call();
+                },
+                child: Text(alert.actions.first.label),
+              )
+            : null,
+      ),
+    );
+  }
+}
+
+
+
+
+The key changes in this approach:
+
+Separated Tab Logic: Created AlertTabsWidget as a separate stateful widget that manages its own TabController lifecycle.
+Better State Management: The main AlertSheet no longer handles tabs directly, avoiding the Consumer rebuild conflicts.
+Proper Controller Initialization: The tab controller is initialized once with the correct length and only recreated when categories actually change.
+TabBarView Implementation: Used TabBarView instead of manual filtering, which is more efficient and handles tab switching automatically.
+Lifecycle Management: Proper disposal of the tab controller and checking mounted state before operations.
+Category Tracking: The _categories list is tracked separately and only updates the controller when it actually changes.
+
+The main benefits:
+
+No more length mismatches: Controller length always matches the number of tabs
+Better performance: TabBarView handles content switching efficiently
+Cleaner separation: Tab logic is isolated from the main sheet logic
+Proper lifecycle: Controllers are created and disposed at the right times
+
+This should completely eliminate the RangeError you were experiencing!RetryClaude can make mistakes. Please double-check responses.
