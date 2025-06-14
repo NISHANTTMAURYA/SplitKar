@@ -257,6 +257,18 @@ class _AlertSheetState extends State<AlertSheet> with SingleTickerProviderStateM
       length: tabs.length,
       vsync: this,
     );
+
+    // Add listener to update filter when tab changes
+    _tabController.addListener(() {
+      if (!_tabController.indexIsChanging) {
+        setState(() {
+          // First tab (index 0) is "All", so set filter to null
+          _selectedFilter = _tabController.index == 0 
+              ? null 
+              : categories[_tabController.index - 1];
+        });
+      }
+    });
   }
 
   @override

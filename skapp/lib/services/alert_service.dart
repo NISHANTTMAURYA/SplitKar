@@ -215,18 +215,22 @@ class AlertService extends ChangeNotifier {
     final originalCounts = List<AlertCategoryCount>.from(_categoryCounts);
 
     try {
-      // Immediately update UI optimistically
-      _alerts.removeWhere((a) => a.id == alertId);
-      _updateCategoryCounts();
-      notifyListeners();
-
       // Start processing in background
       _processingAlerts.add(alertId);
+      notifyListeners();
 
       // Execute the action in background
       await action();
 
-      // Action successful, no need to do anything as UI is already updated
+      // After successful action, remove the alert and update counts
+      _alerts.removeWhere((a) => a.id == alertId);
+      _updateCategoryCounts();
+      notifyListeners();
+
+      // If there are no more alerts in the current category, fetch fresh data
+      if (_alerts.isEmpty || !_alerts.any((a) => a.category == alertToRemove.category)) {
+        await fetchAlerts(context);
+      }
     } catch (e) {
       _logger.severe('Error handling alert action: $e');
       
@@ -249,6 +253,7 @@ class AlertService extends ChangeNotifier {
       rethrow;
     } finally {
       _processingAlerts.remove(alertId);
+      notifyListeners();
     }
   }
 
@@ -271,6 +276,8 @@ class AlertService extends ChangeNotifier {
         unread: unreadCounts[category] ?? 0,
       );
     }).where((count) => count.total > 0).toList();
+
+    notifyListeners();
   }
 
   // Fetch alerts from backend
