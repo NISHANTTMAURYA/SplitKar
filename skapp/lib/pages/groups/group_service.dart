@@ -28,6 +28,11 @@ class GroupsService {
     };
   }
 
+  void dispose() {
+    client.close();
+    _logger.info('GroupsService http client closed.');
+  }
+
   Future<void> _initPrefs() async {
     try {
       _prefs = await SharedPreferences.getInstance();

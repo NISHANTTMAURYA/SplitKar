@@ -29,6 +29,11 @@ class FriendsService {
     };
   }
 
+  void dispose() {
+    client.close();
+    _logger.info('FriendsService http client closed.');
+  }
+
   Future<void> _initPrefs() async {
     try {
       _prefs = await SharedPreferences.getInstance();

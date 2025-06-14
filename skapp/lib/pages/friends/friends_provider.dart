@@ -68,6 +68,12 @@ class FriendsProvider extends ChangeNotifier {
   // TODO: Add request cancellation
   bool _isRequestCancelled = false;
 
+  @override
+  void dispose() {
+    _service.dispose();
+    super.dispose();
+  }
+
   Future<void> loadFriends({bool forceRefresh = false}) async {
     try {
       _isLoading = true;

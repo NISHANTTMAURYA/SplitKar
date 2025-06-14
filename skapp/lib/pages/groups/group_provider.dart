@@ -75,6 +75,12 @@ class GroupProvider extends ChangeNotifier {
   // TODO: Add request cancellation
   bool _isRequestCancelled = false;
 
+  @override
+  void dispose() {
+    _service.dispose();
+    super.dispose();
+  }
+
   // Load initial users
   Future<void> loadUsers() async {
     if (_isLoading) return;
