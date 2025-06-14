@@ -489,25 +489,39 @@ class _FriendsListViewState extends State<_FriendsListView> {
                       horizontal: width * 0.03,
                       vertical: width * 0.015,
                     ),
+                    onTap: () {
+                      Navigator.pushNamed(
+                        context,
+                        '/screen',
+                        arguments: {
+                          'chatName': widget.friends[index]['username']?.toString() ?? 'Friend Chat',
+                          'chatImageUrl': widget.friends[index]['profile_picture_url'],
+                          'isGroupChat': false,
+                        },
+                      );
+                    },
                     leading: CircleAvatar(
                       radius: avatarSize / 2.2,
                       backgroundColor: Theme.of(
                         context,
                       ).colorScheme.inversePrimary.withOpacity(0.7),
                       child: ClipOval(
-                        child: CachedNetworkImage(
-                          imageUrl:
-                              widget.friends[index]['profile_picture_url'] ?? '',
-                          placeholder: (context, url) => CustomLoader(
-                            size: avatarSize * 0.6,
-                            isButtonLoader: true,
-                          ),
-                          errorWidget: (context, url, error) =>
-                              Icon(Icons.person, size: avatarSize * 0.6),
-                          width: imageSize,
-                          height: imageSize,
-                          fit: BoxFit.cover,
-                        ),
+                        child: (widget.friends[index]['profile_picture_url'] != null &&
+                                (widget.friends[index]['profile_picture_url'] as String).isNotEmpty &&
+                                (widget.friends[index]['profile_picture_url'] as String).startsWith('http'))
+                            ? CachedNetworkImage(
+                                imageUrl: widget.friends[index]['profile_picture_url'],
+                                placeholder: (context, url) => CustomLoader(
+                                  size: avatarSize * 0.6,
+                                  isButtonLoader: true,
+                                ),
+                                errorWidget: (context, url, error) =>
+                                    Icon(Icons.person, size: avatarSize * 0.6),
+                                width: imageSize,
+                                height: imageSize,
+                                fit: BoxFit.cover,
+                              )
+                            : Icon(Icons.person, size: avatarSize * 0.6),
                       ),
                     ),
                     title: Text(

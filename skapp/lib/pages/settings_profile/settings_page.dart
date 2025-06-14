@@ -235,7 +235,7 @@ class _ProfileHeader extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          if (photoUrl != null && photoUrl!.isNotEmpty) ...[
+          if (photoUrl != null && photoUrl!.isNotEmpty && photoUrl!.startsWith('http')) ...[
             _ProfilePhoto(
               photoUrl: photoUrl!,
               screenWidth: screenWidth,

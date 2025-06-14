@@ -10,6 +10,7 @@ import 'package:skapp/widgets/custom_loader.dart';
 import 'package:skapp/pages/groups/add_group_sheet.dart';
 // import 'package:skapp/pages/groups/friends_provider.dart';
 import 'package:skapp/services/alert_service.dart';
+import 'package:skapp/pages/screens/chat_screen.dart';
 
 class GroupsPage extends StatefulWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
@@ -440,47 +441,65 @@ class _FriendsListViewState extends State<_GroupsListView> {
                 final double avatarSize = width * 0.12;
                 final double imageSize = width * 0.13;
 
-                return Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: width * 0.04,
-                    vertical: width * 0.01,
-                  ),
-                  child: Card(
-                    color: Colors.white,
-                    elevation: 2,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(width * 0.04),
+                return GestureDetector(
+                  onTap: (){
+                    Navigator.pushNamed(
+                      context,
+                      '/screen',
+                      arguments: {
+                        'chatName': group['name']?.toString() ?? 'Group Chat',
+                        'chatImageUrl': group['profile_picture_url'],
+                        'isGroupChat': true,
+                      },
+                    );
+
+                  },
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: width * 0.04,
+                      vertical: width * 0.01,
                     ),
-                    margin: EdgeInsets.symmetric(vertical: width * 0.01),
-                    child: ListTile(
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: width * 0.03,
-                        vertical: width * 0.015,
+                    child: Card(
+                      color: Colors.white,
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(width * 0.04),
                       ),
-                      leading: CircleAvatar(
-                        radius: avatarSize / 2.2,
-                        backgroundColor: Theme.of(context)
-                            .colorScheme
-                            .inversePrimary
-                            .withOpacity(0.7),
-                        child: ClipOval(
-                          child: CachedNetworkImage(
-                            imageUrl: group['profile_picture_url'] ?? '',
-                            placeholder: (context, url) => CustomLoader(
-                              size: avatarSize * 0.6,
-                              isButtonLoader: true,
-                            ),
-                            errorWidget: (context, url, error) =>
-                                Icon(Icons.groups_2_outlined, size: avatarSize * 0.6),
-                            width: imageSize,
-                            height: imageSize,
-                            fit: BoxFit.cover,
+                      margin: EdgeInsets.symmetric(vertical: width * 0.01),
+                      child: ListTile(
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: width * 0.03,
+                          vertical: width * 0.015,
+                        ),
+                        leading: CircleAvatar(
+                          radius: avatarSize / 2.2,
+                          backgroundColor: Theme.of(context)
+                              .colorScheme
+                              .inversePrimary
+                              .withOpacity(0.7),
+                          child: ClipOval(
+                            child: (group['profile_picture_url'] != null &&
+                                    (group['profile_picture_url'] as String).isNotEmpty &&
+                                    (group['profile_picture_url'] as String).startsWith('http'))
+                                ? CachedNetworkImage(
+                                    imageUrl: group['profile_picture_url'],
+                                    placeholder: (context, url) => CustomLoader(
+                                      size: avatarSize * 0.6,
+                                      isButtonLoader: true,
+                                    ),
+                                    errorWidget: (context, url, error) =>
+                                        Icon(Icons.groups_2_outlined, size: avatarSize * 0.6),
+                                    width: imageSize,
+                                    height: imageSize,
+                                    fit: BoxFit.cover,
+                                  )
+                                : Icon(Icons.groups_2_outlined, size: avatarSize * 0.6),
                           ),
                         ),
-                      ),
-                      title: Text(
-                        group['name']?.toString() ?? 'Group Name not fetched',
-                        style: groupNameStyle,
+                        title: Text(
+                          group['name']?.toString() ?? 'Group Name not fetched',
+                          style: groupNameStyle,
+                        ),
                       ),
                     ),
                   ),

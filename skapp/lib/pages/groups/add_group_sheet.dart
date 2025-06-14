@@ -142,10 +142,10 @@ class _AddFriendsSheetState extends State<AddFriendsSheet> {
             children: [
               CircleAvatar(
                 backgroundColor: Theme.of(context).colorScheme.inversePrimary.withOpacity(0.7),
-                backgroundImage: user['profile_picture_url'] != null && user['profile_picture_url'].isNotEmpty
+                backgroundImage: user['profile_picture_url'] != null && user['profile_picture_url'].isNotEmpty && (user['profile_picture_url'] as String).startsWith('http')
                     ? CachedNetworkImageProvider(user['profile_picture_url'])
                     : null,
-                child: user['profile_picture_url'] == null || user['profile_picture_url'].isEmpty
+                child: user['profile_picture_url'] == null || user['profile_picture_url'].isEmpty || !(user['profile_picture_url'] as String).startsWith('http')
                     ? const Icon(Icons.person)
                     : null,
               ),
