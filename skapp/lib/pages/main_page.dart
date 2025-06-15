@@ -8,7 +8,7 @@ import 'package:skapp/pages/activity.dart';
 import 'package:skapp/pages/settings_profile/settings_api.dart';
 import 'package:provider/provider.dart';
 import 'package:skapp/services/navigation_service.dart';
-import 'package:skapp/services/alert_service.dart';
+import 'package:skapp/components/alerts/alert_service.dart';
 import 'package:skapp/pages/friends/friends_provider.dart';
 import 'package:skapp/pages/groups/group_provider.dart';
 

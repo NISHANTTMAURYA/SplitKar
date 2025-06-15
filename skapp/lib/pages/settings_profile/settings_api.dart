@@ -10,7 +10,7 @@ import 'package:provider/provider.dart';
 import 'package:skapp/main.dart';
 import 'package:skapp/pages/groups/group_provider.dart';
 import 'package:skapp/pages/friends/friends_provider.dart';
-import 'package:skapp/services/alert_service.dart';
+import 'package:skapp/components/alerts/alert_service.dart';
 
 class ProfileApi {
   static final _logger = Logger('ProfileApi');

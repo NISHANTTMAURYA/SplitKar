@@ -62,7 +62,7 @@ import 'dart:convert';
 import 'package:logging/logging.dart';
 import 'package:skapp/config.dart';
 import 'package:skapp/services/auth_service.dart';
-import 'package:skapp/components/alert_sheet.dart';
+import 'package:skapp/components/alerts/alert_sheet.dart';
 import 'package:skapp/pages/friends/friends_provider.dart';
 import 'package:skapp/pages/groups/group_provider.dart';
 import 'package:provider/provider.dart';
@@ -77,7 +77,8 @@ class AlertService extends ChangeNotifier {
   List<AlertCategoryCount> _categoryCounts = [];
   bool _isLoading = false;
   String? _error;
-  Set<String> _processingAlerts = {}; // Track alerts being processed
+  Set<String> _processingAlerts = {};
+  bool _needsFullRefresh = false; // Track if we need a full refresh
 
   // Getters
   List<AlertItem> get alerts => _alerts;
@@ -207,6 +208,16 @@ class AlertService extends ChangeNotifier {
     );
   }
 
+  // Handle individual alert update
+  void _updateSingleAlert(String alertId, {bool remove = false}) {
+    if (remove) {
+      _alerts.removeWhere((a) => a.id == alertId);
+    }
+    _updateCategoryCounts();
+    // Only notify if alert was found and updated
+    notifyListeners();
+  }
+
   // Handle alert action with optimistic updates
   Future<void> handleAlertAction(
     BuildContext context,
@@ -221,32 +232,28 @@ class AlertService extends ChangeNotifier {
     final originalCounts = List<AlertCategoryCount>.from(_categoryCounts);
 
     try {
-      // Start processing in background
+      // Start processing and immediately update UI for this alert only
       _processingAlerts.add(alertId);
-      notifyListeners();
+      _updateSingleAlert(alertId, remove: true);
 
       // Execute the action in background
       await action();
 
-      // After successful action, remove the alert and update counts
-      _alerts.removeWhere((a) => a.id == alertId);
-      _updateCategoryCounts();
-      notifyListeners();
-
-      // If there are no more alerts in the current category, fetch fresh data
-      if (_alerts.isEmpty ||
-          !_alerts.any((a) => a.category == alertToRemove.category)) {
-        await fetchAlerts(context);
+      // Only fetch all alerts if we've processed multiple alerts or need a full refresh
+      if (context.mounted && _needsFullRefresh) {
+        _needsFullRefresh = false;
+        // Fetch in background without loading state
+        _silentBackgroundFetch(context);
       }
     } catch (e) {
       _logger.severe('Error handling alert action: $e');
 
-      // Rollback optimistic update on error
+      // Rollback only this alert's update
       _alerts = originalAlerts;
       _categoryCounts = originalCounts;
       notifyListeners();
 
-      // Show error to user
+      // Show error to user if context is still valid
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -260,6 +267,60 @@ class AlertService extends ChangeNotifier {
       rethrow;
     } finally {
       _processingAlerts.remove(alertId);
+    }
+  }
+
+  // Silent background fetch without loading state
+  Future<void> _silentBackgroundFetch(BuildContext context) async {
+    try {
+      final friendsProvider = Provider.of<FriendsProvider>(context, listen: false);
+      final groupProvider = Provider.of<GroupProvider>(context, listen: false);
+
+      final friendRequests = await friendsProvider.service.getPendingFriendRequests();
+      final groupInvitations = await groupProvider.service.getPendingInvitations();
+
+      List<AlertItem> newAlerts = [];
+
+      if (friendRequests != null && friendRequests['received_requests'] != null) {
+        for (var request in friendRequests['received_requests']) {
+          if (request != null && request['request_id'] != null && request['from_username'] != null) {
+            newAlerts.add(_createFriendRequestAlert(request, friendsProvider, context));
+          }
+        }
+      }
+
+      if (groupInvitations != null && groupInvitations['received_invitations'] != null) {
+        for (var invitation in groupInvitations['received_invitations']) {
+          if (invitation != null && invitation['invitation_id'] != null && 
+              invitation['group_name'] != null && invitation['invited_by_username'] != null) {
+            newAlerts.add(_createGroupInvitationAlert(invitation, groupProvider, context));
+          }
+        }
+      }
+
+      _alerts = newAlerts;
+      _updateCategoryCounts();
+      notifyListeners();
+    } catch (e) {
+      _logger.warning('Silent background fetch failed: $e');
+    }
+  }
+
+  // Regular fetch with loading state - use this for initial load and manual refresh
+  Future<void> fetchAlerts(BuildContext context) async {
+    if (_isLoading) return;
+
+    try {
+      _isLoading = true;
+      _error = null;
+      notifyListeners();
+
+      await _silentBackgroundFetch(context);
+    } catch (e) {
+      _logger.severe('Error fetching alerts: $e');
+      _error = e.toString();
+    } finally {
+      _isLoading = false;
       notifyListeners();
     }
   }
@@ -285,68 +346,6 @@ class AlertService extends ChangeNotifier {
     }).toList();
 
     notifyListeners();
-  }
-
-  // Fetch alerts from backend
-  Future<void> fetchAlerts(BuildContext context) async {
-    if (_isLoading) return;
-
-    try {
-      _isLoading = true;
-      _error = null;
-      notifyListeners();
-
-      final friendsProvider = Provider.of<FriendsProvider>(
-        context,
-        listen: false,
-      );
-      final groupProvider = Provider.of<GroupProvider>(context, listen: false);
-
-      _logger.info('Fetching friend requests and group invitations...');
-
-      final friendRequests = await friendsProvider.service
-          .getPendingFriendRequests();
-      final groupInvitations = await groupProvider.service
-          .getPendingInvitations();
-
-      List<AlertItem> newAlerts = [];
-
-      if (friendRequests != null &&
-          friendRequests['received_requests'] != null) {
-        for (var request in friendRequests['received_requests']) {
-          if (request != null &&
-              request['request_id'] != null &&
-              request['from_username'] != null) {
-            newAlerts.add(
-              _createFriendRequestAlert(request, friendsProvider, context),
-            );
-          }
-        }
-      }
-
-      if (groupInvitations != null &&
-          groupInvitations['received_invitations'] != null) {
-        for (var invitation in groupInvitations['received_invitations']) {
-          if (invitation != null &&
-              invitation['invitation_id'] != null &&
-              invitation['group_name'] != null &&
-              invitation['invited_by_username'] != null) {
-            newAlerts.add(
-              _createGroupInvitationAlert(invitation, groupProvider, context),
-            );
-          }
-        }
-      }
-
-      _alerts = newAlerts;
-      _updateCategoryCounts();
-    } catch (e) {
-      _logger.severe('Error fetching alerts: $e');
-      _error = e.toString();
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
   }
 
   // Mark alert as read (only for static alerts)

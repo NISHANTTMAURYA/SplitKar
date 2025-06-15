@@ -9,7 +9,7 @@ import 'package:provider/provider.dart';
 import 'package:skapp/widgets/custom_loader.dart';
 import 'package:skapp/pages/groups/add_group_sheet.dart';
 // import 'package:skapp/pages/groups/friends_provider.dart';
-import 'package:skapp/services/alert_service.dart';
+import 'package:skapp/components/alerts/alert_service.dart';
 import 'package:skapp/pages/screens/chat_screen.dart';
 
 class GroupsPage extends StatefulWidget {
