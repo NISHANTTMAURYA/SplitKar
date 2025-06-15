@@ -134,11 +134,25 @@ class GroupProvider extends ChangeNotifier {
   Future<void> searchUsers(String query) async {
     if (_searchQuery == query) return;
 
-    _searchQuery = query;
-    _currentPage = 1;
-    _users = []; // Clear existing users
-    _hasMore = true; // Reset pagination
-    await loadUsers(); // Call loadUsers instead of loadGroups
+    try {
+      _searchQuery = query;
+      _currentPage = 1;
+      _error = null;
+      notifyListeners();
+
+      final result = await _service.getAllUsers(
+        page: 1,
+        searchQuery: _searchQuery,
+      );
+
+      _users = List<Map<String, dynamic>>.from(result['users']);
+      _updatePaginationState(result['pagination']);
+      _error = null;
+    } catch (e) {
+      _error = e.toString();
+    } finally {
+      notifyListeners();
+    }
   }
 
   // Reset state when sheet is closed

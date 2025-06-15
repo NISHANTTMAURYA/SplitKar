@@ -109,6 +109,7 @@ class _AddFriendsSheetState extends State<AddFriendsSheet> {
               ),
             ),
             onChanged: (value) {
+              // Debounce the search
               Future.delayed(const Duration(milliseconds: 300), () {
                 if (mounted && _searchController.text == value) {
                   context.read<GroupProvider>().searchUsers(value);
