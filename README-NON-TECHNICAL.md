@@ -58,27 +58,52 @@ SplitKar is a modern expense-splitting app that makes managing shared costs a br
   <p><em>Powerful admin dashboard for managing users and transactions</em></p>
 </div>
 
-## Current Features 🎯
-- **Google Login**: Quick and secure sign-in with your Google account
-- **Friend Management**: Add and manage your friends easily
-- **Group Creation**: Create custom groups for different expense scenarios
-- **Modern UI**: Fresh, young, and energetic interface with a purple theme
+## Features 🚀
 
-## Coming Soon 🚀
-- **Smart Expense Splitting**: 
-  - Add expenses within groups
-  - Split bills equally or by percentage
-  - Handle multiple people paying for one bill
-  
-- **Trip Wallet** (Unique Feature! 💡):
-  - Create a shared wallet for your group/trip
-  - Everyone adds money in advance
-  - Track contributions easily
-  - Auto-distribute remaining funds
-  
-- **Direct Payments**:
-  - Pay friends directly through the app
-  - Track payment status in real-time
+### Current Features
+- 🔐 **Secure Authentication**
+  - Google Sign-In integration
+  - JWT-based secure sessions
+  - Automatic token refresh
+
+- 👥 **Social Features**
+  - Add and manage friends
+  - Send and receive friend requests
+  - Create and manage groups
+  - Group invitations and member management
+
+- 🔔 **Smart Notifications**
+  - Real-time alerts for friend requests
+  - Group invitation notifications
+  - Activity updates
+  - Customizable notification preferences
+
+- 🎨 **Modern UI/UX**
+  - Clean, intuitive interface
+  - Smooth animations and transitions
+  - Responsive design
+  - Dark/Light theme support
+
+### Coming Soon
+- 💰 **Expense Management**
+  - Add and split expenses
+  - Multiple payment methods
+  - Equal/percentage-based splitting
+  - Expense history and analytics
+
+- 💳 **Group Wallet**
+  - Create shared wallets for trips/groups
+  - Add money to group wallet
+  - Track contributions
+  - Automatic refunds for remaining balance
+
+- 💸 **Payment Integration**
+  - Direct payments between users
+  - Multiple payment gateway support
+  - Transaction history
+  - Payment reminders
+
+> 📝 Note: The app is continuously evolving with new features being added regularly. Check back for updates!
 
 ## Who is it for? 👥
 Currently, SplitKar is being tested with a close group of friends and early users. We're gathering feedback and making improvements before expanding to a wider audience.

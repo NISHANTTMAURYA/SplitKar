@@ -63,25 +63,59 @@ splitkar/
 
 ## API Endpoints 🔌
 
-### Authentication
-```http
-POST /auth/google/     # Google login
-POST /auth/register/   # User registration
-POST /auth/login/      # JWT login
-POST /auth/validate/   # Token validation
-POST /auth/token/refresh/  # Token refresh
-```
+🧪 API Endpoints Overview
+SplitKar uses a well-structured REST API built with Django REST Framework and JWT-based auth.
 
-### Profile Management
-```http
-GET  /profile/lookup/<code>/   # Profile lookup
-GET  /profile/list-others/     # List other users
-GET  /profile/list-all/        # List all users
-GET  /profile/                 # Get profile details
-POST /profile/update/          # Update profile
-```
+✅ Implemented APIs
 
-[View all endpoints in Postman Documentation](#)
+🔐 Authentication
+| Endpoint | Description |
+|----------|-------------|
+| POST /auth/google/ | Google login endpoint |
+| POST /auth/register/ | Registers new user |
+| POST /auth/login/ | Login with JWT |
+| POST /auth/validate/ | Validate JWT token |
+| POST /auth/token/refresh/ | Refresh JWT token |
+
+👤 Profile Management
+| Endpoint | Description |
+|----------|-------------|
+| GET /profile/lookup/<code>/ | Lookup profile by unique code |
+| GET /profile/list-others/ | List all users excluding current |
+| GET /profile/list-all/ | List all users |
+| GET /profile/ | Get current profile details |
+| POST /profile/update/ | Update user profile |
+
+👥 Friends Management
+| Endpoint | Description |
+|----------|-------------|
+| GET /friend-request/pending/ | List pending friend requests |
+| POST /friend-request/send/ | Send friend request |
+| POST /friend-request/accept/ | Accept a friend request |
+| POST /friend-request/decline/ | Decline a friend request |
+| GET /friends/list/ | List current friends |
+| POST /friends/remove/ | Remove a friend |
+
+👨‍👩‍👧‍👦 Group Management
+| Endpoint | Description |
+|----------|-------------|
+| POST /group/create/ | Create a new group |
+| POST /group/invite/ | Invite user to a group |
+| POST /group/remove-member/ | Remove a member from a group |
+| GET /group/invitation/pending/ | List pending group invitations |
+| POST /group/invitation/accept/ | Accept a group invitation |
+| POST /group/invitation/decline/ | Decline a group invitation |
+| GET /group/list/ | List groups a user belongs to |
+| POST /group/batch-create/ | Create multiple groups in one go |
+
+🔔 Alerts
+| Endpoint | Description |
+|----------|-------------|
+| POST /alerts/read-status/ | Get alert read/unread status |
+| POST /alerts/mark-read/ | Mark specific alert as read |
+| POST /alerts/mark-all-read/ | Mark all alerts as read |
+
+> 📝 Note: More API endpoints will be added in future updates to support additional features like expense management, wallet functionality, and payment integration.
 
 ## Admin Interface 💻
 
