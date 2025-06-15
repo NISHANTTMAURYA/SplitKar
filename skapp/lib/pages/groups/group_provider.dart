@@ -114,7 +114,7 @@ class GroupProvider extends ChangeNotifier {
       _logger.info('=== Loading groups in provider ===');
       _logger.info('Force refresh: $forceRefresh');
       _logger.info('Current groups in state: ${_groups.length} groups');
-      
+
       _isLoading = true;
       _error = null;
       notifyListeners();
@@ -136,9 +136,9 @@ class GroupProvider extends ChangeNotifier {
 
     _searchQuery = query;
     _currentPage = 1;
-    _groups = []; // Clear existing users
+    _users = []; // Clear existing users
     _hasMore = true; // Reset pagination
-    await loadGroups();
+    await loadUsers(); // Call loadUsers instead of loadGroups
   }
 
   // Reset state when sheet is closed
@@ -182,10 +182,10 @@ class GroupProvider extends ChangeNotifier {
 
       // Get new users from the response
       final newUsers = List<Map<String, dynamic>>.from(result['users']);
-      
+
       // Add new users to the existing list
       _groups.addAll(newUsers);
-      
+
       // Update pagination state
       _updatePaginationState(result['pagination']);
       _error = null;
@@ -218,11 +218,11 @@ class GroupProvider extends ChangeNotifier {
   }) async {
     try {
       _logger.info('Starting batch group creation process...');
-      
+
       // Set loading state
       _isLoading = true;
       notifyListeners();
-      
+
       final result = await _service.batchCreateGroup(
         name: name,
         description: description,
@@ -234,7 +234,7 @@ class GroupProvider extends ChangeNotifier {
         tripStatus: tripStatus,
         budget: budget,
       );
-      
+
       _logger.info('Group created successfully: ${result['group']['id']}');
 
       // Show success notification
@@ -242,7 +242,8 @@ class GroupProvider extends ChangeNotifier {
         _notificationService.showAppNotification(
           context,
           title: 'Group Created',
-          message: 'Group created and invitations sent to ${_selectedUsers.length} members',
+          message:
+              'Group created and invitations sent to ${_selectedUsers.length} members',
           icon: Icons.group_add,
         );
       }
@@ -258,7 +259,7 @@ class GroupProvider extends ChangeNotifier {
       _logger.severe('Error in createGroupAndInvite: $e');
       _error = e.toString();
       _isLoading = false;
-      
+
       if (context.mounted) {
         _notificationService.showAppNotification(
           context,
@@ -267,7 +268,7 @@ class GroupProvider extends ChangeNotifier {
           icon: Icons.error,
         );
       }
-      
+
       notifyListeners();
       return false;
     }
@@ -283,9 +284,11 @@ class GroupProvider extends ChangeNotifier {
       _logger.info('Loading pending group invitations...');
       final result = await _service.getPendingInvitations();
       _logger.info('Pending group invitations response: $result');
-      
+
       if (result != null && result['received_invitations'] != null) {
-        _pendingInvitations = List<Map<String, dynamic>>.from(result['received_invitations']);
+        _pendingInvitations = List<Map<String, dynamic>>.from(
+          result['received_invitations'],
+        );
         _logger.info('Processed ${_pendingInvitations.length} invitations');
       } else {
         _pendingInvitations = [];
@@ -314,29 +317,26 @@ class GroupProvider extends ChangeNotifier {
     bool accept,
   ) async {
     try {
-      final result = await _service.respondToInvitation(
-        invitationId,
-        accept,
-      );
+      final result = await _service.respondToInvitation(invitationId, accept);
 
       _logger.info('Response from invitation response: $result');
-      
+
       // Get group name from the response
       final groupName = result['group']['name'];
       _logger.info('Using group name from response: $groupName');
 
       // Remove the invitation from the list
       _pendingInvitations.removeWhere(
-        (invitation) => invitation['invitation_id'] == invitationId
+        (invitation) => invitation['invitation_id'] == invitationId,
       );
 
       // Show success notification
       _notificationService.showAppNotification(
         context,
         title: accept ? 'Invitation Accepted' : 'Invitation Declined',
-        message: accept 
-          ? 'You have joined $groupName'
-          : 'You have declined the invitation to $groupName',
+        message: accept
+            ? 'You have joined $groupName'
+            : 'You have declined the invitation to $groupName',
         icon: accept ? Icons.check_circle : Icons.cancel,
       );
 
@@ -394,11 +394,13 @@ class GroupProvider extends ChangeNotifier {
       _logger.info('Refreshing groups list...');
       _isLoading = true;
       notifyListeners();
-      
+
       await _service.clearCache();
       final groups = await _service.getGroups(forceRefresh: true);
-      _logger.info('Groups list refreshed successfully: ${groups.length} groups');
-      
+      _logger.info(
+        'Groups list refreshed successfully: ${groups.length} groups',
+      );
+
       _isLoading = false;
       notifyListeners();
     } catch (e) {
