@@ -161,24 +161,31 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             child: Row(
-              mainAxisSize: MainAxisSize.min,
+              mainAxisSize: MainAxisSize.max,
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Text(
-                  "SplitKar",
-                  style: GoogleFonts.cabin(
-                    fontSize: titleFontSize.clamp(32.0, 40.0), // Increased clamp range
-                    fontWeight: FontWeight.w500,
+                Flexible(
+                  child: Text(
+                    "SplitKar",
+                    style: GoogleFonts.cabin(
+                      fontSize: titleFontSize.clamp(28.0, 36.0), // slightly reduced for safety
+                      fontWeight: FontWeight.w500,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                    softWrap: false,
                   ),
                 ),
-                SizedBox(width: width * 0.015), // Slightly increased spacing
+                SizedBox(width: width * 0.01), // slightly reduced spacing
                 SizedBox(
-                  width: logoWidth.clamp(32.0, 40.0), // Increased clamp range
-                  height: logoHeight.clamp(32.0, 40.0), // Increased clamp range
-                  child: Image.asset(
-                    'assets/images/wallet.png',
+                  width: logoWidth.clamp(28.0, 36.0),
+                  height: logoHeight.clamp(28.0, 36.0),
+                  child: FittedBox(
                     fit: BoxFit.contain,
+                    child: Image.asset(
+                      'assets/images/wallet.png',
+                    ),
                   ),
                 ),
               ],

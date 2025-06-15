@@ -82,14 +82,14 @@ class _SettingsPageState extends State<SettingsPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.error_outline, size: 48, color: Colors.red),
-              SizedBox(height: 16),
+              Icon(Icons.error_outline, size: ScreenWidth * 0.12, color: Colors.red),
+              SizedBox(height: ScreenHeight * 0.02),
               Text(
                 profile.error!,
                 style: TextStyle(color: Colors.red),
                 textAlign: TextAlign.center,
               ),
-              SizedBox(height: 16),
+              SizedBox(height: ScreenHeight * 0.02),
               ElevatedButton(
                 onPressed: () {
                   ProfileApi().loadAllProfileData(context);
@@ -180,7 +180,7 @@ class _ProfileContent extends StatelessWidget {
           padding: EdgeInsets.symmetric(vertical: screenHeight * 0.01),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(screenWidth * 0.045),
             boxShadow: [
               BoxShadow(
                 color: Colors.deepPurple.withOpacity(0.06),
@@ -197,7 +197,7 @@ class _ProfileContent extends StatelessWidget {
             screenHeight: screenHeight,
           ),
         ),
-        SizedBox(height: 24),
+        SizedBox(height: screenHeight * 0.03),
       ],
     );
   }
@@ -235,7 +235,7 @@ class _ProfileHeader extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          if (photoUrl != null && photoUrl!.isNotEmpty) ...[
+          if (photoUrl != null && photoUrl!.isNotEmpty && photoUrl!.startsWith('http')) ...[
             _ProfilePhoto(
               photoUrl: photoUrl!,
               screenWidth: screenWidth,
@@ -419,7 +419,7 @@ class _SettingsOptionsList extends StatelessWidget {
           trailing: isLogout ? null : Icon(Icons.arrow_forward_ios, size: screenWidth * 0.04),
           onTap: onTap,
         ),
-        Divider(height: 1, color: Colors.grey[300]),
+        Divider(height: screenHeight * 0.0015, color: Colors.grey[300]),
       ],
     );
   }

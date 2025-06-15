@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:skapp/components/auth_wrapper.dart';
 import 'package:skapp/pages/main_page.dart';
+import 'package:skapp/pages/screens/chat_screen.dart';
 import 'package:skapp/pages/settings_profile/settings_page.dart';
 import 'package:logging/logging.dart';
 import 'package:flutter/services.dart';
@@ -14,6 +15,7 @@ import 'package:skapp/services/notification_service.dart';
 import 'package:skapp/services/navigation_service.dart';
 import 'package:skapp/services/alert_service.dart';
 import 'package:skapp/pages/friends/friends_provider.dart';
+import 'package:skapp/pages/groups/group_provider.dart';
 
 class ProfileNotifier extends ChangeNotifier {
   final _logger = Logger('ProfileNotifier');
@@ -126,6 +128,7 @@ void main() {
         Provider<NavigationService>.value(value: navigationService),
         ChangeNotifierProvider<AlertService>.value(value: alertService),
         ChangeNotifierProvider<FriendsProvider>(create: (_) => FriendsProvider()),
+        ChangeNotifierProvider<GroupProvider>(create: (_) => GroupProvider()),
       ],
       child: const MyApp(),
     ),
@@ -175,13 +178,32 @@ class MyApp extends StatelessWidget {
             return MaterialPageRoute(
               settings: settings,
               builder: (context) => MainPage(
-                initialIndex: args?['initialIndex'] as int? ?? 1,
+                initialIndex: 0,
               ),
             );
           case '/settings':
             return MaterialPageRoute(
               settings: settings,
               builder: (context) => const SettingsPage(),
+            );
+          case '/screen':
+            final args = settings.arguments as Map<String, dynamic>?;
+            if (args == null || !args.containsKey('chatName')) {
+              return MaterialPageRoute(
+                builder: (context) => const Scaffold(
+                  body: Center(
+                    child: Text('Error: Chat details not provided.'),
+                  ),
+                ),
+              );
+            }
+            return MaterialPageRoute(
+              settings: settings,
+              builder: (context) => ChatScreen(
+                chatName: args['chatName'] as String,
+                chatImageUrl: args['chatImageUrl'] as String?,
+                isGroupChat: args['isGroupChat'] as bool? ?? false,
+              ),
             );
           default:
             return MaterialPageRoute(

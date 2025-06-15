@@ -31,6 +31,7 @@ import 'package:skapp/components/alert_sheet.dart';
 import 'package:provider/provider.dart';
 import 'package:skapp/pages/friends/freinds.dart';
 import 'package:skapp/main.dart';
+import 'package:logging/logging.dart';
 
 class FriendsProvider extends ChangeNotifier {
   // TODO: Add caching implementation
@@ -39,8 +40,10 @@ class FriendsProvider extends ChangeNotifier {
 
   final FriendsService _service = FriendsService();
   final NotificationService _notificationService = NotificationService();
+  static final _logger = Logger('FriendsProvider');
 
   List<Map<String, dynamic>> _potentialFriends = [];
+  List<Map<String, dynamic>> _friends = [];
   String? _error;
   bool _isLoading = false;
   bool _isLoadingMore = false;
@@ -54,14 +57,39 @@ class FriendsProvider extends ChangeNotifier {
 
   // Getters
   List<Map<String, dynamic>> get potentialFriends => _potentialFriends;
+  List<Map<String, dynamic>> get friends => _friends;
   String? get error => _error;
   bool get isLoading => _isLoading;
   bool get isLoadingMore => _isLoadingMore;
   bool get hasMore => _hasMore;
   bool isPending(String profileCode) => _pendingRequests.contains(profileCode);
+  FriendsService get service => _service;
 
   // TODO: Add request cancellation
   bool _isRequestCancelled = false;
+
+  @override
+  void dispose() {
+    _service.dispose();
+    super.dispose();
+  }
+
+  Future<void> loadFriends({bool forceRefresh = false}) async {
+    try {
+      _isLoading = true;
+      _error = null;
+      notifyListeners();
+
+      final friends = await _service.getFriends(forceRefresh: forceRefresh);
+      _friends = friends;
+      _error = null;
+    } catch (e) {
+      _error = e.toString();
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
 
   // Load initial potential friends
   Future<void> loadPotentialFriends() async {
@@ -144,31 +172,21 @@ class FriendsProvider extends ChangeNotifier {
       final result = await _service.sendFriendRequest(profileCode);
       final requestId = result['request_id'].toString();
 
-      // Update the user's status in the list
-      final index = _potentialFriends.indexWhere(
+      // Update the user's status in both friends and potential friends lists
+      final friendIndex = _friends.indexWhere(
         (u) => u['profile_code'] == profileCode,
       );
-      if (index != -1) {
-        _potentialFriends[index]['friend_request_status'] = 'sent';
+      if (friendIndex != -1) {
+        _friends[friendIndex]['friend_request_status'] = 'sent';
       }
 
-      // Create alert for sent friend request
-      final alertService = Provider.of<AlertService>(context, listen: false);
-
-      // Create the alert item
-      final alertItem = AlertItem(
-        title: 'Pending Friend Request',
-        subtitle: 'Waiting for $username to respond',
-        icon: Icons.pending_outlined,
-        type: 'friend_request_sent_$requestId',
-        timestamp: DateTime.now(),
-        category: AlertCategory.friendRequest,
-        requiresResponse: false,
-        actions: [],
+      // Update potential friends list
+      final potentialIndex = _potentialFriends.indexWhere(
+        (u) => u['profile_code'] == profileCode,
       );
-
-      // Add the alert
-      alertService.addAlert(alertItem);
+      if (potentialIndex != -1) {
+        _potentialFriends[potentialIndex]['friend_request_status'] = 'sent';
+      }
 
       // Show success notification
       _notificationService.showAppNotification(
@@ -180,6 +198,9 @@ class FriendsProvider extends ChangeNotifier {
 
       // Force refresh the alerts to ensure they appear
       await loadPendingRequests(context);
+      
+      // Notify listeners after all state updates
+      notifyListeners();
     } finally {
       _pendingRequests.remove(profileCode);
       notifyListeners();
@@ -188,12 +209,12 @@ class FriendsProvider extends ChangeNotifier {
 
   // Filter users
   List<Map<String, dynamic>> filterUsers(String query) {
-    if (_potentialFriends == null) return [];
-    if (query.isEmpty) return _potentialFriends;
+    if (_friends == null) return [];
+    if (query.isEmpty) return _friends;
 
     final searchQuery = query.toLowerCase();
 
-    return _potentialFriends.where((user) {
+    return _friends.where((user) {
       final username = user['username']?.toString().toLowerCase() ?? '';
       final profileCode = user['profile_code']?.toString().toLowerCase() ?? '';
 
@@ -226,6 +247,7 @@ class FriendsProvider extends ChangeNotifier {
 
   // Clear state (useful when navigating away)
   void clear() {
+    _friends = [];
     _potentialFriends = [];
     _error = null;
     _isLoading = false;
@@ -249,114 +271,24 @@ class FriendsProvider extends ChangeNotifier {
   }
 
   Future<void> loadPendingRequests(BuildContext context) async {
-    /*
-     * Load Pending Requests
-     * -------------------
-     * Optimization Notes:
-     * 1. Current Implementation:
-     *    - Basic API call to fetch requests
-     *    - Simple state updates
-     * 
-     * 2. Needed Improvements:
-     *    - Add proper caching
-     *    - Implement request cancellation
-     *    - Add proper error handling
-     * 
-     * 3. Performance:
-     *    - Add batch processing
-     *    - Implement proper loading states
-     *    - Optimize state updates
-     */
-
     try {
+      _logger.info('Loading pending friend requests...');
       final result = await _service.getPendingFriendRequests();
-      final alertService = Provider.of<AlertService>(context, listen: false);
-
-      print('sent_requests: $result["sent_requests"]');
-      print('received_requests: $result["received_requests"]');
-
-      /*
-       * Example of Dynamic Alert System Usage
-       * -----------------------------------
-       * Here we create two types of friend request alerts:
-       * 1. Received Requests:
-       *    - Category: AlertCategory.friendRequest
-       *    - requiresResponse: true (needs user action)
-       *    - Actions: Accept/Decline buttons
-       * 
-       * 2. Sent Requests:
-       *    - Category: AlertCategory.friendRequest
-       *    - requiresResponse: false (no action needed)
-       *    - Actions: None (waiting for other user)
-       * 
-       * To add new alert types in the future:
-       * 1. Use appropriate AlertCategory (add new one if needed)
-       * 2. Set requiresResponse based on if user action is needed
-       * 3. Add relevant actions with callbacks
-       */
-
-      // Process received requests - These require user response
-      for (var request in result['received_requests']) {
-        final username = request['from_username'];
-        final requestId = request['request_id'].toString();
-
-        alertService.addAlert(
-          AlertItem(
-            title: 'Friend Request',
-            subtitle: '$username wants to be your friend',
-            icon: Icons.person_add,
-            type: 'friend_request_${requestId}',
-            timestamp: DateTime.parse(request['created_at']),
-            category:
-                AlertCategory.friendRequest, // Categorize as friend request
-            requiresResponse: true, // User needs to accept/decline
-            actions: [
-              AlertAction(
-                label: 'Accept',
-                onPressed: () =>
-                    respondToFriendRequest(context, requestId, true),
-                color: Colors.green,
-              ),
-              AlertAction(
-                label: 'Decline',
-                onPressed: () =>
-                    respondToFriendRequest(context, requestId, false),
-                color: Colors.red,
-              ),
-            ],
-          ),
-        );
-      }
-
-      final currentUsername = Provider.of<ProfileNotifier>(
-        context,
-        listen: false,
-      ).username;
-
-      // For sent requests (show only if current user is the sender)
-      for (var request in result['sent_requests']) {
-        if (request['from_username'] == currentUsername) {
-          alertService.addAlert(
-            AlertItem(
-              title: 'Pending Friend Request',
-              subtitle: 'Waiting for ${request['to_username']} to respond',
-              icon: Icons.pending_outlined,
-              type: 'friend_request_sent_${request['request_id']}',
-              timestamp: DateTime.parse(request['created_at']),
-              category: AlertCategory.friendRequest,
-              requiresResponse: false,
-              actions: [],
-            ),
-          );
-        }
-      }
-
+      _logger.info('Pending friend requests response: $result');
+      
+      // Just store the result for AlertService to use
       notifyListeners();
     } catch (e) {
       _error = e.toString();
+      _logger.severe('Error loading pending friend requests: $e');
       notifyListeners();
-      rethrow; // Rethrow to let the AlertService handle the error
+      rethrow;
     }
+  }
+
+  // Update the refreshFriends method
+  Future<void> refreshFriends() async {
+    await loadFriends(forceRefresh: true);
   }
 
   Future<void> respondToFriendRequest(
@@ -366,7 +298,6 @@ class FriendsProvider extends ChangeNotifier {
   ) async {
     try {
       final result = await _service.respondToFriendRequest(requestId, accept);
-      // When accepting a request, from_user is the username of the person who sent the request
       final username = result['from_user'];
 
       // Show success notification
@@ -380,22 +311,16 @@ class FriendsProvider extends ChangeNotifier {
       );
 
       if (accept) {
-        // Force refresh the friends list cache
-        await _service.clearCache(); // Clear the cache first
-        await _service.getFriends(
-          forceRefresh: true,
-        ); // This will fetch fresh data
-
-        // Reload the friends list
-        FreindsPage.reloadFriends();
+        // Force refresh the friends list
+        await refreshFriends();
+        notifyListeners();
       }
-
-      // Remove the alert for this request
-      final alertService = Provider.of<AlertService>(context, listen: false);
-      alertService.removeAlertsByType('friend_request_${requestId}');
 
       // Refresh pending requests to update the alerts
       await loadPendingRequests(context);
+
+      // Clear any errors
+      _error = null;
     } catch (e) {
       _error = e.toString();
       _notificationService.showAppNotification(
@@ -405,6 +330,21 @@ class FriendsProvider extends ChangeNotifier {
         icon: Icons.error,
       );
     }
+    notifyListeners();
+  }
+
+  // Reset state (useful when logging out)
+  void resetState() {
+    _potentialFriends = [];
+    _friends = [];
+    _error = null;
+    _isLoading = false;
+    _isLoadingMore = false;
+    _pendingRequests.clear();
+    _currentPage = 1;
+    _totalPages = 1;
+    _hasMore = true;
+    _searchQuery = '';
     notifyListeners();
   }
 }

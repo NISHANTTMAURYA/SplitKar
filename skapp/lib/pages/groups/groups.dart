@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:skapp/pages/friends/friends_service.dart';
-import 'package:skapp/pages/friends/friends_service.dart';
+import 'package:skapp/pages/groups/group_service.dart';
+import 'package:skapp/pages/groups/group_provider.dart';
+// import 'package:skapp/pages/groups/friends_service.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:skapp/main.dart';
 import 'package:provider/provider.dart';
 import 'package:skapp/widgets/custom_loader.dart';
-import 'package:skapp/pages/friends/add_friends_sheet.dart';
-import 'package:skapp/pages/friends/friends_provider.dart';
+import 'package:skapp/pages/groups/add_group_sheet.dart';
+// import 'package:skapp/pages/groups/friends_provider.dart';
+import 'package:skapp/services/alert_service.dart';
+import 'package:skapp/pages/screens/chat_screen.dart';
 
 class GroupsPage extends StatefulWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
@@ -29,11 +32,16 @@ class GroupsPage extends StatefulWidget {
     required this.onFriendsListStateChanged,
   });
 
-
   @override
   State<GroupsPage> createState() => _GroupsPageState();
-  static void reloadFriends() {
-    freindsKey.currentState?._loadFriends();
+
+  // Add static method to refresh groups
+  static Future<void> refreshGroups() async {
+    // Use provider directly instead of state
+    final context = freindsKey.currentContext;
+    if (context != null) {
+      await Provider.of<GroupProvider>(context, listen: false).loadGroups(forceRefresh: true);
+    }
   }
 
   static Widget friendsImage(BuildContext context, {double? opacity}) {
@@ -51,7 +59,7 @@ class GroupsPage extends StatefulWidget {
     );
   }
 
-  // Shared widget for the friends text
+  // Shared widget for the groups text
   static Widget friendsText(BuildContext context) {
     final double height = MediaQuery.of(context).size.height;
     final double width = MediaQuery.of(context).size.width;
@@ -66,20 +74,18 @@ class GroupsPage extends StatefulWidget {
 
   // Shared widget for the Make a Group button
   static Widget addGroupsButton(
-      BuildContext context,
-      VoidCallback onAddFriends, {
-        TextStyle? textStyle,
-        double? iconSize,
-      }) {
+    BuildContext context,
+    VoidCallback onAddFriends, {
+    TextStyle? textStyle,
+    double? iconSize,
+    required double width,
+  }) {
     return Material(
       color: Colors.transparent,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(width * 0.03),
         side: BorderSide(
-          color: Theme
-              .of(context)
-              .colorScheme
-              .inversePrimary,
+          color: Theme.of(context).colorScheme.inversePrimary,
           width: 2,
         ),
       ),
@@ -87,23 +93,12 @@ class GroupsPage extends StatefulWidget {
         borderRadius: BorderRadius.circular(12),
         splashColor: Colors.grey.withOpacity(0.3),
         highlightColor: Colors.deepPurple.withOpacity(0.1),
-        onTap: () {
-          showModalBottomSheet(
-            context: context,
-            isScrollControlled: true,
-            backgroundColor: Colors.transparent,
-            builder: (context) =>
-                DraggableScrollableSheet(
-                  initialChildSize: 0.9,
-                  minChildSize: 0.5,
-                  maxChildSize: 0.9,
-                  builder: (_, controller) =>
-                      ChangeNotifierProvider(
-                        create: (_) => FriendsProvider(),
-                        child: const AddFriendsSheet(),
-                      ),
-                ),
-          );
+        onTap: () async {
+          final bool shouldRefresh = await AddFriendsSheet.show(context);
+          if (shouldRefresh && context.mounted) {
+            // Refresh groups using provider
+            await Provider.of<GroupProvider>(context, listen: false).loadGroups(forceRefresh: true);
+          }
         },
         child: Padding(
           padding: const EdgeInsets.fromLTRB(15, 5, 15, 5),
@@ -116,10 +111,7 @@ class GroupsPage extends StatefulWidget {
                   Icon(
                     Icons.add,
                     size: iconSize,
-                    color: Theme
-                        .of(context)
-                        .colorScheme
-                        .inversePrimary,
+                    color: Theme.of(context).colorScheme.inversePrimary,
                     semanticLabel: 'Make a Group',
                   ),
                   SizedBox(width: 4),
@@ -127,12 +119,9 @@ class GroupsPage extends StatefulWidget {
                     child: Text(
                       'Make a Group',
                       style:
-                      textStyle ??
+                          textStyle ??
                           TextStyle(
-                            color: Theme
-                                .of(context)
-                                .colorScheme
-                                .inversePrimary,
+                            color: Theme.of(context).colorScheme.inversePrimary,
                             fontWeight: FontWeight.w800,
                           ),
                       overflow: TextOverflow.ellipsis,
@@ -149,36 +138,12 @@ class GroupsPage extends StatefulWidget {
 }
 
 class _GroupsPageState extends State<GroupsPage> {
-  List<dynamic> _friends = [];
-  bool _isLoading = true;
-  String? _error;
-  final FriendsService _friendsService = FriendsService();
-
-  // Make _loadFriends public so it can be called from FriendsProvider
-  Future<void> _loadFriends() async {
-    if (!mounted) return;
-
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
-
-    try {
-      final friends = await _friendsService.getFriends(
-        forceRefresh: true,
-      ); // Always force refresh
-      if (mounted) {
-        setState(() {
-          _friends = friends;
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _error = e.toString();
-          _isLoading = false;
-        });
+  Future<void> refreshAll() async {
+    if (mounted) {
+      await context.read<GroupProvider>().loadGroups(forceRefresh: true);
+      if (context.mounted) {
+        final alertService = Provider.of<AlertService>(context, listen: false);
+        await alertService.fetchAlerts(context);
       }
     }
   }
@@ -186,86 +151,73 @@ class _GroupsPageState extends State<GroupsPage> {
   @override
   void initState() {
     super.initState();
-    _loadFriends();
-  }
-
-  bool _isImagePreloaded = false;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (!_isImagePreloaded) {
-      precacheImage(
-        const AssetImage('assets/images/freinds_scroll.jpg'),
-        context,
-      );
-      _isImagePreloaded = true;
-    }
+    // Load groups through provider after the first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<GroupProvider>().loadGroups();
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-    final double height = MediaQuery.of(context).size.height;
-    final double baseSize = width < height ? width : height;
-    final double statusBarHeight = MediaQuery.of(context).padding.top;
+    return Consumer<GroupProvider>(
+      builder: (context, provider, child) {
+        if (provider.isLoading) {
+          return Scaffold(body: CustomLoader());
+        }
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      widget.onFriendsListStateChanged(_friends.isNotEmpty);
-    });
-
-    // Show loader if loading
-    if (_isLoading) {
-      return Scaffold(body: CustomLoader());
-    }
-
-    // Show error if there is one
-    if (_error != null) {
-      return Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.error_outline, size: 48, color: Colors.red),
-              SizedBox(height: 16),
-              Text(
-                _error!,
-                style: TextStyle(color: Colors.red),
-                textAlign: TextAlign.center,
+        if (provider.error != null) {
+          return Scaffold(
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.error_outline, size: MediaQuery.of(context).size.width * 0.12, color: Colors.red),
+                  SizedBox(height: MediaQuery.of(context).size.height * 0.02),
+                  Text(
+                    provider.error!,
+                    style: TextStyle(color: Colors.red),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: MediaQuery.of(context).size.height * 0.02),
+                  ElevatedButton(
+                    onPressed: () => provider.loadGroups(forceRefresh: true),
+                    child: Text('Retry')
+                  ),
+                ],
               ),
-              SizedBox(height: 16),
-              ElevatedButton(onPressed: _loadFriends, child: Text('Retry')),
-            ],
-          ),
-        ),
-      );
-    }
+            ),
+          );
+        }
 
-    return Scaffold(
-      body: RefreshIndicator(
-        onRefresh: _loadFriends,
-        child: _friends.isNotEmpty
-            ? _FriendsListView(
-          friends: _friends,
-          scaffoldKey: widget.scaffoldKey,
-          pageController: widget.pageController,
-        )
-            : _NoFriendsView(onAddFriends: () {}),
-      ),
+        return Scaffold(
+          body: RefreshIndicator(
+            onRefresh: refreshAll,
+            child: provider.groups.isNotEmpty
+                ? _GroupsListView(
+                    scaffoldKey: widget.scaffoldKey,
+                    pageController: widget.pageController,
+                    onRefresh: refreshAll,
+                  )
+                : _NoGroupsView(onAddFriends: () {}),
+          ),
+        );
+      }
     );
   }
 }
 
-class _NoFriendsView extends StatefulWidget {
+class _NoGroupsView extends StatefulWidget {
   final VoidCallback onAddFriends;
 
-  const _NoFriendsView({required this.onAddFriends});
+  const _NoGroupsView({required this.onAddFriends});
 
   @override
-  State<_NoFriendsView> createState() => _NoFriendsViewState();
+  State<_NoGroupsView> createState() => _NoFriendsViewState();
 }
 
-class _NoFriendsViewState extends State<_NoFriendsView> {
+class _NoFriendsViewState extends State<_NoGroupsView> {
   TextStyle _getGreetingStyle(double width) => GoogleFonts.cabin(
     fontSize: width * 0.055, // Slightly smaller to handle long usernames better
     fontWeight: FontWeight.w500,
@@ -312,7 +264,16 @@ class _NoFriendsViewState extends State<_NoFriendsView> {
                 SizedBox(height: width * 0.05),
                 GroupsPage.friendsText(context),
                 SizedBox(height: width * 0.04),
-                GroupsPage.addGroupsButton(context, widget.onAddFriends),
+                GroupsPage.addGroupsButton(
+                  context,
+                  widget.onAddFriends,
+                  textStyle: TextStyle(
+                    color: Theme.of(context).colorScheme.inversePrimary,
+                    fontWeight: FontWeight.w800,
+                  ),
+                  iconSize: width * 0.05,
+                  width: width,
+                ),
                 SizedBox(height: width * 0.05),
               ],
             ),
@@ -323,22 +284,22 @@ class _NoFriendsViewState extends State<_NoFriendsView> {
   }
 }
 
-class _FriendsListView extends StatefulWidget {
-  final List<dynamic> friends;
+class _GroupsListView extends StatefulWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
   final PageController? pageController;
+  final Future<void> Function() onRefresh;
 
-  const _FriendsListView({
-    required this.friends,
+  const _GroupsListView({
     required this.scaffoldKey,
+    required this.onRefresh,
     this.pageController,
   });
 
   @override
-  State<_FriendsListView> createState() => _FriendsListViewState();
+  State<_GroupsListView> createState() => _FriendsListViewState();
 }
 
-class _FriendsListViewState extends State<_FriendsListView> {
+class _FriendsListViewState extends State<_GroupsListView> {
   final ScrollController _scrollController = ScrollController();
   double _scrollOffset = 0;
 
@@ -391,7 +352,7 @@ class _FriendsListViewState extends State<_FriendsListView> {
     final double statusBarHeight = MediaQuery.of(context).padding.top;
 
     // Get the styles for this build context
-    final friendNameStyle = _getFriendNameStyle(width);
+    final groupNameStyle = _getFriendNameStyle(width);
     final headerTextStyle = _getHeaderStyle(width);
     final greetingStyle = _getGreetingStyle(width);
     final friendCountRegularStyle = _getFriendCountStyle(false, width);
@@ -400,188 +361,214 @@ class _FriendsListViewState extends State<_FriendsListView> {
     final double buttonFontSize = width * 0.04;
     final double buttonIconSize = width * 0.05;
 
-    return CustomScrollView(
-      controller: _scrollController,
-      slivers: [
-        // Image Header
-        SliverPersistentHeader(
-          pinned: false,
-          floating: true,
-          delegate: _ImageHeaderDelegate(
-            statusBarHeight: statusBarHeight,
-            scrollOffset: _scrollOffset,
-          ),
-        ),
-        // Purple container with animation
-        SliverAppBar(
-          pinned: true,
-          floating: false,
-          expandedHeight: 60,
-          toolbarHeight: 60,
-          backgroundColor: Colors.transparent,
-          flexibleSpace: LayoutBuilder(
-            builder: (context, constraints) {
-              print('Debug - Scroll Values:');
-              print('scrollOffset: $_scrollOffset');
+    // Get groups from provider
+    final groups = context.watch<GroupProvider>().groups;
 
-              return _FriendsHeaderDelegate(
-                context,
-                headerTextStyle: headerTextStyle,
-                buttonFontSize: buttonFontSize,
-                buttonIconSize: buttonIconSize,
-                scrollOffset: _scrollOffset,
-              ).build(
-                context,
-                constraints.maxHeight - constraints.minHeight,
-                constraints.maxHeight != constraints.minHeight,
-              );
-            },
+    return RefreshIndicator(
+      onRefresh: widget.onRefresh,
+      child: CustomScrollView(
+        controller: _scrollController,
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          // Image Header
+          SliverPersistentHeader(
+            pinned: false,
+            floating: true,
+            delegate: _ImageHeaderDelegate(
+              statusBarHeight: statusBarHeight,
+              scrollOffset: _scrollOffset,
+              screenHeight: height,
+            ),
           ),
-        ),
-        SliverToBoxAdapter(
-          child: SizedBox(
-            height: 5,
-          ), // <-- This adds vertical space (16 pixels)
-        ),
-        SliverAppBar(
-          snap: true,
-          floating: true,
-          expandedHeight: 40,
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          flexibleSpace: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 20.0,
-                vertical: 10.0,
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Heyyloo, ${context.watch<ProfileNotifier>().username ?? 'User'} !!',
-                      style: greetingStyle,
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
+          // Purple container with animation
+          SliverAppBar(
+            pinned: true,
+            floating: false,
+            expandedHeight: height * 0.075,
+            toolbarHeight: height * 0.075,
+            backgroundColor: Colors.transparent,
+            flexibleSpace: LayoutBuilder(
+              builder: (context, constraints) {
+                print('Debug - Scroll Values:');
+                print('scrollOffset: $_scrollOffset');
+
+                return _FriendsHeaderDelegate(
+                  context,
+                  headerTextStyle: headerTextStyle,
+                  buttonFontSize: buttonFontSize,
+                  buttonIconSize: buttonIconSize,
+                  scrollOffset: _scrollOffset,
+                  screenWidth: width,
+                  screenHeight: height,
+                ).build(
+                  context,
+                  constraints.maxHeight - constraints.minHeight,
+                  constraints.maxHeight != constraints.minHeight,
+                );
+              },
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: SizedBox(
+              height: height * 0.007,
+            ),
+          ),
+          SliverAppBar(
+            snap: true,
+            floating: true,
+            expandedHeight: height * 0.05,
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            flexibleSpace: SafeArea(
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: width * 0.05,
+                  vertical: height * 0.012,
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Heyyloo, ${context.watch<ProfileNotifier>().username ?? 'User'} !!',
+                        style: greetingStyle,
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
-        ),
 
-        SliverToBoxAdapter(
-          child: SizedBox(
-            height: 5,
-          ), // <-- This adds vertical space (16 pixels)
-        ),
-        SliverList(
-          delegate: SliverChildBuilderDelegate((
-              BuildContext context,
-              int index,
-              ) {
-            final double width = MediaQuery.of(context).size.width;
-            final double avatarSize = width * 0.12; // Responsive avatar size
-            final double imageSize =
-                width * 0.13; // Slightly larger for the image
+          SliverToBoxAdapter(
+            child: SizedBox(
+              height: height * 0.007,
+            ),
+          ),
+          SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (BuildContext context, int index) {
+                final group = groups[index];
+                final double width = MediaQuery.of(context).size.width;
+                final double avatarSize = width * 0.12;
+                final double imageSize = width * 0.13;
 
-            return Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: width * 0.04, // 2.5% of screen width
-                vertical: width * 0.01, // 1.5% of screen width
-              ),
-              child: Card(
-                color: Colors.white,
-                elevation: 2,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(
-                    width * 0.04,
-                  ), // Responsive border radius
-                ),
-                margin: EdgeInsets.symmetric(vertical: width * 0.01),
-                child: ListTile(
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: width * 0.03,
-                    vertical: width * 0.015,
-                  ),
-                  leading: CircleAvatar(
-                    radius: avatarSize / 2.2,
-                    backgroundColor: Theme.of(
+                return GestureDetector(
+                  onTap: (){
+                    Navigator.pushNamed(
                       context,
-                    ).colorScheme.inversePrimary.withOpacity(0.7),
-                    child: ClipOval(
-                      child: CachedNetworkImage(
-                        imageUrl:
-                        widget.friends[index]['profile_picture_url'] ?? '',
-                        placeholder: (context, url) => CustomLoader(
-                          size: avatarSize * 0.6,
-                          isButtonLoader: true,
+                      '/screen',
+                      arguments: {
+                        'chatName': group['name']?.toString() ?? 'Group Chat',
+                        'chatImageUrl': group['profile_picture_url'],
+                        'isGroupChat': true,
+                      },
+                    );
+
+                  },
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: width * 0.04,
+                      vertical: width * 0.01,
+                    ),
+                    child: Card(
+                      color: Colors.white,
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(width * 0.04),
+                      ),
+                      margin: EdgeInsets.symmetric(vertical: width * 0.01),
+                      child: ListTile(
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: width * 0.03,
+                          vertical: width * 0.015,
                         ),
-                        errorWidget: (context, url, error) =>
-                            Icon(Icons.person, size: avatarSize * 0.6),
-                        width: imageSize,
-                        height: imageSize,
-                        fit: BoxFit.cover,
+                        leading: CircleAvatar(
+                          radius: avatarSize / 2.2,
+                          backgroundColor: Theme.of(context)
+                              .colorScheme
+                              .inversePrimary
+                              .withOpacity(0.7),
+                          child: ClipOval(
+                            child: (group['profile_picture_url'] != null &&
+                                    (group['profile_picture_url'] as String).isNotEmpty &&
+                                    (group['profile_picture_url'] as String).startsWith('http'))
+                                ? CachedNetworkImage(
+                                    imageUrl: group['profile_picture_url'],
+                                    placeholder: (context, url) => CustomLoader(
+                                      size: avatarSize * 0.6,
+                                      isButtonLoader: true,
+                                    ),
+                                    errorWidget: (context, url, error) =>
+                                        Icon(Icons.groups_2_outlined, size: avatarSize * 0.6),
+                                    width: imageSize,
+                                    height: imageSize,
+                                    fit: BoxFit.cover,
+                                  )
+                                : Icon(Icons.groups_2_outlined, size: avatarSize * 0.6),
+                          ),
+                        ),
+                        title: Text(
+                          group['name']?.toString() ?? 'Group Name not fetched',
+                          style: groupNameStyle,
+                        ),
                       ),
                     ),
                   ),
-                  title: Text(
-                    widget.friends[index]['username']?.toString() ?? 'No Name',
-                    style: friendNameStyle,
-                  ),
-                ),
-              ),
-            );
-          }, childCount: widget.friends.length),
-        ),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: EdgeInsets.symmetric(
-              vertical: MediaQuery.of(context).size.width * 0.03,
+                );
+              },
+              childCount: groups.length,
             ),
-            child: Center(
-              child: Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: MediaQuery.of(context).size.width * 0.035,
-                  vertical: MediaQuery.of(context).size.width * 0.015,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.deepPurple.withOpacity(0.06),
-                  borderRadius: BorderRadius.circular(
-                    MediaQuery.of(context).size.width * 0.025,
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                vertical: MediaQuery.of(context).size.width * 0.03,
+              ),
+              child: Center(
+                child: Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: MediaQuery.of(context).size.width * 0.035,
+                    vertical: MediaQuery.of(context).size.width * 0.015,
                   ),
-                  border: Border.all(color: Colors.deepPurple, width: 1),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.deepPurple.withOpacity(0.08),
-                      blurRadius: 4,
-                      offset: Offset(0.5, 1),
+                  decoration: BoxDecoration(
+                    color: Colors.deepPurple.withOpacity(0.06),
+                    borderRadius: BorderRadius.circular(
+                      MediaQuery.of(context).size.width * 0.025,
                     ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'You have ',
-                      style: _getFriendCountStyle(false, width),
-                    ),
-                    Text(
-                      '${widget.friends.length}',
-                      style: _getFriendCountStyle(true, width),
-                    ),
-                    Text(
-                      ' friends 🎉',
-                      style: _getFriendCountStyle(false, width),
-                    ),
-                  ],
+                    border: Border.all(color: Colors.deepPurple, width: 1),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.deepPurple.withOpacity(0.08),
+                        blurRadius: 4,
+                        offset: Offset(0.5, 1),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'You have ',
+                        style: _getFriendCountStyle(false, width),
+                      ),
+                      Text(
+                        '${groups.length}',
+                        style: _getFriendCountStyle(true, width),
+                      ),
+                      Text(
+                        ' groups 🎉',
+                        style: _getFriendCountStyle(false, width),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -592,21 +579,25 @@ class _FriendsHeaderDelegate extends SliverPersistentHeaderDelegate {
   final double buttonFontSize;
   final double buttonIconSize;
   final double scrollOffset;
+  final double screenWidth;
+  final double screenHeight;
 
   const _FriendsHeaderDelegate(
-      this.context, {
-        required this.headerTextStyle,
-        required this.buttonFontSize,
-        required this.buttonIconSize,
-        required this.scrollOffset,
-      });
+    this.context, {
+    required this.headerTextStyle,
+    required this.buttonFontSize,
+    required this.buttonIconSize,
+    required this.scrollOffset,
+    required this.screenWidth,
+    required this.screenHeight,
+  });
 
   @override
   Widget build(
-      BuildContext context,
-      double shrinkOffset,
-      bool overlapsContent,
-      ) {
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
     print('Debug - Animation Values:');
     print('scrollOffset: $scrollOffset');
 
@@ -623,10 +614,7 @@ class _FriendsHeaderDelegate extends SliverPersistentHeaderDelegate {
     print('easedGap: $easedGap');
 
     return Container(
-      decoration: BoxDecoration(
-        color: Colors.deepPurple[400],
-
-      ),
+      decoration: BoxDecoration(color: Colors.deepPurple[400]),
       child: SizedBox(
         height: maxExtent,
         child: Column(
@@ -641,7 +629,7 @@ class _FriendsHeaderDelegate extends SliverPersistentHeaderDelegate {
                 children: [
                   Flexible(
                     child: Text(
-                      'Friends',
+                      'Groups',
                       style: headerTextStyle.copyWith(color: Colors.white),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -650,13 +638,14 @@ class _FriendsHeaderDelegate extends SliverPersistentHeaderDelegate {
                   Flexible(
                     child: GroupsPage.addGroupsButton(
                       context,
-                          () {},
+                      () {},
                       textStyle: headerTextStyle.copyWith(
                         fontSize: buttonFontSize,
                         fontWeight: FontWeight.w800,
                         color: Theme.of(context).colorScheme.inversePrimary,
                       ),
                       iconSize: buttonIconSize,
+                      width: screenWidth,
                     ),
                   ),
                 ],
@@ -669,36 +658,41 @@ class _FriendsHeaderDelegate extends SliverPersistentHeaderDelegate {
   }
 
   @override
-  double get maxExtent => 60.0;
+  double get maxExtent => screenHeight * 0.075;
 
   @override
-  double get minExtent => 60.0;
+  double get minExtent => screenHeight * 0.075;
 
   @override
   bool shouldRebuild(covariant _FriendsHeaderDelegate oldDelegate) {
-    return true;
+    return oldDelegate.scrollOffset != scrollOffset ||
+        oldDelegate.screenWidth != screenWidth ||
+        oldDelegate.screenHeight != screenHeight;
   }
 }
 
 class _ImageHeaderDelegate extends SliverPersistentHeaderDelegate {
   final double statusBarHeight;
   final double scrollOffset;
+  final double screenHeight;
 
   const _ImageHeaderDelegate({
     required this.statusBarHeight,
     required this.scrollOffset,
+    required this.screenHeight,
   });
 
   @override
   Widget build(
-      BuildContext context,
-      double shrinkOffset,
-      bool overlapsContent,
-      ) {
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
     final double visibleHeight = maxExtent - shrinkOffset;
 
     return Container(
       height: visibleHeight,
+      color: Colors.white,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
@@ -708,19 +702,18 @@ class _ImageHeaderDelegate extends SliverPersistentHeaderDelegate {
             right: 0,
             height: maxExtent,
             child: Image.asset(
-              'assets/images/freinds_scroll.jpg',
+              'assets/images/groups.png',
+             
               fit: BoxFit.cover,
             ),
           ),
-
-
         ],
       ),
     );
   }
 
   @override
-  double get maxExtent => 200 + statusBarHeight;
+  double get maxExtent => screenHeight * 0.25 + statusBarHeight;
 
   @override
   double get minExtent => 0;
@@ -728,6 +721,7 @@ class _ImageHeaderDelegate extends SliverPersistentHeaderDelegate {
   @override
   bool shouldRebuild(covariant _ImageHeaderDelegate oldDelegate) {
     return oldDelegate.statusBarHeight != statusBarHeight ||
-        oldDelegate.scrollOffset != scrollOffset;
+        oldDelegate.scrollOffset != scrollOffset ||
+        oldDelegate.screenHeight != screenHeight;
   }
 }

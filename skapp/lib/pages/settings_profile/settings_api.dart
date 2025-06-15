@@ -8,6 +8,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:logging/logging.dart';
 import 'package:provider/provider.dart';
 import 'package:skapp/main.dart';
+import 'package:skapp/pages/groups/group_provider.dart';
+import 'package:skapp/pages/friends/friends_provider.dart';
+import 'package:skapp/services/alert_service.dart';
 
 class ProfileApi {
   static final _logger = Logger('ProfileApi');
@@ -252,6 +255,21 @@ class ProfileApi {
   Future<void> logout(BuildContext context) async {
     final profileNotifier = Provider.of<ProfileNotifier>(context, listen: false);
     try {
+      // Clear all service caches first
+      final groupProvider = Provider.of<GroupProvider>(context, listen: false);
+      final friendsProvider = Provider.of<FriendsProvider>(context, listen: false);
+      final alertService = Provider.of<AlertService>(context, listen: false);
+      
+      // Clear caches
+      await groupProvider.service.clearCache();
+      await friendsProvider.service.clearCache();
+      alertService.clear();
+      
+      // Reset providers
+      groupProvider.resetState();
+      friendsProvider.resetState();
+      
+      // Sign out and clear auth
       await _authService.signOut();
       
       _prefs = await SharedPreferences.getInstance();

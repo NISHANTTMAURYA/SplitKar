@@ -15,7 +15,7 @@ class AppConfig {
   static const String deviceBaseUrl =
       'http://192.168.29.203:8000/api'; // Replace with your IP
   static const String ngrokBaseUrl =
-      'https://be89-2405-201-27-518b-f85e-60cd-3a60-1eb9.ngrok-free.app/api';
+      'https://a579-2405-201-27-518b-8888-41b-9575-72af.ngrok-free.app/api';
 
   // Environment flags
   static const bool useEmulator = false; // Android Emulator

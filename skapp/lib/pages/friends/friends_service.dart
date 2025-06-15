@@ -8,8 +8,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class FriendsService {
   static final _logger = Logger('FriendsService');
-  static const String _friendsCacheKey = 'cached_friends';
-  static const String _friendsCacheExpiryKey = 'friends_cache_expiry';
+  static const String _friendsCacheKeyPrefix = 'cached_friends_';
+  static const String _friendsCacheExpiryKeyPrefix = 'friends_cache_expiry_';
   static const Duration _cacheValidity = Duration(minutes: 5);
 
   var client = http.Client();
@@ -20,11 +20,27 @@ class FriendsService {
 
   List<Map<String, dynamic>>? _cachedFriends;
 
+  // Helper method to get user-specific cache keys
+  Future<Map<String, String>> _getCacheKeys() async {
+    final userId = await _authService.getUserId();
+    return {
+      'friends': '${_friendsCacheKeyPrefix}${userId ?? ""}',
+      'expiry': '${_friendsCacheExpiryKeyPrefix}${userId ?? ""}'
+    };
+  }
+
+  void dispose() {
+    client.close();
+    _logger.info('FriendsService http client closed.');
+  }
+
   Future<void> _initPrefs() async {
     try {
       _prefs = await SharedPreferences.getInstance();
+      final cacheKeys = await _getCacheKeys();
+      
       // Load cached friends
-      final cachedData = _prefs.getString(_friendsCacheKey);
+      final cachedData = _prefs.getString(cacheKeys['friends']!);
       if (cachedData != null) {
         _cachedFriends = List<Map<String, dynamic>>.from(
           jsonDecode(cachedData).map((x) => Map<String, dynamic>.from(x)),
@@ -38,7 +54,8 @@ class FriendsService {
 
   Future<bool> _isCacheValid() async {
     try {
-      final cacheExpiry = _prefs.getString(_friendsCacheExpiryKey);
+      final cacheKeys = await _getCacheKeys();
+      final cacheExpiry = _prefs.getString(cacheKeys['expiry']!);
       _logger.info('Cache expiry from storage: $cacheExpiry');
 
       if (cacheExpiry == null) {
@@ -64,9 +81,10 @@ class FriendsService {
 
   Future<void> _cacheFriendsData(List<Map<String, dynamic>> friends) async {
     try {
-      await _prefs.setString(_friendsCacheKey, jsonEncode(friends));
+      final cacheKeys = await _getCacheKeys();
+      await _prefs.setString(cacheKeys['friends']!, jsonEncode(friends));
       await _prefs.setString(
-        _friendsCacheExpiryKey,
+        cacheKeys['expiry']!,
         DateTime.now().add(_cacheValidity).toIso8601String(),
       );
       _logger.info('Cached ${friends.length} friends');
@@ -185,8 +203,9 @@ class FriendsService {
   Future<void> clearCache() async {
     try {
       _prefs = await SharedPreferences.getInstance();
-      await _prefs.remove(_friendsCacheKey);
-      await _prefs.remove(_friendsCacheExpiryKey);
+      final cacheKeys = await _getCacheKeys();
+      await _prefs.remove(cacheKeys['friends']!);
+      await _prefs.remove(cacheKeys['expiry']!);
       _cachedFriends = null;
       _logger.info('Friends cache cleared');
     } catch (e) {

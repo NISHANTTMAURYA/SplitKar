@@ -13,6 +13,7 @@ class AuthService {
   static const String _refreshTokenKey = 'refresh_token';
   static const String _tokenExpiryKey = 'token_expiry';
   static const String _lastValidatedKey = 'last_validated';
+  static const String _userIdKey = 'user_id';
 
   // Use the dynamic base URL
   static String get _baseUrl => AppConfig.baseUrl;
@@ -320,6 +321,22 @@ class AuthService {
       key: _lastValidatedKey,
       value: DateTime.now().toIso8601String(),
     );
+
+    // Extract and cache user ID from new token
+    try {
+      final parts = accessToken.split('.');
+      if (parts.length == 3) {
+        final payload = json.decode(
+          utf8.decode(base64Url.decode(base64Url.normalize(parts[1])))
+        );
+        final userId = payload['user_id']?.toString();
+        if (userId != null) {
+          await _secureStorage.write(key: _userIdKey, value: userId);
+        }
+      }
+    } catch (e) {
+      _logger.warning('Error caching user ID from token: $e');
+    }
   }
 
   Future<String?> getToken() async {
@@ -332,13 +349,20 @@ class AuthService {
 
   Future<void> signOut() async {
     try {
-      await _googleSignIn.signOut();
+      _logger.info('Starting sign out process...');
+      
+      // Clear all tokens and data
       await _secureStorage.delete(key: _tokenKey);
       await _secureStorage.delete(key: _refreshTokenKey);
       await _secureStorage.delete(key: _tokenExpiryKey);
       await _secureStorage.delete(key: _lastValidatedKey);
-    } catch (error) {
-      _logger.severe('Error during sign out: $error');
+      await _secureStorage.delete(key: _userIdKey);  // Clear cached user ID
+      
+      await _googleSignIn.signOut();
+      _logger.info('Successfully signed out');
+    } catch (e) {
+      _logger.severe('Error during sign out: $e');
+      rethrow;
     }
   }
 
@@ -385,6 +409,48 @@ class AuthService {
     } catch (e) {
       _logger.warning('Error refreshing token: $e');
       await signOut();
+      return null;
+    }
+  }
+
+  Future<String?> getUserId() async {
+    try {
+      // First try to get cached user ID
+      final cachedUserId = await _secureStorage.read(key: _userIdKey);
+      if (cachedUserId != null) {
+        _logger.info('Using cached user ID');
+        return cachedUserId;
+      }
+
+      // If not cached, get from token
+      final token = await getToken();
+      if (token == null) {
+        _logger.warning('No token available to get user ID');
+        return null;
+      }
+
+      // Parse JWT token
+      final parts = token.split('.');
+      if (parts.length != 3) {
+        _logger.warning('Invalid token format');
+        return null;
+      }
+
+      // Decode payload
+      final payload = json.decode(
+        utf8.decode(base64Url.decode(base64Url.normalize(parts[1]))),
+      );
+
+      final userId = payload['user_id']?.toString();
+      if (userId != null) {
+        // Cache the user ID
+        await _secureStorage.write(key: _userIdKey, value: userId);
+        _logger.info('Cached user ID from token');
+      }
+
+      return userId;
+    } catch (e) {
+      _logger.severe('Error getting user ID: $e');
       return null;
     }
   }

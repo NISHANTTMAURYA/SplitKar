@@ -279,8 +279,8 @@
                 
                 // Format the response for better readability
                 const formattedResponse = {
-                    total_groups: data.total_groups,
-                    groups: data.groups.map(group => ({
+                    total_groups: data.length,
+                    groups: data.map(group => ({
                         ...group,
                         created_at: new Date(group.created_at).toLocaleString(),
                         is_creator: group.is_creator ? 'Yes' : 'No'

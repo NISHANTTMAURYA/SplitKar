@@ -74,7 +74,7 @@ class AppDrawer extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       if (profile.photoUrl != null &&
-                          profile.photoUrl!.isNotEmpty)
+                          profile.photoUrl!.isNotEmpty && profile.photoUrl!.startsWith('http'))
                         CircleAvatar(
                           radius: 44,
                           backgroundColor: Colors.white,

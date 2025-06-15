@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:skapp/widgets/custom_loader.dart';
 import 'package:skapp/pages/friends/add_friends_sheet.dart';
 import 'package:skapp/pages/friends/friends_provider.dart';
+import 'package:skapp/services/alert_service.dart';
 
 class FreindsPage extends StatefulWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
@@ -33,8 +34,16 @@ class FreindsPage extends StatefulWidget {
   State<FreindsPage> createState() => _FreindsPageState();
 
   // Add a static method to reload friends
-  static void reloadFriends() {
-    freindsKey.currentState?._loadFriends();
+  static Future<void> reloadFriends() async {
+    final context = freindsKey.currentContext;
+    if (context != null) {
+      final friendsProvider = Provider.of<FriendsProvider>(context, listen: false);
+      await friendsProvider.refreshFriends();
+      if (context.mounted) {
+        final alertService = Provider.of<AlertService>(context, listen: false);
+        await alertService.fetchAlerts(context);
+      }
+    }
   }
 
   static Widget friendsImage(BuildContext context, {double? opacity}) {
@@ -71,6 +80,7 @@ class FreindsPage extends StatefulWidget {
     VoidCallback onAddFriends, {
     TextStyle? textStyle,
     double? iconSize,
+    double? width,
   }) {
     return Material(
       color: Colors.transparent,
@@ -87,6 +97,7 @@ class FreindsPage extends StatefulWidget {
         highlightColor: Colors.deepPurple.withOpacity(0.1),
         onTap: () {
           showModalBottomSheet(
+            barrierColor: Colors.deepPurple[400],
             context: context,
             isScrollControlled: true,
             backgroundColor: Colors.transparent,
@@ -139,36 +150,18 @@ class FreindsPage extends StatefulWidget {
 }
 
 class _FreindsPageState extends State<FreindsPage> {
-  List<dynamic> _friends = [];
-  bool _isLoading = true;
-  String? _error;
   final FriendsService _friendsService = FriendsService();
 
-  // Make _loadFriends public so it can be called from FriendsProvider
-  Future<void> _loadFriends() async {
-    if (!mounted) return;
+  Future<void> refreshFriends() async {
+    await refreshAll();
+  }
 
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
-
-    try {
-      final friends = await _friendsService.getFriends(
-        forceRefresh: true,
-      ); // Always force refresh
-      if (mounted) {
-        setState(() {
-          _friends = friends;
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _error = e.toString();
-          _isLoading = false;
-        });
+  Future<void> refreshAll() async {
+    if (mounted) {
+      await context.read<FriendsProvider>().refreshFriends();
+      if (context.mounted) {
+        final alertService = Provider.of<AlertService>(context, listen: false);
+        await alertService.fetchAlerts(context);
       }
     }
   }
@@ -176,72 +169,69 @@ class _FreindsPageState extends State<FreindsPage> {
   @override
   void initState() {
     super.initState();
-    _loadFriends();
-  }
-
-  bool _isImagePreloaded = false;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (!_isImagePreloaded) {
-      precacheImage(
-        const AssetImage('assets/images/freinds_scroll.jpg'),
-        context,
-      );
-      _isImagePreloaded = true;
-    }
+    // Load friends when page is first created
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<FriendsProvider>().loadFriends();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-    final double height = MediaQuery.of(context).size.height;
-    final double baseSize = width < height ? width : height;
-    final double statusBarHeight = MediaQuery.of(context).padding.top;
+    return Consumer<FriendsProvider>(
+      builder: (context, friendsProvider, child) {
+        final width = MediaQuery.of(context).size.width;
+        final double height = MediaQuery.of(context).size.height;
+        final double baseSize = width < height ? width : height;
+        final double statusBarHeight = MediaQuery.of(context).padding.top;
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      widget.onFriendsListStateChanged(_friends.isNotEmpty);
-    });
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          widget.onFriendsListStateChanged(friendsProvider.friends.isNotEmpty);
+        });
 
-    // Show loader if loading
-    if (_isLoading) {
-      return Scaffold(body: CustomLoader());
-    }
+        // Show loader if loading
+        if (friendsProvider.isLoading) {
+          return Scaffold(body: CustomLoader());
+        }
 
-    // Show error if there is one
-    if (_error != null) {
-      return Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.error_outline, size: 48, color: Colors.red),
-              SizedBox(height: 16),
-              Text(
-                _error!,
-                style: TextStyle(color: Colors.red),
-                textAlign: TextAlign.center,
+        // Show error if there is one
+        if (friendsProvider.error != null) {
+          return Scaffold(
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.error_outline, size: width * 0.12, color: Colors.red),
+                  SizedBox(height: height * 0.02),
+                  Text(
+                    friendsProvider.error!,
+                    style: TextStyle(color: Colors.red),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: height * 0.02),
+                  ElevatedButton(
+                    onPressed: () => friendsProvider.refreshFriends(),
+                    child: Text('Retry')
+                  ),
+                ],
               ),
-              SizedBox(height: 16),
-              ElevatedButton(onPressed: _loadFriends, child: Text('Retry')),
-            ],
-          ),
-        ),
-      );
-    }
+            ),
+          );
+        }
 
-    return Scaffold(
-      body: RefreshIndicator(
-        onRefresh: _loadFriends,
-        child: _friends.isNotEmpty
-            ? _FriendsListView(
-                friends: _friends,
-                scaffoldKey: widget.scaffoldKey,
-                pageController: widget.pageController,
-              )
-            : _NoFriendsView(onAddFriends: () {}),
-      ),
+        return Scaffold(
+          body: RefreshIndicator(
+            onRefresh: refreshAll,
+            child: friendsProvider.friends.isNotEmpty
+                ? _FriendsListView(
+                    friends: friendsProvider.friends,
+                    scaffoldKey: widget.scaffoldKey,
+                    pageController: widget.pageController,
+                    onRefresh: refreshAll,
+                  )
+                : _NoFriendsView(onAddFriends: () {}),
+          ),
+        );
+      },
     );
   }
 }
@@ -317,10 +307,12 @@ class _FriendsListView extends StatefulWidget {
   final List<dynamic> friends;
   final GlobalKey<ScaffoldState> scaffoldKey;
   final PageController? pageController;
+  final Future<void> Function() onRefresh;
 
   const _FriendsListView({
     required this.friends,
     required this.scaffoldKey,
+    required this.onRefresh,
     this.pageController,
   });
 
@@ -390,205 +382,227 @@ class _FriendsListViewState extends State<_FriendsListView> {
     final double buttonFontSize = width * 0.04;
     final double buttonIconSize = width * 0.05;
 
-    return CustomScrollView(
-      controller: _scrollController,
-      slivers: [
-        // Image Header
-        SliverPersistentHeader(
-          pinned: false,
-          floating: true,
-          delegate: _ImageHeaderDelegate(
-            statusBarHeight: statusBarHeight,
-            scrollOffset: _scrollOffset,
-          ),
-        ),
-        // Purple container with animation
-        SliverAppBar(
-          pinned: true,
-          floating: false,
-          expandedHeight: 60,
-          toolbarHeight: 60,
-          backgroundColor: Colors.transparent,
-          flexibleSpace: LayoutBuilder(
-            builder: (context, constraints) {
-              print('Debug - Scroll Values:');
-              print('scrollOffset: $_scrollOffset');
-
-              return _FriendsHeaderDelegate(
-                context,
-                headerTextStyle: headerTextStyle,
-                buttonFontSize: buttonFontSize,
-                buttonIconSize: buttonIconSize,
-                scrollOffset: _scrollOffset,
-              ).build(
-                context,
-                constraints.maxHeight - constraints.minHeight,
-                constraints.maxHeight != constraints.minHeight,
-              );
-            },
-          ),
-        ),
-        SliverToBoxAdapter(
-          child: SizedBox(
-            height: 5,
-          ), // <-- This adds vertical space (16 pixels)
-        ),
-        SliverAppBar(
-          snap: true,
-          floating: true,
-          expandedHeight: 40,
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          flexibleSpace: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 20.0,
-                vertical: 10.0,
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Heyyloo, ${context.watch<ProfileNotifier>().username ?? 'User'} !!',
-                      style: greetingStyle,
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
-                    ),
-                  ),
-                ],
-              ),
+    return RefreshIndicator(
+      onRefresh: widget.onRefresh,
+      child: CustomScrollView(
+        controller: _scrollController,
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          // Image Header
+          SliverPersistentHeader(
+            pinned: false,
+            floating: true,
+            delegate: _ImageHeaderDelegate(
+              statusBarHeight: statusBarHeight,
+              scrollOffset: _scrollOffset,
+              screenHeight: height,
             ),
           ),
-        ),
-
-        SliverToBoxAdapter(
-          child: SizedBox(
-            height: 5,
-          ), // <-- This adds vertical space (16 pixels)
-        ),
-        SliverList(
-          delegate: SliverChildBuilderDelegate((
-            BuildContext context,
-            int index,
-          ) {
-            final double width = MediaQuery.of(context).size.width;
-            final double avatarSize = width * 0.12; // Responsive avatar size
-            final double imageSize =
-                width * 0.13; // Slightly larger for the image
-
-            return Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: width * 0.04, // 2.5% of screen width
-                vertical: width * 0.01, // 1.5% of screen width
-              ),
-              child: Card(
-                color: Colors.white,
-                elevation: 2,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(
-                    width * 0.04,
-                  ), // Responsive border radius
-                ),
-                margin: EdgeInsets.symmetric(vertical: width * 0.01),
-                child: ListTile(
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: width * 0.03,
-                    vertical: width * 0.015,
-                  ),
-                  leading: CircleAvatar(
-                    radius: avatarSize / 2.2,
-                    backgroundColor: Theme.of(
-                      context,
-                    ).colorScheme.inversePrimary.withOpacity(0.7),
-                    child: ClipOval(
-                      child: CachedNetworkImage(
-                        imageUrl:
-                            widget.friends[index]['profile_picture_url'] ?? '',
-                        placeholder: (context, url) => CustomLoader(
-                          size: avatarSize * 0.6,
-                          isButtonLoader: true,
-                        ),
-                        errorWidget: (context, url, error) =>
-                            Icon(Icons.person, size: avatarSize * 0.6),
-                        width: imageSize,
-                        height: imageSize,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  ),
-                  title: Text(
-                    widget.friends[index]['username']?.toString() ?? 'No Name',
-                    style: friendNameStyle,
-                  ),
-                ),
-              ),
-            );
-          }, childCount: widget.friends.length),
-        ),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: EdgeInsets.symmetric(
-              vertical: MediaQuery.of(context).size.width * 0.03,
+          // Purple container with animation
+          SliverAppBar(
+            pinned: true,
+            floating: false,
+            expandedHeight: height * 0.075, // Responsive expanded height
+            toolbarHeight: height * 0.075, // Responsive toolbar height
+            backgroundColor: Colors.transparent,
+            flexibleSpace: LayoutBuilder(
+              builder: (context, constraints) {
+                print('Debug - Scroll Values:');
+                print('scrollOffset: $_scrollOffset');
+      
+                return _FriendsHeaderDelegate(
+                  headerTextStyle: headerTextStyle,
+                  buttonFontSize: buttonFontSize,
+                  buttonIconSize: buttonIconSize,
+                  scrollOffset: _scrollOffset,
+                  screenWidth: width,
+                  screenHeight: height,
+                ).build(
+                  context,
+                  constraints.maxHeight - constraints.minHeight,
+                  constraints.maxHeight != constraints.minHeight,
+                );
+              },
             ),
-            child: Center(
-              child: Container(
+          ),
+          SliverToBoxAdapter(
+            child: SizedBox(
+              height: height * 0.007, // Responsive vertical space
+            ),
+          ),
+          SliverAppBar(
+            snap: true,
+            floating: true,
+            expandedHeight: height * 0.05, // Responsive expanded height
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            flexibleSpace: SafeArea(
+              child: Padding(
                 padding: EdgeInsets.symmetric(
-                  horizontal: MediaQuery.of(context).size.width * 0.035,
-                  vertical: MediaQuery.of(context).size.width * 0.015,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.deepPurple.withOpacity(0.06),
-                  borderRadius: BorderRadius.circular(
-                    MediaQuery.of(context).size.width * 0.025,
-                  ),
-                  border: Border.all(color: Colors.deepPurple, width: 1),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.deepPurple.withOpacity(0.08),
-                      blurRadius: 4,
-                      offset: Offset(0.5, 1),
-                    ),
-                  ],
+                  horizontal: width * 0.05, // Responsive horizontal padding
+                  vertical: height * 0.012, // Responsive vertical padding
                 ),
                 child: Row(
-                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      'You have ',
-                      style: _getFriendCountStyle(false, width),
-                    ),
-                    Text(
-                      '${widget.friends.length}',
-                      style: _getFriendCountStyle(true, width),
-                    ),
-                    Text(
-                      ' friends 🎉',
-                      style: _getFriendCountStyle(false, width),
+                    Expanded(
+                      child: Text(
+                        'Heyyloo, ${context.watch<ProfileNotifier>().username ?? 'User'} !!',
+                        style: greetingStyle,
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
                     ),
                   ],
                 ),
               ),
             ),
           ),
-        ),
-      ],
+      
+          SliverToBoxAdapter(
+            child: SizedBox(
+              height: height * 0.007, // Responsive vertical space
+            ),
+          ),
+          SliverList(
+            delegate: SliverChildBuilderDelegate((
+              BuildContext context,
+              int index,
+            ) {
+              final double width = MediaQuery.of(context).size.width;
+              final double avatarSize = width * 0.12; // Responsive avatar size
+              final double imageSize =
+                  width * 0.13; // Slightly larger for the image
+      
+              return Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: width * 0.04, // 2.5% of screen width
+                  vertical: width * 0.01, // 1.5% of screen width
+                ),
+                child: Card(
+                  color: Colors.white,
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(
+                      width * 0.04,
+                    ), // Responsive border radius
+                  ),
+                  margin: EdgeInsets.symmetric(vertical: width * 0.01),
+                  child: ListTile(
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: width * 0.03,
+                      vertical: width * 0.015,
+                    ),
+                    onTap: () {
+                      Navigator.pushNamed(
+                        context,
+                        '/screen',
+                        arguments: {
+                          'chatName': widget.friends[index]['username']?.toString() ?? 'Friend Chat',
+                          'chatImageUrl': widget.friends[index]['profile_picture_url'],
+                          'isGroupChat': false,
+                        },
+                      );
+                    },
+                    leading: CircleAvatar(
+                      radius: avatarSize / 2.2,
+                      backgroundColor: Theme.of(
+                        context,
+                      ).colorScheme.inversePrimary.withOpacity(0.7),
+                      child: ClipOval(
+                        child: (widget.friends[index]['profile_picture_url'] != null &&
+                                (widget.friends[index]['profile_picture_url'] as String).isNotEmpty &&
+                                (widget.friends[index]['profile_picture_url'] as String).startsWith('http'))
+                            ? CachedNetworkImage(
+                                imageUrl: widget.friends[index]['profile_picture_url'],
+                                placeholder: (context, url) => CustomLoader(
+                                  size: avatarSize * 0.6,
+                                  isButtonLoader: true,
+                                ),
+                                errorWidget: (context, url, error) =>
+                                    Icon(Icons.person, size: avatarSize * 0.6),
+                                width: imageSize,
+                                height: imageSize,
+                                fit: BoxFit.cover,
+                              )
+                            : Icon(Icons.person, size: avatarSize * 0.6),
+                      ),
+                    ),
+                    title: Text(
+                      widget.friends[index]['username']?.toString() ?? 'No Name',
+                      style: friendNameStyle,
+                    ),
+                  ),
+                ),
+              );
+            }, childCount: widget.friends.length),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                vertical: MediaQuery.of(context).size.width * 0.03,
+              ),
+              child: Center(
+                child: Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: MediaQuery.of(context).size.width * 0.035,
+                    vertical: MediaQuery.of(context).size.width * 0.015,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.deepPurple.withOpacity(0.06),
+                    borderRadius: BorderRadius.circular(
+                      MediaQuery.of(context).size.width * 0.025,
+                    ),
+                    border: Border.all(color: Colors.deepPurple, width: 1),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.deepPurple.withOpacity(0.08),
+                        blurRadius: 4,
+                        offset: Offset(0.5, 1),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'You have ',
+                        style: _getFriendCountStyle(false, width),
+                      ),
+                      Text(
+                        '${widget.friends.length}',
+                        style: _getFriendCountStyle(true, width),
+                      ),
+                      Text(
+                        ' friends 🎉',
+                        style: _getFriendCountStyle(false, width),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
 class _FriendsHeaderDelegate extends SliverPersistentHeaderDelegate {
-  final BuildContext context;
   final TextStyle headerTextStyle;
   final double buttonFontSize;
   final double buttonIconSize;
   final double scrollOffset;
+  final double screenWidth;
+  final double screenHeight;
 
-  const _FriendsHeaderDelegate(
-    this.context, {
+  const _FriendsHeaderDelegate({
     required this.headerTextStyle,
     required this.buttonFontSize,
     required this.buttonIconSize,
     required this.scrollOffset,
+    required this.screenWidth,
+    required this.screenHeight,
   });
 
   @override
@@ -613,10 +627,7 @@ class _FriendsHeaderDelegate extends SliverPersistentHeaderDelegate {
     print('easedGap: $easedGap');
 
     return Container(
-      decoration: BoxDecoration(
-        color: Colors.deepPurple[400],
-
-      ),
+      decoration: BoxDecoration(color: Colors.deepPurple[400]),
       child: SizedBox(
         height: maxExtent,
         child: Column(
@@ -647,6 +658,7 @@ class _FriendsHeaderDelegate extends SliverPersistentHeaderDelegate {
                         color: Theme.of(context).colorScheme.inversePrimary,
                       ),
                       iconSize: buttonIconSize,
+                      width: screenWidth,
                     ),
                   ),
                 ],
@@ -659,24 +671,28 @@ class _FriendsHeaderDelegate extends SliverPersistentHeaderDelegate {
   }
 
   @override
-  double get maxExtent => 60.0;
+  double get maxExtent => screenHeight * 0.075;
 
   @override
-  double get minExtent => 60.0;
+  double get minExtent => screenHeight * 0.075;
 
   @override
   bool shouldRebuild(covariant _FriendsHeaderDelegate oldDelegate) {
-    return true;
+    return oldDelegate.scrollOffset != scrollOffset ||
+        oldDelegate.screenWidth != screenWidth ||
+        oldDelegate.screenHeight != screenHeight;
   }
 }
 
 class _ImageHeaderDelegate extends SliverPersistentHeaderDelegate {
   final double statusBarHeight;
   final double scrollOffset;
+  final double screenHeight;
 
   const _ImageHeaderDelegate({
     required this.statusBarHeight,
     required this.scrollOffset,
+    required this.screenHeight,
   });
 
   @override
@@ -710,7 +726,7 @@ class _ImageHeaderDelegate extends SliverPersistentHeaderDelegate {
   }
 
   @override
-  double get maxExtent => 200 + statusBarHeight;
+  double get maxExtent => screenHeight * 0.25 + statusBarHeight;
 
   @override
   double get minExtent => 0;
@@ -718,6 +734,7 @@ class _ImageHeaderDelegate extends SliverPersistentHeaderDelegate {
   @override
   bool shouldRebuild(covariant _ImageHeaderDelegate oldDelegate) {
     return oldDelegate.statusBarHeight != statusBarHeight ||
-        oldDelegate.scrollOffset != scrollOffset;
+        oldDelegate.scrollOffset != scrollOffset ||
+        oldDelegate.screenHeight != screenHeight;
   }
 }
