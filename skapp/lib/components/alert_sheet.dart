@@ -215,6 +215,8 @@ class _AlertSheetState extends State<AlertSheet>
   late TabController _tabController;
   AlertCategory? _selectedFilter;
   static final _logger = Logger('AlertSheet');
+  // Add sorted categories list to maintain stable order
+  List<AlertCategory> _sortedCategories = [];
 
   @override
   void initState() {
@@ -229,8 +231,8 @@ class _AlertSheetState extends State<AlertSheet>
   }
 
   void _initializeTabController() {
-    // Get all categories and sort them
-    final allCategories = AlertCategory.values.toList()
+    // Get all categories and sort them only once
+    _sortedCategories = AlertCategory.values.toList()
       ..sort((a, b) {
         // Get total counts to prioritize categories with alerts
         final aTotalCount = widget.alertService.categoryCounts
@@ -250,10 +252,10 @@ class _AlertSheetState extends State<AlertSheet>
 
         // Prioritize categories with alerts over those without
         if (aTotalCount > 0 && bTotalCount == 0) {
-          return -1; // 'a' has alerts, 'b' doesn't, so 'a' comes first
+          return -1;
         }
         if (aTotalCount == 0 && bTotalCount > 0) {
-          return 1; // 'b' has alerts, 'a' doesn't, so 'b' comes first ('a' comes after 'b')
+          return 1;
         }
 
         // If both have alerts or both don't, apply existing sorting criteria:
@@ -286,7 +288,7 @@ class _AlertSheetState extends State<AlertSheet>
       });
 
     // Create tabs list including "All" tab
-    final tabs = ['All', ...allCategories.map((c) => c.displayName)];
+    final tabs = ['All', ..._sortedCategories.map((c) => c.displayName)];
 
     // Initialize controller with correct length
     _tabController = TabController(length: tabs.length, vsync: this);
@@ -298,68 +300,14 @@ class _AlertSheetState extends State<AlertSheet>
           // First tab (index 0) is "All", so set filter to null
           _selectedFilter = _tabController.index == 0
               ? null
-              : allCategories[_tabController.index - 1];
+              : _sortedCategories[_tabController.index - 1];
         });
       }
     });
   }
 
   List<Widget> _buildTabs() {
-    // Get all categories for tabs
-    final allCategories = AlertCategory.values.toList()
-      ..sort((a, b) {
-        // Get total counts to prioritize categories with alerts
-        final aTotalCount = widget.alertService.categoryCounts
-            .firstWhere(
-              (c) => c.category == a,
-              orElse: () =>
-                  AlertCategoryCount(category: a, total: 0, unread: 0),
-            )
-            .total;
-        final bTotalCount = widget.alertService.categoryCounts
-            .firstWhere(
-              (c) => c.category == b,
-              orElse: () =>
-                  AlertCategoryCount(category: b, total: 0, unread: 0),
-            )
-            .total;
-
-        // Prioritize categories with alerts over those without
-        if (aTotalCount > 0 && bTotalCount == 0) {
-          return -1; // 'a' has alerts, 'b' doesn't, so 'a' comes first
-        }
-        if (aTotalCount == 0 && bTotalCount > 0) {
-          return 1; // 'b' has alerts, 'a' doesn't, so 'b' comes first ('a' comes after 'b')
-        }
-
-        // If both have alerts or both don't, apply existing sorting criteria:
-        // Sort by responsive alerts first, then by unread count (same logic as _initializeTabController)
-        final aHasResponse = widget.alertService.alerts.any(
-          (alert) => alert.category == a && alert.requiresResponse,
-        );
-        final bHasResponse = widget.alertService.alerts.any(
-          (alert) => alert.category == b && alert.requiresResponse,
-        );
-        if (aHasResponse != bHasResponse) {
-          return aHasResponse ? -1 : 1;
-        }
-        final aCount = widget.alertService.categoryCounts
-            .firstWhere(
-              (c) => c.category == a,
-              orElse: () =>
-                  AlertCategoryCount(category: a, total: 0, unread: 0),
-            )
-            .unread;
-        final bCount = widget.alertService.categoryCounts
-            .firstWhere(
-              (c) => c.category == b,
-              orElse: () =>
-                  AlertCategoryCount(category: b, total: 0, unread: 0),
-            )
-            .unread;
-        return bCount.compareTo(aCount);
-      });
-
+    // Use the stable sorted categories instead of re-sorting
     return [
       Tab(
         child: Row(
@@ -385,7 +333,7 @@ class _AlertSheetState extends State<AlertSheet>
           ],
         ),
       ),
-      ...allCategories.map(
+      ..._sortedCategories.map(
         (category) => Tab(
           child: Row(
             mainAxisSize: MainAxisSize.min,
