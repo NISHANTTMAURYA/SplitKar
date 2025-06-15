@@ -306,6 +306,45 @@ class _AlertSheetState extends State<AlertSheet>
     });
   }
 
+  // Add method to find next category with alerts
+  AlertCategory? _findNextCategoryWithAlerts(AlertCategory? currentCategory) {
+    if (_sortedCategories.isEmpty) return null;
+
+    // Start from the beginning if no current category
+    int startIndex = currentCategory == null ? 0 : _sortedCategories.indexOf(currentCategory);
+    if (startIndex == -1) startIndex = 0;
+
+    // First try categories after the current one
+    for (int i = startIndex + 1; i < _sortedCategories.length; i++) {
+      final category = _sortedCategories[i];
+      if (widget.alertService.alerts.any((a) => a.category == category && a.shouldShow)) {
+        return category;
+      }
+    }
+
+    // If no categories after, try from the beginning
+    for (int i = 0; i < startIndex; i++) {
+      final category = _sortedCategories[i];
+      if (widget.alertService.alerts.any((a) => a.category == category && a.shouldShow)) {
+        return category;
+      }
+    }
+
+    return null;
+  }
+
+  // Add method to switch to next category with alerts
+  void _switchToNextCategoryWithAlerts() {
+    final nextCategory = _findNextCategoryWithAlerts(_selectedFilter);
+    if (nextCategory != null) {
+      final nextIndex = _sortedCategories.indexOf(nextCategory) + 1; // +1 for "All" tab
+      _tabController.animateTo(nextIndex);
+    } else {
+      // If no categories with alerts, switch to "All" tab
+      _tabController.animateTo(0);
+    }
+  }
+
   List<Widget> _buildTabs() {
     // Use the stable sorted categories instead of re-sorting
     return [
@@ -546,11 +585,13 @@ class _AlertSheetState extends State<AlertSheet>
               .toList();
 
     if (filteredAlerts.isEmpty) {
-      return Center(
-        child: Text(
-          'No alerts in this category',
-          style: GoogleFonts.cabin(fontSize: 16, color: Colors.grey[600]),
-        ),
+      // If current category has no alerts, switch to next category
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _switchToNextCategoryWithAlerts();
+      });
+      
+      return const Center(
+        child: CustomLoader(),
       );
     }
 
