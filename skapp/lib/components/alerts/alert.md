@@ -10,6 +10,120 @@ A real-time, optimized alert system for Flutter applications that handles indivi
 - Category-based filtering
 - Memory efficient
 
+## Common Issues & Solutions
+
+### 1. Deactivated Widget Context
+**Issue**: 
+```
+Looking up a deactivated widget's ancestor is unsafe.
+At this point the state of the widget's element tree is no longer stable.
+```
+**Solution**:
+```dart
+// Before: Unsafe context usage
+void handleAction() async {
+  await someAsyncOperation();
+  Navigator.of(context).pop(); // Crash if widget disposed
+}
+
+// After: Safe context usage
+void handleAction() async {
+  if (!context.mounted) return;
+  await someAsyncOperation();
+  if (context.mounted) {
+    Navigator.of(context).pop(); // Safe
+  }
+}
+```
+
+### 2. List State Sync Issues
+**Issue**: AnimatedList getting out of sync with actual data, causing range errors.
+
+**Solution**:
+```dart
+// Before: Complex AnimatedList management
+AnimatedList(
+  key: _listKey,
+  itemBuilder: (context, index, animation) {
+    // Complex state management prone to errors
+  }
+)
+
+// After: Simplified stable ListView
+ListView.builder(
+  itemCount: filteredAlerts.length,
+  itemBuilder: (context, index) {
+    return AnimatedSize(
+      child: AlertCard(...),
+    );
+  },
+)
+```
+
+### 3. Memory Leaks
+**Issue**: Alerts not being properly cleaned up after processing.
+
+**Solution**:
+```dart
+// Added proper cleanup in AlertService
+Future<void> handleAlertAction() async {
+  try {
+    _processingAlerts.add(alertId);
+    await action();
+  } finally {
+    _processingAlerts.remove(alertId); // Always cleanup
+  }
+}
+```
+
+### 4. UI Jank During Updates
+**Issue**: Entire list rebuilding when single alert changes.
+
+**Solution**:
+```dart
+// Use Selector for granular updates
+Selector<AlertService, bool>(
+  selector: (_, service) => service.isProcessing(alert.id),
+  builder: (context, isProcessing, child) => AlertCard(...),
+)
+```
+
+### 5. Race Conditions
+**Issue**: Multiple async operations causing state inconsistencies.
+
+**Solution**:
+```dart
+// Added Completer for proper async handling
+Future<void> handleAlertAction() async {
+  final actionCompleter = Completer<void>();
+  
+  action().then((value) {
+    actionCompleter.complete();
+  }).catchError((error) {
+    actionCompleter.completeError(error);
+  });
+  
+  await actionCompleter.future;
+}
+```
+
+### 6. Category Management Issues
+**Issue**: Categories not updating properly when alerts change.
+
+**Solution**:
+```dart
+void _updateSortedCategories() {
+  _sortedCategories = AlertCategory.values.toList()
+    ..sort((a, b) {
+      // Prioritize categories with alerts
+      if (aTotalCount > 0 && bTotalCount == 0) return -1;
+      // Sort by response requirements
+      if (aHasResponse != bHasResponse) return aHasResponse ? -1 : 1;
+      return bCount.compareTo(aCount);
+    });
+}
+```
+
 ## Creating Alerts
 
 ### 1. Basic Alert

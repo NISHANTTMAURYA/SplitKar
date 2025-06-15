@@ -66,6 +66,7 @@ import 'package:skapp/components/alerts/alert_sheet.dart';
 import 'package:skapp/pages/friends/friends_provider.dart';
 import 'package:skapp/pages/groups/group_provider.dart';
 import 'package:provider/provider.dart';
+import 'dart:async';
 
 class AlertService extends ChangeNotifier {
   static final _logger = Logger('AlertService');
@@ -236,11 +237,21 @@ class AlertService extends ChangeNotifier {
       _processingAlerts.add(alertId);
       _updateSingleAlert(alertId, remove: true);
 
+      // Create a completer to track when the action is done
+      final actionCompleter = Completer<void>();
+
       // Execute the action in background
-      await action();
+      action().then((value) {
+        actionCompleter.complete();
+      }).catchError((error) {
+        actionCompleter.completeError(error);
+      });
+
+      // Wait for action to complete
+      await actionCompleter.future;
 
       // Only fetch all alerts if we've processed multiple alerts or need a full refresh
-      if (context.mounted && _needsFullRefresh) {
+      if (_needsFullRefresh) {
         _needsFullRefresh = false;
         // Fetch in background without loading state
         _silentBackgroundFetch(context);
@@ -272,12 +283,17 @@ class AlertService extends ChangeNotifier {
 
   // Silent background fetch without loading state
   Future<void> _silentBackgroundFetch(BuildContext context) async {
+    if (!context.mounted) return; // Early return if context is not mounted
+
     try {
       final friendsProvider = Provider.of<FriendsProvider>(context, listen: false);
       final groupProvider = Provider.of<GroupProvider>(context, listen: false);
 
       final friendRequests = await friendsProvider.service.getPendingFriendRequests();
       final groupInvitations = await groupProvider.service.getPendingInvitations();
+
+      // Check context again after async operations
+      if (!context.mounted) return;
 
       List<AlertItem> newAlerts = [];
 

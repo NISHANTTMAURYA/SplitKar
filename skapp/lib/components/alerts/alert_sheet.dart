@@ -197,27 +197,39 @@ class AlertSheet extends StatefulWidget {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (BuildContext context) {
-        return DraggableScrollableSheet(
-          initialChildSize: 0.9,
-          minChildSize: 0.5,
-          maxChildSize: 0.9,
-          builder: (_, controller) {
-            return Provider.value(
-              value: context.read<AlertService>(),
-              child: Builder(
-                builder: (context) {
-                  final alertService = Provider.of<AlertService>(context, listen: false);
-                  return AlertSheet(
-                    alertService: alertService,
-                    onClose: () {
-                      Navigator.of(context).pop();
-                      alertService.fetchAlerts(context);
-                    },
-                  );
-                },
-              ),
-            );
+        return WillPopScope(
+          onWillPop: () async {
+            // Ensure we have a valid context before popping
+            if (context.mounted) {
+              Navigator.of(context).pop();
+              return false;
+            }
+            return true;
           },
+          child: DraggableScrollableSheet(
+            initialChildSize: 0.9,
+            minChildSize: 0.5,
+            maxChildSize: 0.9,
+            builder: (_, controller) {
+              return Provider.value(
+                value: context.read<AlertService>(),
+                child: Builder(
+                  builder: (context) {
+                    final alertService = Provider.of<AlertService>(context, listen: false);
+                    return AlertSheet(
+                      alertService: alertService,
+                      onClose: () {
+                        if (context.mounted) {
+                          Navigator.of(context).pop();
+                          alertService.fetchAlerts(context);
+                        }
+                      },
+                    );
+                  },
+                ),
+              );
+            },
+          ),
         );
       },
     );
@@ -354,6 +366,7 @@ class _AlertSheetState extends State<AlertSheet> with SingleTickerProviderStateM
 
   @override
   void dispose() {
+    // Cancel any pending operations
     _tabController.dispose();
     super.dispose();
   }
@@ -727,7 +740,14 @@ class _AlertSheetState extends State<AlertSheet> with SingleTickerProviderStateM
                           return Padding(
                             padding: const EdgeInsets.only(left: 8.0),
                             child: TextButton.icon(
-                              onPressed: isProcessing ? null : () => action.onPressed(),
+                              onPressed: isProcessing 
+                                ? null 
+                                : () {
+                                    // Ensure context is valid before action
+                                    if (context.mounted) {
+                                      action.onPressed();
+                                    }
+                                  },
                               style: TextButton.styleFrom(
                                 foregroundColor: action.color,
                                 backgroundColor: isProcessing 
