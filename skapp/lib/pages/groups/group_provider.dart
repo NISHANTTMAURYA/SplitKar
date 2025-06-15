@@ -321,9 +321,17 @@ class GroupProvider extends ChangeNotifier {
 
       _logger.info('Response from invitation response: $result');
 
-      // Get group name from the response
-      final groupName = result['group']['name'];
-      _logger.info('Using group name from response: $groupName');
+      // Get group name based on response structure
+      String? groupName;
+      if (accept && result['group'] != null) {
+        groupName = result['group']['name'];
+      } else if (!accept && result['invitation'] != null) {
+        groupName = result['invitation']['group'];
+      }
+
+      if (groupName == null) {
+        throw 'Invalid response format from server';
+      }
 
       // Remove the invitation from the list
       _pendingInvitations.removeWhere(
