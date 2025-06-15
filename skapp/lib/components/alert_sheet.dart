@@ -110,7 +110,7 @@ class AlertItem {
   final DateTime timestamp;
   final AlertCategory category;
   final bool requiresResponse;
-  final bool isRead;  // Only used for static alerts
+  final bool isRead; // Only used for static alerts
 
   AlertItem({
     required this.id,
@@ -189,18 +189,17 @@ class AlertSheet extends StatefulWidget {
   final VoidCallback? onClose;
   static final _logger = Logger('AlertSheet');
 
-  const AlertSheet({
-    super.key, 
-    required this.alertService,
-    this.onClose,
-  });
+  const AlertSheet({super.key, required this.alertService, this.onClose});
 
   static Future<void> show(BuildContext context) {
     return BottomSheetWrapper.show(
       context: context,
       child: Builder(
         builder: (context) {
-          final alertService = Provider.of<AlertService>(context, listen: false);
+          final alertService = Provider.of<AlertService>(
+            context,
+            listen: false,
+          );
           return AlertSheet(alertService: alertService);
         },
       ),
@@ -211,7 +210,8 @@ class AlertSheet extends StatefulWidget {
   State<AlertSheet> createState() => _AlertSheetState();
 }
 
-class _AlertSheetState extends State<AlertSheet> with SingleTickerProviderStateMixin {
+class _AlertSheetState extends State<AlertSheet>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   AlertCategory? _selectedFilter;
   static final _logger = Logger('AlertSheet');
@@ -222,14 +222,42 @@ class _AlertSheetState extends State<AlertSheet> with SingleTickerProviderStateM
     _initializeTabController();
   }
 
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
   void _initializeTabController() {
-    // Get categories that have alerts
-    final categories = widget.alertService.categoryCounts
-      .where((count) => count.total > 0)
-      .map((count) => count.category)
-      .toList()
+    // Get all categories and sort them
+    final allCategories = AlertCategory.values.toList()
       ..sort((a, b) {
-        // Sort by responsive alerts first, then by unread count
+        // Get total counts to prioritize categories with alerts
+        final aTotalCount = widget.alertService.categoryCounts
+            .firstWhere(
+              (c) => c.category == a,
+              orElse: () =>
+                  AlertCategoryCount(category: a, total: 0, unread: 0),
+            )
+            .total;
+        final bTotalCount = widget.alertService.categoryCounts
+            .firstWhere(
+              (c) => c.category == b,
+              orElse: () =>
+                  AlertCategoryCount(category: b, total: 0, unread: 0),
+            )
+            .total;
+
+        // Prioritize categories with alerts over those without
+        if (aTotalCount > 0 && bTotalCount == 0) {
+          return -1; // 'a' has alerts, 'b' doesn't, so 'a' comes first
+        }
+        if (aTotalCount == 0 && bTotalCount > 0) {
+          return 1; // 'b' has alerts, 'a' doesn't, so 'b' comes first ('a' comes after 'b')
+        }
+
+        // If both have alerts or both don't, apply existing sorting criteria:
+        // Sort by responsive alerts first
         final aHasResponse = widget.alertService.alerts.any(
           (alert) => alert.category == a && alert.requiresResponse,
         );
@@ -241,48 +269,96 @@ class _AlertSheetState extends State<AlertSheet> with SingleTickerProviderStateM
         }
         // Then sort by unread count
         final aCount = widget.alertService.categoryCounts
-          .firstWhere((c) => c.category == a)
-          .unread;
+            .firstWhere(
+              (c) => c.category == a,
+              orElse: () =>
+                  AlertCategoryCount(category: a, total: 0, unread: 0),
+            )
+            .unread;
         final bCount = widget.alertService.categoryCounts
-          .firstWhere((c) => c.category == b)
-          .unread;
+            .firstWhere(
+              (c) => c.category == b,
+              orElse: () =>
+                  AlertCategoryCount(category: b, total: 0, unread: 0),
+            )
+            .unread;
         return bCount.compareTo(aCount);
       });
 
     // Create tabs list including "All" tab
-    final tabs = ['All', ...categories.map((c) => c.displayName)];
-    
+    final tabs = ['All', ...allCategories.map((c) => c.displayName)];
+
     // Initialize controller with correct length
-    _tabController = TabController(
-      length: tabs.length,
-      vsync: this,
-    );
+    _tabController = TabController(length: tabs.length, vsync: this);
 
     // Add listener to update filter when tab changes
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) {
         setState(() {
           // First tab (index 0) is "All", so set filter to null
-          _selectedFilter = _tabController.index == 0 
-              ? null 
-              : categories[_tabController.index - 1];
+          _selectedFilter = _tabController.index == 0
+              ? null
+              : allCategories[_tabController.index - 1];
         });
       }
     });
   }
 
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
-
   List<Widget> _buildTabs() {
-    // Get categories that have alerts
-    final categories = widget.alertService.categoryCounts
-      .where((count) => count.total > 0)
-      .map((count) => count.category)
-      .toList();
+    // Get all categories for tabs
+    final allCategories = AlertCategory.values.toList()
+      ..sort((a, b) {
+        // Get total counts to prioritize categories with alerts
+        final aTotalCount = widget.alertService.categoryCounts
+            .firstWhere(
+              (c) => c.category == a,
+              orElse: () =>
+                  AlertCategoryCount(category: a, total: 0, unread: 0),
+            )
+            .total;
+        final bTotalCount = widget.alertService.categoryCounts
+            .firstWhere(
+              (c) => c.category == b,
+              orElse: () =>
+                  AlertCategoryCount(category: b, total: 0, unread: 0),
+            )
+            .total;
+
+        // Prioritize categories with alerts over those without
+        if (aTotalCount > 0 && bTotalCount == 0) {
+          return -1; // 'a' has alerts, 'b' doesn't, so 'a' comes first
+        }
+        if (aTotalCount == 0 && bTotalCount > 0) {
+          return 1; // 'b' has alerts, 'a' doesn't, so 'b' comes first ('a' comes after 'b')
+        }
+
+        // If both have alerts or both don't, apply existing sorting criteria:
+        // Sort by responsive alerts first, then by unread count (same logic as _initializeTabController)
+        final aHasResponse = widget.alertService.alerts.any(
+          (alert) => alert.category == a && alert.requiresResponse,
+        );
+        final bHasResponse = widget.alertService.alerts.any(
+          (alert) => alert.category == b && alert.requiresResponse,
+        );
+        if (aHasResponse != bHasResponse) {
+          return aHasResponse ? -1 : 1;
+        }
+        final aCount = widget.alertService.categoryCounts
+            .firstWhere(
+              (c) => c.category == a,
+              orElse: () =>
+                  AlertCategoryCount(category: a, total: 0, unread: 0),
+            )
+            .unread;
+        final bCount = widget.alertService.categoryCounts
+            .firstWhere(
+              (c) => c.category == b,
+              orElse: () =>
+                  AlertCategoryCount(category: b, total: 0, unread: 0),
+            )
+            .unread;
+        return bCount.compareTo(aCount);
+      });
 
     return [
       Tab(
@@ -302,48 +378,55 @@ class _AlertSheetState extends State<AlertSheet> with SingleTickerProviderStateM
                 ),
                 child: Text(
                   widget.alertService.totalCount.toString(),
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.white,
-                  ),
+                  style: const TextStyle(fontSize: 12, color: Colors.white),
                 ),
               ),
             ],
           ],
         ),
       ),
-      ...categories.map((category) => Tab(
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(category.icon, size: 16),
-            const SizedBox(width: 4),
-            Text(category.displayName),
-            if (widget.alertService.categoryCounts
-                .firstWhere((c) => c.category == category)
-                .unread > 0) ...[
+      ...allCategories.map(
+        (category) => Tab(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(category.icon, size: 16),
               const SizedBox(width: 4),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  widget.alertService.categoryCounts
-                    .firstWhere((c) => c.category == category)
-                    .unread
-                    .toString(),
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.white,
+              Text(category.displayName),
+              if (widget.alertService.categoryCounts
+                      .firstWhere(
+                        (c) => c.category == category,
+                        orElse: () => AlertCategoryCount(
+                          category: category,
+                          total: 0,
+                          unread: 0,
+                        ),
+                      )
+                      .unread >
+                  0) ...[
+                const SizedBox(width: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    widget.alertService.categoryCounts
+                        .firstWhere((c) => c.category == category)
+                        .unread
+                        .toString(),
+                    style: const TextStyle(fontSize: 12, color: Colors.white),
                   ),
                 ),
-              ),
+              ],
             ],
-          ],
+          ),
         ),
-      )),
+      ),
     ];
   }
 
@@ -356,7 +439,9 @@ class _AlertSheetState extends State<AlertSheet> with SingleTickerProviderStateM
           return Container(
             decoration: BoxDecoration(
               color: Theme.of(context).scaffoldBackgroundColor,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(20),
+              ),
             ),
             child: Center(
               child: Column(
@@ -382,7 +467,9 @@ class _AlertSheetState extends State<AlertSheet> with SingleTickerProviderStateM
           return Container(
             decoration: BoxDecoration(
               color: Theme.of(context).scaffoldBackgroundColor,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(20),
+              ),
             ),
             child: Center(
               child: Padding(
@@ -469,9 +556,7 @@ class _AlertSheetState extends State<AlertSheet> with SingleTickerProviderStateM
                   ),
                 ),
 
-              Expanded(
-                child: _buildAlertList(context, alertService),
-              ),
+              Expanded(child: _buildAlertList(context, alertService)),
             ],
           ),
         );
@@ -508,7 +593,9 @@ class _AlertSheetState extends State<AlertSheet> with SingleTickerProviderStateM
     // Filter alerts by selected category and visibility
     final filteredAlerts = _selectedFilter == null
         ? alertService.alerts.where((a) => a.shouldShow).toList()
-        : alertService.alerts.where((a) => a.category == _selectedFilter && a.shouldShow).toList();
+        : alertService.alerts
+              .where((a) => a.category == _selectedFilter && a.shouldShow)
+              .toList();
 
     if (filteredAlerts.isEmpty) {
       return Center(
@@ -531,8 +618,12 @@ class _AlertSheetState extends State<AlertSheet> with SingleTickerProviderStateM
     // Sort categories
     final sortedCategories = groupedAlerts.keys.toList()
       ..sort((a, b) {
-        final aHasResponse = groupedAlerts[a]!.any((item) => item.requiresResponse);
-        final bHasResponse = groupedAlerts[b]!.any((item) => item.requiresResponse);
+        final aHasResponse = groupedAlerts[a]!.any(
+          (item) => item.requiresResponse,
+        );
+        final bHasResponse = groupedAlerts[b]!.any(
+          (item) => item.requiresResponse,
+        );
         if (aHasResponse != bHasResponse) {
           return aHasResponse ? -1 : 1;
         }
@@ -547,6 +638,7 @@ class _AlertSheetState extends State<AlertSheet> with SingleTickerProviderStateM
         final categoryAlerts = groupedAlerts[category]!;
 
         return Column(
+          key: ValueKey(category),
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (_selectedFilter == null) ...[
@@ -583,135 +675,150 @@ class _AlertSheetState extends State<AlertSheet> with SingleTickerProviderStateM
     );
   }
 
-  Widget _buildAlertCard(BuildContext context, AlertItem alert, AlertService alertService) {
+  Widget _buildAlertCard(
+    BuildContext context,
+    AlertItem alert,
+    AlertService alertService,
+  ) {
     final isProcessing = alertService.isProcessing(alert.id);
 
-    return Hero(
-      tag: 'alert_${alert.id}',
-      child: AnimatedSlide(
+    return AnimatedOpacity(
+      duration: const Duration(milliseconds: 200),
+      opacity: isProcessing ? 0.0 : 1.0,
+      child: AnimatedSize(
         duration: const Duration(milliseconds: 300),
-        offset: isProcessing ? const Offset(-1.0, 0.0) : Offset.zero,
-        child: AnimatedOpacity(
-          duration: const Duration(milliseconds: 200),
-          opacity: isProcessing ? 0.0 : 1.0,
-          child: AnimatedSize(
+        curve: Curves.easeInOut,
+        child: Card(
+          key: ValueKey(alert.id),
+          margin: const EdgeInsets.only(bottom: 16),
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: AnimatedContainer(
             duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
-            child: Card(
-              key: ValueKey(alert.id),
-              margin: const EdgeInsets.only(bottom: 16),
-              elevation: 2,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  color: alert.requiresResponse
-                      ? Theme.of(context).colorScheme.primary.withOpacity(0.05)
-                      : (alert.isRead
-                          ? Theme.of(context).cardColor
-                          : Theme.of(context).colorScheme.primary.withOpacity(0.05)),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              color: alert.requiresResponse
+                  ? Theme.of(context).colorScheme.primary.withOpacity(0.05)
+                  : (alert.isRead
+                        ? Theme.of(context).cardColor
+                        : Theme.of(
+                            context,
+                          ).colorScheme.primary.withOpacity(0.05)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: Stack(
+                    children: [
+                      CircleAvatar(
+                        backgroundColor: Theme.of(
+                          context,
+                        ).colorScheme.primary.withOpacity(0.1),
+                        child:
+                            alert.imageUrl != null && alert.imageUrl!.isNotEmpty
+                            ? ClipOval(
+                                child: CachedNetworkImage(
+                                  imageUrl: alert.imageUrl!,
+                                  width: 40,
+                                  height: 40,
+                                  fit: BoxFit.cover,
+                                  placeholder: (context, url) => Icon(
+                                    alert.icon,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
+                                  ),
+                                  errorWidget: (context, url, error) => Icon(
+                                    alert.icon,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
+                                  ),
+                                ),
+                              )
+                            : Icon(
+                                alert.icon,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                      ),
+                      if (!alert.isRead && !alert.requiresResponse)
+                        Positioned(
+                          right: 0,
+                          top: 0,
+                          child: Container(
+                            width: 12,
+                            height: 12,
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).colorScheme.primary,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: Theme.of(
+                                  context,
+                                ).scaffoldBackgroundColor,
+                                width: 2,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  title: Text(
+                    alert.title,
+                    style: GoogleFonts.cabin(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        alert.subtitle,
+                        style: GoogleFonts.cabin(
+                          color: Theme.of(context).colorScheme.onBackground,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        _formatTimestamp(alert.timestamp),
+                        style: GoogleFonts.cabin(
+                          color: Colors.grey[600],
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ListTile(
-                      leading: Stack(
-                        children: [
-                          CircleAvatar(
-                            backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                            child: alert.imageUrl != null && alert.imageUrl!.isNotEmpty
-                                ? ClipOval(
-                                    child: CachedNetworkImage(
-                                      imageUrl: alert.imageUrl!,
-                                      width: 40,
-                                      height: 40,
-                                      fit: BoxFit.cover,
-                                      placeholder: (context, url) => Icon(
-                                        alert.icon,
-                                        color: Theme.of(context).colorScheme.primary,
-                                      ),
-                                      errorWidget: (context, url, error) => Icon(
-                                        alert.icon,
-                                        color: Theme.of(context).colorScheme.primary,
-                                      ),
-                                    ),
+                if (alert.actions.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: alert.actions.map((action) {
+                        return Padding(
+                          padding: const EdgeInsets.only(left: 8.0),
+                          child: TextButton.icon(
+                            onPressed: isProcessing ? null : action.onPressed,
+                            style: TextButton.styleFrom(
+                              foregroundColor: action.color,
+                            ),
+                            icon: isProcessing
+                                ? const CustomLoader(
+                                    size: 16,
+                                    isButtonLoader: true,
                                   )
                                 : Icon(
-                                    alert.icon,
-                                    color: Theme.of(context).colorScheme.primary,
+                                    action.label == 'Accept'
+                                        ? Icons.check
+                                        : Icons.close,
                                   ),
+                            label: Text(action.label),
                           ),
-                          if (!alert.isRead && !alert.requiresResponse)
-                            Positioned(
-                              right: 0,
-                              top: 0,
-                              child: Container(
-                                width: 12,
-                                height: 12,
-                                decoration: BoxDecoration(
-                                  color: Theme.of(context).colorScheme.primary,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: Theme.of(context).scaffoldBackgroundColor,
-                                    width: 2,
-                                  ),
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                      title: Text(
-                        alert.title,
-                        style: GoogleFonts.cabin(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            alert.subtitle,
-                            style: GoogleFonts.cabin(
-                              color: Theme.of(context).colorScheme.onBackground,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            _formatTimestamp(alert.timestamp),
-                            style: GoogleFonts.cabin(
-                              color: Colors.grey[600],
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
+                        );
+                      }).toList(),
                     ),
-                    if (alert.actions.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: alert.actions.map((action) {
-                            return Padding(
-                              padding: const EdgeInsets.only(left: 8.0),
-                              child: TextButton.icon(
-                                onPressed: isProcessing ? null : action.onPressed,
-                                style: TextButton.styleFrom(
-                                  foregroundColor: action.color,
-                                ),
-                                icon: isProcessing 
-                                  ? const CustomLoader(size: 16, isButtonLoader: true)
-                                  : Icon(action.label == 'Accept' ? Icons.check : Icons.close),
-                                label: Text(action.label),
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
+                  ),
+              ],
             ),
           ),
         ),

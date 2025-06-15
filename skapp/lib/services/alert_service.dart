@@ -85,9 +85,10 @@ class AlertService extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
   bool isProcessing(String alertId) => _processingAlerts.contains(alertId);
-  
+
   // Get total count of alerts requiring attention
-  int get totalCount => _categoryCounts.fold(0, (sum, count) => sum + count.unread);
+  int get totalCount =>
+      _categoryCounts.fold(0, (sum, count) => sum + count.unread);
 
   // Show alert sheet with current state
   void showAlertSheet(BuildContext context) {
@@ -150,7 +151,9 @@ class AlertService extends ChangeNotifier {
           color: Colors.red,
         ),
       ],
-      timestamp: DateTime.parse(request['created_at'] ?? DateTime.now().toIso8601String()),
+      timestamp: DateTime.parse(
+        request['created_at'] ?? DateTime.now().toIso8601String(),
+      ),
       category: AlertCategory.friendRequest,
       requiresResponse: true,
     );
@@ -165,7 +168,8 @@ class AlertService extends ChangeNotifier {
     return AlertItem(
       id: 'group_invite_${invitation['invitation_id']}',
       title: 'Group Invitation',
-      subtitle: '${invitation['invited_by_username']} invited you to join ${invitation['group_name']}',
+      subtitle:
+          '${invitation['invited_by_username']} invited you to join ${invitation['group_name']}',
       icon: Icons.group_add,
       actions: [
         AlertAction(
@@ -195,7 +199,9 @@ class AlertService extends ChangeNotifier {
           color: Colors.red,
         ),
       ],
-      timestamp: DateTime.parse(invitation['created_at'] ?? DateTime.now().toIso8601String()),
+      timestamp: DateTime.parse(
+        invitation['created_at'] ?? DateTime.now().toIso8601String(),
+      ),
       category: AlertCategory.groupInvite,
       requiresResponse: true,
     );
@@ -228,12 +234,13 @@ class AlertService extends ChangeNotifier {
       notifyListeners();
 
       // If there are no more alerts in the current category, fetch fresh data
-      if (_alerts.isEmpty || !_alerts.any((a) => a.category == alertToRemove.category)) {
+      if (_alerts.isEmpty ||
+          !_alerts.any((a) => a.category == alertToRemove.category)) {
         await fetchAlerts(context);
       }
     } catch (e) {
       _logger.severe('Error handling alert action: $e');
-      
+
       // Rollback optimistic update on error
       _alerts = originalAlerts;
       _categoryCounts = originalCounts;
@@ -249,7 +256,7 @@ class AlertService extends ChangeNotifier {
           ),
         );
       }
-      
+
       rethrow;
     } finally {
       _processingAlerts.remove(alertId);
@@ -275,7 +282,7 @@ class AlertService extends ChangeNotifier {
         total: totalCounts[category] ?? 0,
         unread: unreadCounts[category] ?? 0,
       );
-    }).where((count) => count.total > 0).toList();
+    }).toList();
 
     notifyListeners();
   }
@@ -289,38 +296,50 @@ class AlertService extends ChangeNotifier {
       _error = null;
       notifyListeners();
 
-      final friendsProvider = Provider.of<FriendsProvider>(context, listen: false);
+      final friendsProvider = Provider.of<FriendsProvider>(
+        context,
+        listen: false,
+      );
       final groupProvider = Provider.of<GroupProvider>(context, listen: false);
 
       _logger.info('Fetching friend requests and group invitations...');
 
-      final friendRequests = await friendsProvider.service.getPendingFriendRequests();
-      final groupInvitations = await groupProvider.service.getPendingInvitations();
+      final friendRequests = await friendsProvider.service
+          .getPendingFriendRequests();
+      final groupInvitations = await groupProvider.service
+          .getPendingInvitations();
 
       List<AlertItem> newAlerts = [];
 
-      if (friendRequests != null && friendRequests['received_requests'] != null) {
+      if (friendRequests != null &&
+          friendRequests['received_requests'] != null) {
         for (var request in friendRequests['received_requests']) {
-          if (request != null && request['request_id'] != null && request['from_username'] != null) {
-            newAlerts.add(_createFriendRequestAlert(request, friendsProvider, context));
+          if (request != null &&
+              request['request_id'] != null &&
+              request['from_username'] != null) {
+            newAlerts.add(
+              _createFriendRequestAlert(request, friendsProvider, context),
+            );
           }
         }
       }
 
-      if (groupInvitations != null && groupInvitations['received_invitations'] != null) {
+      if (groupInvitations != null &&
+          groupInvitations['received_invitations'] != null) {
         for (var invitation in groupInvitations['received_invitations']) {
-          if (invitation != null && 
-              invitation['invitation_id'] != null && 
-              invitation['group_name'] != null && 
+          if (invitation != null &&
+              invitation['invitation_id'] != null &&
+              invitation['group_name'] != null &&
               invitation['invited_by_username'] != null) {
-            newAlerts.add(_createGroupInvitationAlert(invitation, groupProvider, context));
+            newAlerts.add(
+              _createGroupInvitationAlert(invitation, groupProvider, context),
+            );
           }
         }
       }
 
       _alerts = newAlerts;
       _updateCategoryCounts();
-      
     } catch (e) {
       _logger.severe('Error fetching alerts: $e');
       _error = e.toString();
@@ -365,7 +384,10 @@ class AlertService extends ChangeNotifier {
   }
 
   // Mark all alerts in a category as read
-  Future<void> markCategoryAsRead(BuildContext context, AlertCategory category) async {
+  Future<void> markCategoryAsRead(
+    BuildContext context,
+    AlertCategory category,
+  ) async {
     try {
       String? token = await _authService.getToken();
       if (token == null) throw 'Session expired. Please log in again.';
