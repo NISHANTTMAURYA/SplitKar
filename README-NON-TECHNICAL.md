@@ -29,24 +29,24 @@ SplitKar is a modern expense-splitting app that makes managing shared costs a br
   <table>
     <tr>
       <td><img src="https://github.com/NISHANTTMAURYA/images/blob/main/app1.jpeg" alt="Login Screen" width="250"/></td>
-      <td><img src="https://github.com/NISHANTTMAURYA/images/blob/main/app2.jpeg" alt="Initial Groups & Friends" width="250"/></td>
-      <td><img src="https://github.com/NISHANTTMAURYA/images/blob/main/app3.jpeg" alt="Notification Panel" width="250"/></td>
+      <td><img src="https://github.com/NISHANTTMAURYA/images/blob/main/app2.jpeg" alt="Profile & Settings" width="250"/></td>
+      <td><img src="https://github.com/NISHANTTMAURYA/images/blob/main/app3.jpeg" alt="Initial Groups & Friends" width="250"/></td>
     </tr>
     <tr>
       <td align="center"><strong>Login Screen</strong><br/><em>Secure Google Sign-in</em></td>
-      <td align="center"><strong>Initial Dashboard</strong><br/><em>Groups & Friends Overview</em></td>
-      <td align="center"><strong>Notifications</strong><br/><em>Real-time Updates</em></td>
+      <td align="center"><strong>Profile & Settings</strong><br/><em>Manage your account</em></td>
+      <td align="center"><strong>Groups & Friends</strong><br/><em>Initial setup view</em></td>
     </tr>
   </table>
 
   <table>
     <tr>
-      <td><img src="https://github.com/NISHANTTMAURYA/images/blob/main/app4.jpeg" alt="Profile Screen" width="250"/></td>
-      <td><img src="https://github.com/NISHANTTMAURYA/images/blob/main/app5.jpeg" alt="Settings Screen" width="250"/></td>
+      <td><img src="https://github.com/NISHANTTMAURYA/images/blob/main/app4.jpeg" alt="Notifications" width="250"/></td>
+      <td><img src="https://github.com/NISHANTTMAURYA/images/blob/main/app5.jpeg" alt="Active Groups" width="250"/></td>
     </tr>
     <tr>
-      <td align="center"><strong>Profile Management</strong><br/><em>User Details & History</em></td>
-      <td align="center"><strong>App Settings</strong><br/><em>Customize Your Experience</em></td>
+      <td align="center"><strong>Notifications</strong><br/><em>Stay updated with activities</em></td>
+      <td align="center"><strong>Active Groups</strong><br/><em>Manage your groups & friends</em></td>
     </tr>
   </table>
 </div>

@@ -96,27 +96,27 @@ POST /profile/update/          # Update profile
   <table>
     <tr>
       <td><img src="https://github.com/NISHANTTMAURYA/images/blob/main/app1.jpeg" alt="Login Screen" width="250"/></td>
-      <td><img src="https://github.com/NISHANTTMAURYA/images/blob/main/app2.jpeg" alt="Initial Groups & Friends" width="250"/></td>
-      <td><img src="https://github.com/NISHANTTMAURYA/images/blob/main/app3.jpeg" alt="Notification Panel" width="250"/></td>
+      <td><img src="https://github.com/NISHANTTMAURYA/images/blob/main/app2.jpeg" alt="Profile & Settings" width="250"/></td>
+      <td><img src="https://github.com/NISHANTTMAURYA/images/blob/main/app3.jpeg" alt="Initial Groups & Friends" width="250"/></td>
     </tr>
     <tr>
-      <td align="center"><em>Google Authentication Flow</em></td>
-      <td align="center"><em>Initial State Management</em></td>
-      <td align="center"><em>Real-time Alert System</em></td>
+      <td align="center"><em>Login with Google</em></td>
+      <td align="center"><em>User Profile & App Settings</em></td>
+      <td align="center"><em>Initial Groups & Friends View</em></td>
     </tr>
   </table>
 
   <table>
     <tr>
-      <td><img src="https://github.com/NISHANTTMAURYA/images/blob/main/app4.jpeg" alt="Profile Screen" width="250"/></td>
-      <td><img src="https://github.com/NISHANTTMAURYA/images/blob/main/app5.jpeg" alt="Settings Screen" width="250"/></td>
+      <td><img src="https://github.com/NISHANTTMAURYA/images/blob/main/app4.jpeg" alt="Notifications" width="250"/></td>
+      <td><img src="https://github.com/NISHANTTMAURYA/images/blob/main/app5.jpeg" alt="Active Groups" width="250"/></td>
     </tr>
     <tr>
-      <td align="center"><em>User Profile & Data Management</em></td>
-      <td align="center"><em>App Configuration Interface</em></td>
+      <td align="center"><em>Notification System</em></td>
+      <td align="center"><em>Active Groups Management</em></td>
     </tr>
   </table>
-  <p><em>SplitKar's modern and intuitive mobile interface showcasing key technical implementations</em></p>
+  <p><em>SplitKar's modern and intuitive mobile interface showcasing key features</em></p>
 </div>
 
 ## Flutter Dependencies 📦
