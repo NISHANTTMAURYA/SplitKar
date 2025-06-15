@@ -2,8 +2,6 @@
 
 <div align="center">
 
-![SplitKar Architecture](docs/diagrams/architecture.png)
-
 *SplitKar's High-Level Architecture*
 
 [![Flutter Version](https://img.shields.io/badge/Flutter-^3.8.0-blue.svg)](https://flutter.dev/)
@@ -36,20 +34,12 @@ splitkar/
 ## Tech Stack Overview 🏗️
 
 ### Frontend Architecture
-<div align="center">
-  <img src="docs/diagrams/flutter-architecture.png" alt="Flutter Architecture" width="600"/>
-</div>
-
 - **Framework**: Flutter (Dart)
 - **State Management**: Provider
 - **UI Components**: Custom modular widgets
 - **Caching**: Local caching with background sync
 
 ### Backend Architecture
-<div align="center">
-  <img src="docs/diagrams/django-architecture.png" alt="Django Architecture" width="600"/>
-</div>
-
 - **Framework**: Django with Django REST Framework
 - **Database**: 
   - Development: SQLite
@@ -58,11 +48,6 @@ splitkar/
 - **API Format**: REST (JSON)
 
 ## Authentication Flow 🔐
-
-<div align="center">
-  <img src="docs/diagrams/auth-flow.png" alt="Authentication Flow" width="700"/>
-</div>
-
 1. **Google Sign-In (Flutter)**
    - Implements Google Sign-In SDK
    - Retrieves Google ID token
@@ -110,9 +95,14 @@ POST /profile/update/          # Update profile
 <div align="center">
   <table>
     <tr>
-      <td><img src="https://github.com/NISHANTTMAURYA/images/blob/main/app1.jpeg" alt="Home Screen" width="250"/></td>
-      <td><img src="https://github.com/NISHANTTMAURYA/images/blob/main/app2.jpeg" alt="Groups Screen" width="250"/></td>
-      <td><img src="https://github.com/NISHANTTMAURYA/images/blob/main/app3.jpeg" alt="Expenses Screen" width="250"/></td>
+      <td><img src="https://github.com/NISHANTTMAURYA/images/blob/main/app1.jpeg" alt="Login Screen" width="250"/></td>
+      <td><img src="https://github.com/NISHANTTMAURYA/images/blob/main/app2.jpeg" alt="Initial Groups & Friends" width="250"/></td>
+      <td><img src="https://github.com/NISHANTTMAURYA/images/blob/main/app3.jpeg" alt="Notification Panel" width="250"/></td>
+    </tr>
+    <tr>
+      <td align="center"><em>Google Authentication Flow</em></td>
+      <td align="center"><em>Initial State Management</em></td>
+      <td align="center"><em>Real-time Alert System</em></td>
     </tr>
   </table>
 
@@ -121,8 +111,12 @@ POST /profile/update/          # Update profile
       <td><img src="https://github.com/NISHANTTMAURYA/images/blob/main/app4.jpeg" alt="Profile Screen" width="250"/></td>
       <td><img src="https://github.com/NISHANTTMAURYA/images/blob/main/app5.jpeg" alt="Settings Screen" width="250"/></td>
     </tr>
+    <tr>
+      <td align="center"><em>User Profile & Data Management</em></td>
+      <td align="center"><em>App Configuration Interface</em></td>
+    </tr>
   </table>
-  <p><em>SplitKar's modern and intuitive mobile interface</em></p>
+  <p><em>SplitKar's modern and intuitive mobile interface showcasing key technical implementations</em></p>
 </div>
 
 ## Flutter Dependencies 📦
@@ -147,10 +141,6 @@ dependencies:
 ```
 
 ## Alert System Implementation 🔔
-
-<div align="center">
-  <img src="docs/diagrams/alert-system.png" alt="Alert System Architecture" width="600"/>
-</div>
 
 ### Key Features
 - Real-time updates with optimistic UI
@@ -185,10 +175,6 @@ ListView.builder(
 ```
 
 ## Deployment Strategy 🚀
-
-<div align="center">
-  <img src="docs/diagrams/deployment.png" alt="Deployment Architecture" width="700"/>
-</div>
 
 ### Backend
 - **Platform Options**: Render, Railway, or Vercel
