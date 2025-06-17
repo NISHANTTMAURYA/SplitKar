@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'connections',
     'api_tester',
+    'expense.apps.ExpenseConfig',
 ]
 
 MIDDLEWARE = [
