@@ -1,18 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:skapp/widgets/custom_loader.dart';
+
 class ActivityPage extends StatelessWidget {
-  const ActivityPage({super.key});
+  final ScrollController? scrollController;
+
+  const ActivityPage({
+    super.key,
+    this.scrollController,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Center(child: Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Center(
-          child: CustomLoader(),
+    return SingleChildScrollView(
+      controller: scrollController,
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SizedBox(height: MediaQuery.of(context).size.height * 0.3),
+            Center(
+              child: CustomLoader(),
+            ),
+            Text('Activity Page is being developed')
+          ],
         ),
-        Text('Activity Page is being developed')
-      ],
-    ));
+      ),
+    );
   }
 }

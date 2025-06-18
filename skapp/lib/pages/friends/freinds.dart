@@ -15,6 +15,7 @@ class FreindsPage extends StatefulWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
   final PageController? pageController;
   final Function(bool) onFriendsListStateChanged;
+  final ScrollController? scrollController;
 
   // Add a global key for the state
   static final GlobalKey<_FreindsPageState> freindsKey =
@@ -29,6 +30,7 @@ class FreindsPage extends StatefulWidget {
     required this.scaffoldKey,
     this.pageController,
     required this.onFriendsListStateChanged,
+    this.scrollController,
   });
 
   @override
@@ -189,12 +191,10 @@ class _FreindsPageState extends State<FreindsPage> {
           widget.onFriendsListStateChanged(friendsProvider.friends.isNotEmpty);
         });
 
-        // Show loader if loading
         if (friendsProvider.isLoading) {
           return Scaffold(body: CustomLoader());
         }
 
-        // Show error if there is one
         if (friendsProvider.error != null) {
           return Scaffold(
             body: Center(
@@ -228,6 +228,7 @@ class _FreindsPageState extends State<FreindsPage> {
                     scaffoldKey: widget.scaffoldKey,
                     pageController: widget.pageController,
                     onRefresh: refreshAll,
+                    scrollController: widget.scrollController,
                   )
                 : _NoFriendsView(onAddFriends: () {}),
           ),
@@ -312,12 +313,14 @@ class _FriendsListView extends StatefulWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
   final PageController? pageController;
   final Future<void> Function() onRefresh;
+  final ScrollController? scrollController;
 
   const _FriendsListView({
     required this.friends,
     required this.scaffoldKey,
     required this.onRefresh,
     this.pageController,
+    this.scrollController,
   });
 
   @override
@@ -325,7 +328,7 @@ class _FriendsListView extends StatefulWidget {
 }
 
 class _FriendsListViewState extends State<_FriendsListView> {
-  final ScrollController _scrollController = ScrollController();
+  late ScrollController _scrollController;
   double _scrollOffset = 0;
 
   // Define reusable text styles
@@ -356,16 +359,24 @@ class _FriendsListViewState extends State<_FriendsListView> {
   @override
   void initState() {
     super.initState();
-    _scrollController.addListener(() {
-      setState(() {
-        _scrollOffset = _scrollController.offset;
-      });
+    _scrollController = widget.scrollController ?? ScrollController();
+    _scrollController.addListener(_handleScroll);
+  }
+
+  void _handleScroll() {
+    if (!mounted) return;  // Check if widget is still mounted
+    setState(() {
+      _scrollOffset = _scrollController.offset;
     });
   }
 
   @override
   void dispose() {
-    _scrollController.dispose();
+    _scrollController.removeListener(_handleScroll);  // Remove listener
+    // Only dispose if we created the controller
+    if (widget.scrollController == null) {
+      _scrollController.dispose();
+    }
     super.dispose();
   }
 
@@ -389,11 +400,9 @@ class _FriendsListViewState extends State<_FriendsListView> {
     return RefreshIndicator(
       onRefresh: widget.onRefresh,
       child: CustomScrollView(
-
         controller: _scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
-
           // Image Header
           SliverPersistentHeader(
             pinned: false,
@@ -436,7 +445,6 @@ class _FriendsListViewState extends State<_FriendsListView> {
           SliverAppBar(
             snap: true,
             floating: true,
-
             expandedHeight: height * 0.05, // Responsive expanded height
             backgroundColor: Colors.transparent,
             elevation: 0,
@@ -461,7 +469,6 @@ class _FriendsListViewState extends State<_FriendsListView> {
               ),
             ),
           ),
-      
           SliverToBoxAdapter(
             child: SizedBox(
               height: height * 0.007, // Responsive vertical space
@@ -718,8 +725,6 @@ class _ImageHeaderDelegate extends SliverPersistentHeaderDelegate {
               fit: BoxFit.cover,
             ),
           ),
-
-
         ],
       ),
     );

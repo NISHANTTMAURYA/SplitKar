@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide ScrollDirection;
+import 'package:flutter/material.dart' show ScrollDirection;
 import 'package:skapp/components/appbar.dart';
 import 'package:skapp/components/drawer.dart';
 import 'package:skapp/components/bottomNavbar.dart';
@@ -37,6 +38,9 @@ class MainPageState extends State<MainPage> {
   late int _selectedIndex;
   late final PageController _pageController;
   bool _isFriendsListEmpty = true;
+  bool _isBottomBarVisible = true;
+  final ScrollController _scrollController = ScrollController();
+  double _previousScrollPosition = 0;
 
   // Add method to refresh data
   Future<void> refreshData() async {
@@ -54,20 +58,11 @@ class MainPageState extends State<MainPage> {
   @override
   void initState() {
     super.initState();
-    _selectedIndex = widget.initialIndex ?? 1; // Use provided index or default to Friends
+    _selectedIndex = widget.initialIndex ?? 1;
     _pageController = PageController(initialPage: _selectedIndex);
 
-    // Defer loading until after the first frame
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      // Load profile data
-      await ProfileApi().loadAllProfileData(context, forceRefresh: true);
-      
-      // Initialize alerts
-      if (context.mounted) {
-        final alertService = Provider.of<AlertService>(context, listen: false);
-        await alertService.fetchAlerts(context);
-      }
-    });
+    // Add scroll listener
+    _scrollController.addListener(_handleScroll);
 
     // Initialize pages map here where we have access to _scaffoldKey
     pages = {
@@ -76,7 +71,9 @@ class MainPageState extends State<MainPage> {
           key: GroupsPage.freindsKey,
           scaffoldKey: _scaffoldKey,
           pageController: _pageController,
+          scrollController: _scrollController,
           onFriendsListStateChanged: (hasFriends) {
+            if (!mounted) return;
             setState(() {
               _isFriendsListEmpty = !hasFriends;
             });
@@ -89,7 +86,9 @@ class MainPageState extends State<MainPage> {
           key: FreindsPage.freindsKey,
           scaffoldKey: _scaffoldKey,
           pageController: _pageController,
+          scrollController: _scrollController,
           onFriendsListStateChanged: (hasFriends) {
+            if (!mounted) return;
             setState(() {
               _isFriendsListEmpty = !hasFriends;
             });
@@ -98,28 +97,64 @@ class MainPageState extends State<MainPage> {
         'icon': Icons.person,
       },
       'Activity': {
-        'page': const ActivityPage(),
+        'page': ActivityPage(scrollController: _scrollController),
         'icon': Icons.local_activity,
       },
     };
+
+    // Defer loading until after the first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await ProfileApi().loadAllProfileData(context, forceRefresh: true);
+      if (context.mounted) {
+        final alertService = Provider.of<AlertService>(context, listen: false);
+        await alertService.fetchAlerts(context);
+      }
+    });
+  }
+
+  void _handleScroll() {
+    if (!mounted || !_scrollController.hasClients) return;
+    
+    final currentPosition = _scrollController.position.pixels;
+    final scrollDelta = currentPosition - _previousScrollPosition;
+    
+    if (scrollDelta > 10) { // Scrolling down
+      if (_isBottomBarVisible && mounted) {
+        setState(() {
+          _isBottomBarVisible = false;
+        });
+      }
+    } else if (scrollDelta < -10) { // Scrolling up
+      if (!_isBottomBarVisible && mounted) {
+        setState(() {
+          _isBottomBarVisible = true;
+        });
+      }
+    }
+    
+    _previousScrollPosition = currentPosition;
   }
 
   @override
   void dispose() {
     _pageController.dispose();
+    _scrollController.removeListener(_handleScroll);
+    _scrollController.dispose();
     super.dispose();
   }
 
   void _onItemSelected(int index) {
+    setState(() {
+      _isBottomBarVisible = true;  // Show bottom bar when switching pages
+    });
+    
     if ((_selectedIndex - index).abs() == 1) {
-      // Animate for adjacent pages
       _pageController.animateToPage(
         index,
         duration: Duration(milliseconds: 350),
         curve: Curves.easeInOut,
       );
     } else {
-      // Jump for non-adjacent pages
       _pageController.jumpToPage(index);
     }
     setState(() {
@@ -148,21 +183,33 @@ class MainPageState extends State<MainPage> {
         labels: pages.keys.toList(),
         icons: pages.values.map((page) => page['icon'] as IconData).toList(),
       ),
-      body: PageView(
-        controller: _pageController,
-        physics: const NeverScrollableScrollPhysics(),
-        onPageChanged: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-        },
-        children: pages.values.map((page) => page['page'] as Widget).toList(),
+      body: Stack(
+        children: [
+          PageView(
+            controller: _pageController,
+            physics: const NeverScrollableScrollPhysics(),
+            onPageChanged: (index) {
+              setState(() {
+                _selectedIndex = index;
+              });
+            },
+            children: pages.values.map((page) => page['page'] as Widget).toList(),
+          ),
+        ],
       ),
-      bottomNavigationBar: BottomNavbar(
-        selectedIndex: _selectedIndex,
-        onItemSelected: _onItemSelected,
-        labels: pages.keys.toList(),
-        icons: pages.values.map((page) => page['icon'] as IconData).toList(),
+      bottomNavigationBar: AnimatedSlide(
+        duration: const Duration(milliseconds: 200),
+        offset: _isBottomBarVisible ? Offset.zero : const Offset(0, 1),
+        child: AnimatedOpacity(
+          duration: const Duration(milliseconds: 200),
+          opacity: _isBottomBarVisible ? 1 : 0,
+          child: BottomNavbar(
+            selectedIndex: _selectedIndex,
+            onItemSelected: _onItemSelected,
+            labels: pages.keys.toList(),
+            icons: pages.values.map((page) => page['icon'] as IconData).toList(),
+          ),
+        ),
       ),
     );
   }

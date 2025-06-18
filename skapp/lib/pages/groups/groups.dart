@@ -17,6 +17,7 @@ class GroupsPage extends StatefulWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
   final PageController? pageController;
   final Function(bool) onFriendsListStateChanged;
+  final ScrollController? scrollController;
 
   // Add a global key for the state
   static final GlobalKey<_GroupsPageState> freindsKey =
@@ -31,6 +32,7 @@ class GroupsPage extends StatefulWidget {
     required this.scaffoldKey,
     this.pageController,
     required this.onFriendsListStateChanged,
+    this.scrollController,
   });
 
   @override
@@ -200,6 +202,7 @@ class _GroupsPageState extends State<GroupsPage> {
                     scaffoldKey: widget.scaffoldKey,
                     pageController: widget.pageController,
                     onRefresh: refreshAll,
+                    scrollController: widget.scrollController,
                   )
                 : _NoGroupsView(onAddFriends: () {}),
           ),
@@ -289,11 +292,13 @@ class _GroupsListView extends StatefulWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
   final PageController? pageController;
   final Future<void> Function() onRefresh;
+  final ScrollController? scrollController;
 
   const _GroupsListView({
     required this.scaffoldKey,
     required this.onRefresh,
     this.pageController,
+    this.scrollController,
   });
 
   @override
@@ -301,7 +306,7 @@ class _GroupsListView extends StatefulWidget {
 }
 
 class _FriendsListViewState extends State<_GroupsListView> {
-  final ScrollController _scrollController = ScrollController();
+  late ScrollController _scrollController;
   double _scrollOffset = 0;
 
   // Define reusable text styles
@@ -332,16 +337,24 @@ class _FriendsListViewState extends State<_GroupsListView> {
   @override
   void initState() {
     super.initState();
-    _scrollController.addListener(() {
-      setState(() {
-        _scrollOffset = _scrollController.offset;
-      });
+    _scrollController = widget.scrollController ?? ScrollController();
+    _scrollController.addListener(_handleScroll);
+  }
+
+  void _handleScroll() {
+    if (!mounted) return;  // Check if widget is still mounted
+    setState(() {
+      _scrollOffset = _scrollController.offset;
     });
   }
 
   @override
   void dispose() {
-    _scrollController.dispose();
+    _scrollController.removeListener(_handleScroll);  // Remove listener
+    // Only dispose if we created the controller
+    if (widget.scrollController == null) {
+      _scrollController.dispose();
+    }
     super.dispose();
   }
 
