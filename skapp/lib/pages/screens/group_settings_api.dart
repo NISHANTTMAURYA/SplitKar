@@ -52,6 +52,50 @@ class GroupSettingsApi {
     }
   }
 
+  Future<Map<String, dynamic>> removeMember(int groupId, String profileCode) async {
+    try {
+      String? token = await _authService.getToken();
+      if (token == null) {
+        throw 'Session expired. Please log in again.';
+      }
+
+      _logger.info('Removing member with profile code $profileCode from group $groupId');
+      final response = await _client.post(
+        Uri.parse('$baseUrl/group/remove-member/'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'group_id': groupId,
+          'profile_codes': [profileCode],
+        }),
+      );
+
+      _logger.info('Response status code: ${response.statusCode}');
+      _logger.info('Response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = jsonDecode(response.body);
+        return data;
+      } else if (response.statusCode == 401) {
+        final refreshSuccess = await _authService.handleTokenRefresh();
+        if (refreshSuccess) {
+          return removeMember(groupId, profileCode);
+        }
+        throw 'Session expired. Please log in again.';
+      } else if (response.statusCode == 403) {
+        throw 'You are not authorized to remove members from this group';
+      } else {
+        final errorData = jsonDecode(response.body);
+        throw errorData['error'] ?? 'Failed to remove member from group';
+      }
+    } catch (e) {
+      _logger.severe('Error removing member from group: $e');
+      rethrow;
+    }
+  }
+
   void dispose() {
     _client.close();
   }

@@ -4,6 +4,7 @@ import 'package:skapp/widgets/custom_loader.dart';
 import 'package:skapp/components/mobile.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:skapp/pages/screens/group_settings_api.dart';
+import 'package:skapp/services/notification_service.dart';
 
 class GroupSettingsPage extends StatefulWidget {
   final int groupId;
@@ -19,6 +20,7 @@ class GroupSettingsPage extends StatefulWidget {
 
 class _GroupSettingsPageState extends State<GroupSettingsPage> {
   final GroupSettingsApi _api = GroupSettingsApi();
+  final NotificationService _notificationService = NotificationService();
   Map<String, dynamic>? _groupDetails;
   String? _error;
   bool _isLoading = true;
@@ -54,6 +56,7 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
   Widget _buildMemberTile(Map<String, dynamic> member) {
     final bool isAdmin = _groupDetails!['admins']
         .any((admin) => admin['id'] == member['id']);
+    final bool currentUserIsAdmin = _groupDetails!['is_admin'] ?? false;
 
     return ListTile(
       leading: CircleAvatar(
@@ -65,26 +68,127 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
             : null,
       ),
       title: Text(member['username']),
-      subtitle: member['profile_code'] != null
-          ? Text(member['profile_code'])
-          : const Text('No profile code'),
-      trailing: isAdmin
-          ? Container(
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          member['profile_code'] != null
+              ? Text(member['profile_code'])
+              : const Text('No profile code'),
+          if (isAdmin)
+            Container(
+              margin: const EdgeInsets.only(top: 4),
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
                 color: Colors.blue[100],
                 borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.blue[300]!),
               ),
               child: Text(
                 'Admin',
                 style: TextStyle(
                   color: Colors.blue[900],
                   fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+        ],
+      ),
+      trailing: currentUserIsAdmin && !isAdmin
+          ? Container(
+              margin: const EdgeInsets.only(left: 8),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(8),
+                  onTap: () => _showRemoveConfirmation(member),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.red[50],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: Colors.red[200]!,
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.remove_circle_outline,
+                          color: Colors.red[700],
+                          size: 18,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Remove',
+                          style: TextStyle(
+                            color: Colors.red[700],
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             )
           : null,
     );
+  }
+
+  Future<void> _showRemoveConfirmation(Map<String, dynamic> member) async {
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Remove ${member['username']}?'),
+          content: Text('Are you sure you want to remove ${member['username']} from this group?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.red,
+              ),
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Remove'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirm == true && mounted) {
+      try {
+        await _api.removeMember(widget.groupId, member['profile_code']);
+        if (mounted) {
+          _notificationService.showAppNotification(
+            context,
+            title: 'Member Removed',
+            message: '${member['username']} has been removed from the group',
+            icon: Icons.person_remove,
+            duration: const Duration(seconds: 3),
+          );
+          // Refresh group details
+          _fetchGroupDetails();
+        }
+      } catch (e) {
+        if (mounted) {
+          _notificationService.showAppNotification(
+            context,
+            title: 'Error',
+            message: e.toString(),
+            icon: Icons.error_outline,
+            isImportant: true,
+          );
+        }
+      }
+    }
   }
 
   Widget _buildTripDetails() {
