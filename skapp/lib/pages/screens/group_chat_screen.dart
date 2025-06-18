@@ -4,16 +4,16 @@ import 'package:skapp/widgets/custom_loader.dart';
 import 'package:skapp/components/mobile.dart';
 import 'package:skapp/pages/screens/group_settings_page.dart';
 
-
-
 class GroupChatScreen extends StatefulWidget {
   final String chatName;
   final String? chatImageUrl;
+  final int groupId;
 
   const GroupChatScreen({
     super.key,
     required this.chatName,
     this.chatImageUrl,
+    required this.groupId,
   });
 
   @override
@@ -40,7 +40,14 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
           ),
           titleSpacing: 0.0, // Remove default spacing between leading and title
           title: GestureDetector(
-            onTap: ()=>{Navigator.push(context, MaterialPageRoute(builder: (context) => const GroupSettingsPage()))},
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => GroupSettingsPage(groupId: widget.groupId),
+                ),
+              );
+            },
             child: Row( // Avatar and chat name
               children: [
                 Padding(

@@ -23,4 +23,5 @@ urlpatterns = [
     path('group/list/', views.list_user_groups, name='list-user-groups'),
     path('group/batch-create/', views.batch_create_group, name='batch-create-group'),
     path('admin/user-lookup/', AutocompleteJsonView.as_view(), name='admin-user-lookup'),
+    path('group/details/<int:group_id>/', views.get_group_details, name='get-group-details'),
 ]

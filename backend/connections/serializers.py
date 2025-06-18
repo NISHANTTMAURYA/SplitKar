@@ -428,5 +428,103 @@ class RemoveGroupMemberSerializer(serializers.Serializer):
             'removed_users': [user.username for user in users_to_remove]
         }
 
-
+class GroupMemberSerializer(serializers.ModelSerializer):
+    profile_code = serializers.SerializerMethodField()
+    profile_picture_url = serializers.SerializerMethodField()
     
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'profile_code', 'profile_picture_url']
+
+    def get_profile_code(self, obj):
+        try:
+            return obj.profile.profile_code
+        except Profile.DoesNotExist:
+            return None
+
+    def get_profile_picture_url(self, obj):
+        try:
+            return obj.profile.profile_picture_url
+        except Profile.DoesNotExist:
+            return None
+
+class GroupDetailsSerializer(serializers.ModelSerializer):
+    created_by = serializers.SerializerMethodField()
+    members = serializers.SerializerMethodField()
+    member_count = serializers.SerializerMethodField()
+    is_admin = serializers.SerializerMethodField()
+    admins = serializers.SerializerMethodField()
+    trip_details = serializers.SerializerMethodField()
+    created_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S")
+
+    class Meta:
+        model = Group
+        fields = [
+            'id', 
+            'name', 
+            'description', 
+            'created_by',
+            'created_at',
+            'members',
+            'member_count',
+            'is_admin',
+            'admins',
+            'group_type',
+            'trip_details',
+            'is_active'
+        ]
+
+    def get_created_by(self, obj):
+        try:
+            return {
+                'id': obj.created_by.id,
+                'username': obj.created_by.username,
+                'profile_code': obj.created_by.profile.profile_code,
+                'profile_picture_url': obj.created_by.profile.profile_picture_url
+            }
+        except Profile.DoesNotExist:
+            return {
+                'id': obj.created_by.id,
+                'username': obj.created_by.username,
+                'profile_code': None,
+                'profile_picture_url': None
+            }
+
+    def get_members(self, obj):
+        return GroupMemberSerializer(obj.members.all(), many=True).data
+
+    def get_member_count(self, obj):
+        return obj.members.count()
+
+    def get_is_admin(self, obj):
+        request = self.context.get('request')
+        if request and request.user:
+            return request.user == obj.created_by
+        return False
+
+    def get_admins(self, obj):
+        try:
+            return [{
+                'id': obj.created_by.id,
+                'username': obj.created_by.username,
+                'profile_code': obj.created_by.profile.profile_code,
+                'profile_picture_url': obj.created_by.profile.profile_picture_url
+            }]
+        except Profile.DoesNotExist:
+            return [{
+                'id': obj.created_by.id,
+                'username': obj.created_by.username,
+                'profile_code': None,
+                'profile_picture_url': None
+            }]
+
+    def get_trip_details(self, obj):
+        if obj.group_type == 'trip':
+            return {
+                'destination': obj.destination,
+                'start_date': obj.start_date,
+                'end_date': obj.end_date,
+                'trip_status': obj.trip_status,
+                'budget': float(obj.budget) if obj.budget else None
+            }
+        return None

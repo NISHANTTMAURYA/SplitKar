@@ -460,6 +460,7 @@ class _FriendsListViewState extends State<_GroupsListView> {
                       arguments: {
                         'chatName': group['name']?.toString() ?? 'Group Chat',
                         'chatImageUrl': group['profile_picture_url'],
+                        'groupId': group['id'],
                       },
                     );
                   },

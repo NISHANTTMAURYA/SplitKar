@@ -11,9 +11,13 @@ from .serializers import (
     UserProfileListSerializer, PendingFriendRequestSerializer,
     FriendListSerializer, GroupCreateSerializer, GroupInviteSerializer,
     GroupInvitationAcceptSerializer, GroupInvitationDeclineSerializer,
-    PendingGroupInvitationSerializer, UserGroupListSerializer, RemoveFriendSerializer, RemoveGroupMemberSerializer
+    PendingGroupInvitationSerializer, UserGroupListSerializer, RemoveFriendSerializer, RemoveGroupMemberSerializer,
+    GroupDetailsSerializer
 )
 from django.db.models import Q
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Create your views here.
 
@@ -632,4 +636,58 @@ def batch_create_group(request):
         return Response(
             {'error': str(e)},
             status=status.HTTP_400_BAD_REQUEST
+        )
+    
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_group_details(request, group_id):
+    """
+    Get comprehensive details of a specific group including:
+    - Basic group information
+    - All members with their details
+    - Admin information
+    - Trip details if applicable
+    """
+    try:
+        logger.info(f'Fetching group details for group ID: {group_id}')
+        
+        # Get the group and prefetch related data
+        group = Group.objects.select_related(
+            'created_by',
+            'created_by__profile'
+        ).prefetch_related(
+            'members',
+            'members__profile'
+        ).get(id=group_id)
+
+        logger.info(f'Found group: {group.name}')
+
+        # Check if user is a member of the group
+        if request.user not in group.members.all():
+            logger.warning(f'User {request.user.username} is not a member of group {group.id}')
+            return Response(
+                {'error': 'You are not a member of this group'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        logger.info(f'User {request.user.username} is a member of group {group.id}')
+        
+        serializer = GroupDetailsSerializer(
+            group,
+            context={'request': request}
+        )
+        return Response(serializer.data)
+    except Group.DoesNotExist:
+        logger.error(f'Group {group_id} not found')
+        return Response(
+            {'error': 'Group not found'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    except Exception as e:
+        logger.error(f'Error fetching group details: {str(e)}', exc_info=True)
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )

@@ -215,7 +215,7 @@ class MyApp extends StatelessWidget {
             );
           case '/group-chat':
             final args = settings.arguments as Map<String, dynamic>?;
-            if (args == null || !args.containsKey('chatName')) {
+            if (args == null || !args.containsKey('chatName') || !args.containsKey('groupId')) {
               return MaterialPageRoute(
                 builder: (context) => const Scaffold(
                   body: Center(
@@ -227,8 +227,10 @@ class MyApp extends StatelessWidget {
             return MaterialPageRoute(
               settings: settings,
               builder: (context) => GroupChatScreen(
+                key: ValueKey('group_chat_${args['groupId']}'),
                 chatName: args['chatName'] as String,
                 chatImageUrl: args['chatImageUrl'] as String?,
+                groupId: args['groupId'] as int,
               ),
             );
           
