@@ -9,6 +9,7 @@ import 'package:skapp/widgets/custom_loader.dart';
 import 'package:skapp/pages/friends/add_friends_sheet.dart';
 import 'package:skapp/pages/friends/friends_provider.dart';
 import 'package:skapp/components/alerts/alert_service.dart';
+import 'package:skapp/pages/screens/friend_chat_screen.dart';
 
 class FreindsPage extends StatefulWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
@@ -407,9 +408,6 @@ class _FriendsListViewState extends State<_FriendsListView> {
             backgroundColor: Colors.transparent,
             flexibleSpace: LayoutBuilder(
               builder: (context, constraints) {
-                print('Debug - Scroll Values:');
-                print('scrollOffset: $_scrollOffset');
-      
                 return _FriendsHeaderDelegate(
                   headerTextStyle: headerTextStyle,
                   buttonFontSize: buttonFontSize,
@@ -495,11 +493,10 @@ class _FriendsListViewState extends State<_FriendsListView> {
                     onTap: () {
                       Navigator.pushNamed(
                         context,
-                        '/screen',
+                        '/friend-chat',
                         arguments: {
                           'chatName': widget.friends[index]['username']?.toString() ?? 'Friend Chat',
                           'chatImageUrl': widget.friends[index]['profile_picture_url'],
-                          'isGroupChat': false,
                         },
                       );
                     },
@@ -611,20 +608,12 @@ class _FriendsHeaderDelegate extends SliverPersistentHeaderDelegate {
     double shrinkOffset,
     bool overlapsContent,
   ) {
-    print('Debug - Animation Values:');
-    print('scrollOffset: $scrollOffset');
-
     // Calculate gap based on overall scroll position with increased range
     final double rawGap =
         16 + (scrollOffset * (170 - 16) / 300); // Increased from 160 to 300
     final double clampedGap = rawGap.clamp(16.0, 140.0); // Increased max gap
     final double easedGap =
         clampedGap * (1 - (clampedGap / 300) * 0.3); // Adjusted easing
-
-    print('Debug - Gap Calculation:');
-    print('rawGap: $rawGap');
-    print('clampedGap: $clampedGap');
-    print('easedGap: $easedGap');
 
     return Container(
       decoration: BoxDecoration(color: Colors.deepPurple[400]),

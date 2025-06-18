@@ -4,23 +4,21 @@ import 'package:skapp/widgets/custom_loader.dart';
 import 'package:skapp/components/mobile.dart';
 
 
-class ChatScreen extends StatefulWidget {
+class FriendChatScreen extends StatefulWidget {
   final String chatName;
   final String? chatImageUrl;
-  final bool isGroupChat;
 
-  const ChatScreen({
+  const FriendChatScreen({
     super.key,
     required this.chatName,
     this.chatImageUrl,
-    this.isGroupChat = false,
   });
 
   @override
-  State<ChatScreen> createState() => _ChatScreenState();
+  State<FriendChatScreen> createState() => _FriendChatScreenState();
 }
 
-class _ChatScreenState extends State<ChatScreen> {
+class _FriendChatScreenState extends State<FriendChatScreen> {
   @override
   Widget build(BuildContext context) {
     final double avatarSize = MobileUtils.getScreenWidth(context) * 0.1; // Responsive avatar size (e.g., 10% of screen width)
@@ -57,7 +55,7 @@ class _ChatScreenState extends State<ChatScreen> {
                               isButtonLoader: true,
                             ),
                             errorWidget: (context, url, error) => Icon(
-                              widget.isGroupChat ? Icons.groups_2_outlined : Icons.person,
+                              Icons.person,
                               size: avatarSize * 0.6,
                               color: Colors.grey[400],
                             ),
@@ -66,7 +64,7 @@ class _ChatScreenState extends State<ChatScreen> {
                             fit: BoxFit.cover,
                           )
                         : Icon(
-                            widget.isGroupChat ? Icons.groups_2_outlined : Icons.person,
+                            Icons.person,
                             size: avatarSize * 0.6,
                             color: Colors.grey[400],
                           ),

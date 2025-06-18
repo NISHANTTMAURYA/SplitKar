@@ -10,7 +10,8 @@ import 'package:skapp/widgets/custom_loader.dart';
 import 'package:skapp/pages/groups/add_group_sheet.dart';
 // import 'package:skapp/pages/groups/friends_provider.dart';
 import 'package:skapp/components/alerts/alert_service.dart';
-import 'package:skapp/pages/screens/chat_screen.dart';
+import 'package:skapp/pages/screens/group_chat_screen.dart';
+import 'package:skapp/pages/screens/group_chat_screen.dart';
 
 class GroupsPage extends StatefulWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
@@ -389,9 +390,6 @@ class _FriendsListViewState extends State<_GroupsListView> {
             backgroundColor: Colors.transparent,
             flexibleSpace: LayoutBuilder(
               builder: (context, constraints) {
-                print('Debug - Scroll Values:');
-                print('scrollOffset: $_scrollOffset');
-
                 return _FriendsHeaderDelegate(
                   context,
                   headerTextStyle: headerTextStyle,
@@ -455,17 +453,15 @@ class _FriendsListViewState extends State<_GroupsListView> {
                 final double imageSize = width * 0.13;
 
                 return GestureDetector(
-                  onTap: (){
+                  onTap: () {
                     Navigator.pushNamed(
                       context,
-                      '/screen',
+                      '/group-chat',
                       arguments: {
                         'chatName': group['name']?.toString() ?? 'Group Chat',
                         'chatImageUrl': group['profile_picture_url'],
-                        'isGroupChat': true,
                       },
                     );
-
                   },
                   child: Padding(
                     padding: EdgeInsets.symmetric(
@@ -598,20 +594,12 @@ class _FriendsHeaderDelegate extends SliverPersistentHeaderDelegate {
     double shrinkOffset,
     bool overlapsContent,
   ) {
-    print('Debug - Animation Values:');
-    print('scrollOffset: $scrollOffset');
-
     // Calculate gap based on overall scroll position with increased range
     final double rawGap =
         16 + (scrollOffset * (170 - 16) / 300); // Increased from 160 to 300
     final double clampedGap = rawGap.clamp(16.0, 140.0); // Increased max gap
     final double easedGap =
         clampedGap * (1 - (clampedGap / 300) * 0.3); // Adjusted easing
-
-    print('Debug - Gap Calculation:');
-    print('rawGap: $rawGap');
-    print('clampedGap: $clampedGap');
-    print('easedGap: $easedGap');
 
     return Container(
       decoration: BoxDecoration(color: Colors.deepPurple[400]),

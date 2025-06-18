@@ -19,7 +19,7 @@ class AppConfig {
 
   // Environment flags
   static const bool useEmulator = false; // Android Emulator
-  static const bool useNgrok = true; // Ngrok Tunnel
+  static const bool useNgrok = false; // Ngrok Tunnel
 
   // Select the correct base URL based on flags
   static String get baseUrl {

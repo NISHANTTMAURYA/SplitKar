@@ -5,7 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:skapp/components/auth_wrapper.dart';
 import 'package:skapp/pages/main_page.dart';
-import 'package:skapp/pages/screens/chat_screen.dart';
+import 'package:skapp/pages/screens/group_chat_screen.dart';
+import 'package:skapp/pages/screens/friend_chat_screen.dart';
+import 'package:skapp/pages/screens/group_chat_screen.dart';
 import 'package:skapp/pages/settings_profile/settings_page.dart';
 import 'package:logging/logging.dart';
 import 'package:flutter/services.dart';
@@ -186,25 +188,43 @@ class MyApp extends StatelessWidget {
               settings: settings,
               builder: (context) => const SettingsPage(),
             );
-          case '/screen':
+          case '/friend-chat':
             final args = settings.arguments as Map<String, dynamic>?;
             if (args == null || !args.containsKey('chatName')) {
               return MaterialPageRoute(
                 builder: (context) => const Scaffold(
                   body: Center(
-                    child: Text('Error: Chat details not provided.'),
+                    child: Text('Error: Friend chat details not provided.'),
                   ),
                 ),
               );
             }
             return MaterialPageRoute(
               settings: settings,
-              builder: (context) => ChatScreen(
+              builder: (context) => FriendChatScreen(
                 chatName: args['chatName'] as String,
                 chatImageUrl: args['chatImageUrl'] as String?,
-                isGroupChat: args['isGroupChat'] as bool? ?? false,
               ),
             );
+          case '/group-chat':
+            final args = settings.arguments as Map<String, dynamic>?;
+            if (args == null || !args.containsKey('chatName')) {
+              return MaterialPageRoute(
+                builder: (context) => const Scaffold(
+                  body: Center(
+                    child: Text('Error: Group chat details not provided.'),
+                  ),
+                ),
+              );
+            }
+            return MaterialPageRoute(
+              settings: settings,
+              builder: (context) => GroupChatScreen(
+                chatName: args['chatName'] as String,
+                chatImageUrl: args['chatImageUrl'] as String?,
+              ),
+            );
+          
           default:
             return MaterialPageRoute(
               builder: (context) => Scaffold(
