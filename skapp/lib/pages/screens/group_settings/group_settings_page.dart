@@ -3,9 +3,9 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:skapp/widgets/custom_loader.dart';
 import 'package:skapp/components/mobile.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:skapp/pages/screens/group_settings_api.dart';
+import 'package:skapp/pages/screens/group_settings/group_settings_api.dart';
 import 'package:skapp/services/notification_service.dart';
-import 'package:skapp/pages/screens/add_group_members_sheet.dart';
+import 'package:skapp/pages/screens/group_settings/add_group_members_sheet.dart';
 
 class GroupSettingsPage extends StatefulWidget {
   final int groupId;

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:skapp/widgets/custom_loader.dart';
 import 'package:skapp/components/mobile.dart';
-import 'package:skapp/pages/screens/group_settings_page.dart';
+import 'package:skapp/pages/screens/group_settings/group_settings_page.dart';
 
 class GroupChatScreen extends StatefulWidget {
   final String chatName;

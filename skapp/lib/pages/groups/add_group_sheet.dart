@@ -39,6 +39,7 @@ class _AddFriendsSheetState extends State<AddFriendsSheet> {
   final TextEditingController _groupDescriptionController = TextEditingController();
   final TextEditingController _destinationController = TextEditingController();
   final TextEditingController _budgetController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
   String _selectedGroupType = 'regular';
   String _selectedTripStatus = 'planned';
   DateTime? _startDate;
@@ -60,6 +61,7 @@ class _AddFriendsSheetState extends State<AddFriendsSheet> {
     _groupDescriptionController.dispose();
     _destinationController.dispose();
     _budgetController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -112,7 +114,8 @@ class _AddFriendsSheetState extends State<AddFriendsSheet> {
               // Debounce the search
               Future.delayed(const Duration(milliseconds: 300), () {
                 if (mounted && _searchController.text == value) {
-                  context.read<GroupProvider>().searchUsers(value);
+                  // Don't reset scroll position during search
+                  context.read<GroupProvider>().searchUsers(value, maintainScroll: true);
                 }
               });
             },
@@ -544,18 +547,6 @@ class _AddFriendsSheetState extends State<AddFriendsSheet> {
         final friends = provider.users.where((user) => user['is_friend'] == true).toList();
         final otherUsers = provider.users.where((user) => user['is_friend'] != true).toList();
 
-        if (provider.users.isEmpty) {
-          return Center(
-            child: Text(
-              _searchController.text.isEmpty
-                  ? 'No users available to add'
-                  : 'No users found matching "${_searchController.text}"',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey[600]),
-            ),
-          );
-        }
-
         return Column(
           children: [
             Expanded(
@@ -571,67 +562,90 @@ class _AddFriendsSheetState extends State<AddFriendsSheet> {
                   return true;
                 },
                 child: SingleChildScrollView(
+                  controller: _scrollController,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Group creation form - at top but scrollable
                       _buildGroupCreationForm(),
+                      
+                      // Search field - below form but scrollable
                       _buildSearchField(),
-                      if (friends.isNotEmpty) ...[
+                      
+                      // Users list section
+                      if (provider.users.isEmpty) ...[
                         Padding(
-                          padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 8.0),
-                          child: Text(
-                            'Friends',
-                            style: GoogleFonts.cabin(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.green[700],
+                          padding: const EdgeInsets.all(16.0),
+                          child: Center(
+                            child: Text(
+                              _searchController.text.isEmpty
+                                  ? 'No users available to add'
+                                  : 'No users found matching "${_searchController.text}"',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: Colors.grey[600]),
                             ),
                           ),
                         ),
-                        ListView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: friends.length,
-                          itemBuilder: (context, index) => _buildUserTile(friends[index]),
-                        ),
-                      ],
-                      if (otherUsers.isNotEmpty) ...[
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 8.0),
-                          child: Text(
-                            'Other Users',
-                            style: GoogleFonts.cabin(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.grey[700],
+                      ] else ...[
+                        if (friends.isNotEmpty) ...[
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 8.0),
+                            child: Text(
+                              'Friends',
+                              style: GoogleFonts.cabin(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green[700],
+                              ),
                             ),
                           ),
-                        ),
-                        ListView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: otherUsers.length + (provider.hasMore ? 1 : 0),
-                          itemBuilder: (context, index) {
-                            if (index == otherUsers.length) {
-                              return const Padding(
-                                padding: EdgeInsets.symmetric(vertical: 16.0),
-                                child: Center(
-                                  child: CustomLoader(
-                                    size: 30,
-                                    isButtonLoader: true,
+                          ListView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: friends.length,
+                            itemBuilder: (context, index) => _buildUserTile(friends[index]),
+                          ),
+                        ],
+                        if (otherUsers.isNotEmpty) ...[
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 8.0),
+                            child: Text(
+                              'Other Users',
+                              style: GoogleFonts.cabin(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey[700],
+                              ),
+                            ),
+                          ),
+                          ListView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: otherUsers.length + (provider.hasMore ? 1 : 0),
+                            itemBuilder: (context, index) {
+                              if (index == otherUsers.length) {
+                                return const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 16.0),
+                                  child: Center(
+                                    child: CustomLoader(
+                                      size: 30,
+                                      isButtonLoader: true,
+                                    ),
                                   ),
-                                ),
-                              );
-                            }
-                            return _buildUserTile(otherUsers[index]);
-                          },
-                        ),
+                                );
+                              }
+                              return _buildUserTile(otherUsers[index]);
+                            },
+                          ),
+                        ],
                       ],
                     ],
                   ),
                 ),
               ),
             ),
+            
+            // Create button - always visible at bottom
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: ElevatedButton(

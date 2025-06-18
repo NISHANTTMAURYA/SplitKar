@@ -131,17 +131,19 @@ class GroupProvider extends ChangeNotifier {
   }
 
   // Search users with debounce
-  Future<void> searchUsers(String query) async {
+  Future<void> searchUsers(String query, {bool maintainScroll = false}) async {
     if (_searchQuery == query) return;
 
     try {
       _searchQuery = query;
-      _currentPage = 1;
+      if (!maintainScroll) {
+        _currentPage = 1;  // Only reset page if not maintaining scroll
+      }
       _error = null;
       notifyListeners();
 
       final result = await _service.getAllUsers(
-        page: 1,
+        page: _currentPage,
         searchQuery: _searchQuery,
       );
 

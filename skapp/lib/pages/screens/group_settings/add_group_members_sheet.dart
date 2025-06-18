@@ -337,18 +337,6 @@ class _AddGroupMembersSheetState extends State<AddGroupMembersSheet> {
         final friends = availableUsers.where((user) => user['is_friend'] == true).toList();
         final otherUsers = availableUsers.where((user) => user['is_friend'] != true).toList();
 
-        if (provider.users.isEmpty) {
-          return Center(
-            child: Text(
-              _searchController.text.isEmpty
-                  ? 'No users available to add'
-                  : 'No users found matching "${_searchController.text}"',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey[600]),
-            ),
-          );
-        }
-
         return Column(
           children: [
             Expanded(
@@ -368,94 +356,109 @@ class _AddGroupMembersSheetState extends State<AddGroupMembersSheet> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildSearchField(),
-                      if (existingMembers.isNotEmpty) ...[
+                      if (provider.users.isEmpty) ...[
                         Padding(
-                          padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 8.0),
-                          child: Text(
-                            'Existing Members',
-                            style: GoogleFonts.cabin(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.purple[700],
+                          padding: const EdgeInsets.all(16.0),
+                          child: Center(
+                            child: Text(
+                              _searchController.text.isEmpty
+                                  ? 'No users available to add'
+                                  : 'No users found matching "${_searchController.text}"',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: Colors.grey[600]),
                             ),
                           ),
                         ),
-                        ListView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: existingMembers.length,
-                          itemBuilder: (context, index) => _buildUserTile(existingMembers[index]),
-                        ),
-                      ],
-                      if (pendingUsers.isNotEmpty) ...[
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 8.0),
-                          child: Text(
-                            'Pending Invitations',
-                            style: GoogleFonts.cabin(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.orange[700],
+                      ] else ...[
+                        if (existingMembers.isNotEmpty) ...[
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 8.0),
+                            child: Text(
+                              'Existing Members',
+                              style: GoogleFonts.cabin(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.purple[700],
+                              ),
                             ),
                           ),
-                        ),
-                        ListView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: pendingUsers.length,
-                          itemBuilder: (context, index) => _buildUserTile(pendingUsers[index]),
-                        ),
-                      ],
-                      if (friends.isNotEmpty) ...[
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 8.0),
-                          child: Text(
-                            'Available Friends',
-                            style: GoogleFonts.cabin(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.green[700],
+                          ListView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: existingMembers.length,
+                            itemBuilder: (context, index) => _buildUserTile(existingMembers[index]),
+                          ),
+                        ],
+                        if (pendingUsers.isNotEmpty) ...[
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 8.0),
+                            child: Text(
+                              'Pending Invitations',
+                              style: GoogleFonts.cabin(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.orange[700],
+                              ),
                             ),
                           ),
-                        ),
-                        ListView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: friends.length,
-                          itemBuilder: (context, index) => _buildUserTile(friends[index]),
-                        ),
-                      ],
-                      if (otherUsers.isNotEmpty) ...[
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 8.0),
-                          child: Text(
-                            'Other Available Users',
-                            style: GoogleFonts.cabin(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.grey[700],
+                          ListView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: pendingUsers.length,
+                            itemBuilder: (context, index) => _buildUserTile(pendingUsers[index]),
+                          ),
+                        ],
+                        if (friends.isNotEmpty) ...[
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 8.0),
+                            child: Text(
+                              'Available Friends',
+                              style: GoogleFonts.cabin(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green[700],
+                              ),
                             ),
                           ),
-                        ),
-                        ListView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: otherUsers.length + (provider.hasMore ? 1 : 0),
-                          itemBuilder: (context, index) {
-                            if (index == otherUsers.length) {
-                              return const Padding(
-                                padding: EdgeInsets.symmetric(vertical: 16.0),
-                                child: Center(
-                                  child: CustomLoader(
-                                    size: 30,
-                                    isButtonLoader: true,
+                          ListView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: friends.length,
+                            itemBuilder: (context, index) => _buildUserTile(friends[index]),
+                          ),
+                        ],
+                        if (otherUsers.isNotEmpty) ...[
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 8.0),
+                            child: Text(
+                              'Other Available Users',
+                              style: GoogleFonts.cabin(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey[700],
+                              ),
+                            ),
+                          ),
+                          ListView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: otherUsers.length + (provider.hasMore ? 1 : 0),
+                            itemBuilder: (context, index) {
+                              if (index == otherUsers.length) {
+                                return const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 16.0),
+                                  child: Center(
+                                    child: CustomLoader(
+                                      size: 30,
+                                      isButtonLoader: true,
+                                    ),
                                   ),
-                                ),
-                              );
-                            }
-                            return _buildUserTile(otherUsers[index]);
-                          },
-                        ),
+                                );
+                              }
+                              return _buildUserTile(otherUsers[index]);
+                            },
+                          ),
+                        ],
                       ],
                     ],
                   ),
