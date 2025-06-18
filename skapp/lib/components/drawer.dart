@@ -126,6 +126,37 @@ class AppDrawer extends StatelessWidget {
                           fontSize: 14,
                         ),
                       ),
+                      SizedBox(height: 4),
+                      if (profile.profileCode != null && profile.profileCode!.isNotEmpty)
+                        Container(
+                          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Profile Code: ',
+                                style: GoogleFonts.cabin(
+                                  color: Colors.white70,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w400,
+                                ),
+                              ),
+                              Text(
+                                profile.profileCode!,
+                                style: GoogleFonts.cabin(
+                                  color: Colors.white,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       SizedBox(height: 12),
                       TextButton.icon(
                         style: TextButton.styleFrom(

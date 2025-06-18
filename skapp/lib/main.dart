@@ -25,16 +25,18 @@ class ProfileNotifier extends ChangeNotifier {
   String? _email;
   String? _photoUrl;
   String? _username;
-  String? _firstName;
-  String? _lastName;
+  String? _profileCode;
   bool _isLoading = false;
   String? _error;
+  String? _firstName;
+  String? _lastName;
 
   bool get isLoading => _isLoading;
   String? get name => _name;
   String? get email => _email;
   String? get photoUrl => _photoUrl;
   String? get username => _username;
+  String? get profileCode => _profileCode;
   String? get firstName => _firstName;
   String? get lastName => _lastName;
   String? get error => _error;
@@ -57,6 +59,7 @@ class ProfileNotifier extends ChangeNotifier {
     String? username,
     String? firstName,
     String? lastName,
+    String? profileCode,
   }) {
     _logger.info('Updating profile state:');
     _logger.info('- Current name: $_name');
@@ -71,6 +74,8 @@ class ProfileNotifier extends ChangeNotifier {
     _logger.info('- New firstName: $firstName');
     _logger.info('- Current lastName: $_lastName');
     _logger.info('- New lastName: $lastName');
+    _logger.info('- Current profileCode: $_profileCode');
+    _logger.info('- New profileCode: $profileCode');
 
     _name = name;
     _email = email;
@@ -78,6 +83,7 @@ class ProfileNotifier extends ChangeNotifier {
     _username = username;
     _firstName = firstName;
     _lastName = lastName;
+    _profileCode = profileCode;
     _error = null;
 
     _logger.info('Profile state updated successfully');
@@ -92,6 +98,7 @@ class ProfileNotifier extends ChangeNotifier {
     _username = null;
     _firstName = null;
     _lastName = null;
+    _profileCode = null;
     _error = null;
     notifyListeners();
   }

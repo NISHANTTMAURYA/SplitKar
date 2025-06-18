@@ -82,14 +82,20 @@ class UserLoginSerializer(serializers.Serializer):
 
 class UserSerializer(serializers.ModelSerializer):
     profile_picture_url = serializers.SerializerMethodField()
+    profile_code = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'profile_picture_url']
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'profile_picture_url', 'profile_code']
     
     def get_profile_picture_url(self, obj):
         if hasattr(obj, 'profile') and obj.profile.profile_picture_url:
             return obj.profile.profile_picture_url
+        return None
+
+    def get_profile_code(self, obj):
+        if hasattr(obj, 'profile'):
+            return obj.profile.profile_code
         return None
 
 class ProfileUpdateSerializer(serializers.ModelSerializer):

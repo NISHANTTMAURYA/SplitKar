@@ -18,6 +18,7 @@ class ProfileApi {
   static const String _emailKey = 'cached_email';
   static const String _nameKey = 'cached_name';
   static const String _usernameKey = 'cached_username';
+  static const String _profileCodeKey = 'cached_profile_code';
   static const String _cacheExpiryKey = 'profile_cache_expiry';
   static const Duration _cacheValidity = Duration(minutes: 5);
   static const int _minLoadingTime = 500; // milliseconds
@@ -35,6 +36,7 @@ class ProfileApi {
   String? _cachedEmail;
   String? _cachedName;
   String? _cachedUsername;
+  String? _cachedProfileCode;
 
   ProfileApi({AuthService? authService})
     : _authService = authService ?? AuthService();
@@ -47,6 +49,7 @@ class ProfileApi {
   String? get email => _cachedEmail;
   String? get name => _cachedName;
   String? get username => _cachedUsername;
+  String? get profileCode => _cachedProfileCode;
 
   Future<void> _initPrefs() async {
     try {
@@ -56,6 +59,7 @@ class ProfileApi {
       _cachedEmail = _prefs.getString(_emailKey);
       _cachedName = _prefs.getString(_nameKey);
       _cachedUsername = _prefs.getString(_usernameKey);
+      _cachedProfileCode = _prefs.getString(_profileCodeKey);
     } catch (e) {
       _logger.severe('Error initializing preferences: $e');
     }
@@ -74,6 +78,9 @@ class ProfileApi {
       }
       if (_cachedUsername != null) {
         await _prefs.setString(_usernameKey, _cachedUsername!);
+      }
+      if (_cachedProfileCode != null) {
+        await _prefs.setString(_profileCodeKey, _cachedProfileCode!);
       }
       // Update cache expiry to 5 minutes from now
       await _prefs.setString(
@@ -201,13 +208,14 @@ class ProfileApi {
         _cachedEmail = _profileDetails?['email'];
         _cachedName = '${_profileDetails?['first_name'] ?? ''} ${_profileDetails?['last_name'] ?? ''}'.trim();
         _cachedUsername = _profileDetails?['username'];
-
+        _cachedProfileCode = _profileDetails?['profile_code'];
+        
         _logger.info('Parsed profile details:');
         _logger.info('- Photo URL: $_cachedPhotoUrl');
         _logger.info('- Email: $_cachedEmail');
-        _logger.info('- Name: $_cachedName');
+        _logger.info('- Name: $_cachedName'); 
         _logger.info('- Username: $_cachedUsername');
-
+        _logger.info('- Profile Code: $_cachedProfileCode');
         await _cacheProfileData();
         _logger.info('Profile Details cached successfully');
 
@@ -221,6 +229,7 @@ class ProfileApi {
             username: _cachedUsername,
             firstName: _profileDetails?['first_name'],
             lastName: _profileDetails?['last_name'],
+            profileCode: _cachedProfileCode,
           );
           profileNotifier.setError(null);
           _logger.info('ProfileNotifier updated successfully');
@@ -280,7 +289,7 @@ class ProfileApi {
       await _prefs.remove(_nameKey);
       await _prefs.remove(_usernameKey);
       await _prefs.remove(_cacheExpiryKey);
-
+      await _prefs.remove(_profileCodeKey); 
       profileNotifier.clearProfile();
 
       if (context.mounted) {

@@ -10,6 +10,8 @@ import 'package:logging/logging.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:skapp/pages/settings_profile/edit_profile_page.dart';
 import 'package:skapp/services/navigation_service.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -149,13 +151,14 @@ class _ProfileContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      physics: AlwaysScrollableScrollPhysics(), // Enable scrolling even when content is small
+      physics: AlwaysScrollableScrollPhysics(),
       children: [
         _ProfileHeader(
           photoUrl: profile.photoUrl,
           name: profile.name ?? 'No Name',
           email: profile.email ?? '',
           username: profile.username ?? '',
+          profileCode: profile.profileCode,
           screenWidth: screenWidth,
           screenHeight: screenHeight,
         ),
@@ -208,6 +211,7 @@ class _ProfileHeader extends StatelessWidget {
   final String name;
   final String email;
   final String username;
+  final String? profileCode;
   final double screenWidth;
   final double screenHeight;
 
@@ -216,6 +220,7 @@ class _ProfileHeader extends StatelessWidget {
     required this.name,
     required this.email,
     required this.username,
+    required this.profileCode,
     required this.screenWidth,
     required this.screenHeight,
   });
@@ -274,15 +279,87 @@ class _ProfileHeader extends StatelessWidget {
           ),
           SizedBox(height: screenHeight * 0.004),
           Text(
-            'Username: $username',
+            '@$username',
             style: TextStyle(
               fontSize: screenWidth * 0.037,
               color: Colors.grey[600],
-              fontStyle: FontStyle.italic,
-              fontWeight: FontWeight.w400,
+              fontWeight: FontWeight.w500,
+              letterSpacing: 0.5,
             ),
             textAlign: TextAlign.center,
           ),
+          if (profileCode != null && profileCode!.isNotEmpty) ...[
+            SizedBox(height: screenHeight * 0.004),
+            GestureDetector(
+              onTap: () {
+                final code = profileCode ?? '';
+                Clipboard.setData(ClipboardData(text: code));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Row(
+                      children: [
+                        Icon(Icons.check_circle, color: Colors.white),
+                        SizedBox(width: 10),
+                        Text('Profile code copied to clipboard'),
+                      ],
+                    ),
+                    backgroundColor: Colors.deepPurple,
+                    duration: Duration(seconds: 2),
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    margin: EdgeInsets.all(8),
+                  ),
+                );
+              },
+              child: Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: screenWidth * 0.03,
+                  vertical: screenWidth * 0.01,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.deepPurple[50],
+                  borderRadius: BorderRadius.circular(screenWidth * 0.02),
+                  border: Border.all(
+                    color: Colors.deepPurple[200]!,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Profile Code: ',
+                      style: TextStyle(
+                        fontSize: screenWidth * 0.035,
+                        color: Colors.deepPurple[700],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        Text(
+                          profileCode!,
+                          style: TextStyle(
+                            fontSize: screenWidth * 0.035,
+                            color: Colors.deepPurple,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                        SizedBox(width: 8),
+                        Icon(
+                          Icons.copy,
+                          size: screenWidth * 0.04,
+                          color: Colors.deepPurple[400],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
