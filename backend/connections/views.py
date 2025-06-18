@@ -303,8 +303,8 @@ def invite_to_group(request):
             'invitations': [
                 {
                     'id': inv.id,
-                    'group': inv.group.name,
-                    'invited_user': inv.invited_user.username,
+                    'group_name': inv.group.name,
+                    'invited_user_username': inv.invited_user.username,
                     'profile_code': inv.invited_user.profile.profile_code,
                     'status': inv.status,
                     'created_at': inv.created_at

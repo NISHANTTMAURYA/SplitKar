@@ -5,6 +5,7 @@ import 'package:skapp/components/mobile.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:skapp/pages/screens/group_settings_api.dart';
 import 'package:skapp/services/notification_service.dart';
+import 'package:skapp/pages/screens/add_group_members_sheet.dart';
 
 class GroupSettingsPage extends StatefulWidget {
   final int groupId;
@@ -314,9 +315,51 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                           children: [
                             Padding(
                               padding: const EdgeInsets.all(16),
-                              child: Text(
-                                'Members',
-                                style: Theme.of(context).textTheme.titleLarge,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Members',
+                                    style: Theme.of(context).textTheme.titleLarge,
+                                  ),
+                                  if (_groupDetails!['is_admin'] ?? false)
+                                    TextButton.icon(
+                                      onPressed: () {
+                                        // Get existing member profile codes
+                                        final existingMemberCodes = List<String>.from(
+                                          _groupDetails!['members'].map((member) => member['profile_code'] as String)
+                                        );
+
+                                        // Get pending invitation profile codes - include both sent and received invitations
+                                        final sentInvitations = (_groupDetails!['sent_invitations'] ?? [])
+                                            .map((invitation) => invitation['invited_user_profile_code'] as String);
+                                        final receivedInvitations = (_groupDetails!['received_invitations'] ?? [])
+                                            .map((invitation) => invitation['invited_user_profile_code'] as String);
+                                        
+                                        final pendingInvitationCodes = List<String>.from([
+                                          ...sentInvitations,
+                                          ...receivedInvitations,
+                                        ]);
+
+                                        AddGroupMembersSheet.show(
+                                          context,
+                                          widget.groupId,
+                                          _groupDetails!['name'],
+                                          existingMemberCodes,
+                                          pendingInvitationCodes,
+                                        ).then((shouldRefresh) {
+                                          if (shouldRefresh) {
+                                            _fetchGroupDetails();
+                                          }
+                                        });
+                                      },
+                                      icon: const Icon(Icons.person_add),
+                                      label: const Text('Add'),
+                                      style: TextButton.styleFrom(
+                                        foregroundColor: Theme.of(context).colorScheme.primary,
+                                      ),
+                                    ),
+                                ],
                               ),
                             ),
                             ListView.builder(

@@ -173,11 +173,34 @@ class GroupProvider extends ChangeNotifier {
 
   // Toggle user selection
   void toggleUserSelection(String profileCode) {
+    // Find the user in the users list
+    final user = _users.firstWhere(
+      (u) => u['profile_code'] == profileCode,
+      orElse: () => <String, dynamic>{},
+    );
+
+    // If user not found, do nothing
+    if (user.isEmpty) return;
+
+    // Check if the user is already selected
     if (_selectedUsers.contains(profileCode)) {
       _selectedUsers.remove(profileCode);
     } else {
+      // Add the user to selected users only if they're not disabled
       _selectedUsers.add(profileCode);
     }
+    notifyListeners();
+  }
+
+  // Clear selected users
+  void clearSelectedUsers() {
+    _selectedUsers.clear();
+    notifyListeners();
+  }
+
+  // Remove a specific user from selection
+  void removeUserFromSelection(String profileCode) {
+    _selectedUsers.remove(profileCode);
     notifyListeners();
   }
 
