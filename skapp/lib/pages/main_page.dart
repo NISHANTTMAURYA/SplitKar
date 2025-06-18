@@ -41,6 +41,7 @@ class MainPageState extends State<MainPage> {
   bool _isBottomBarVisible = true;
   final ScrollController _scrollController = ScrollController();
   double _previousScrollPosition = 0;
+  double _lastScrollUpdateTime = 0;
 
   // Add method to refresh data
   Future<void> refreshData() async {
@@ -115,24 +116,32 @@ class MainPageState extends State<MainPage> {
   void _handleScroll() {
     if (!mounted || !_scrollController.hasClients) return;
     
+    final currentTime = DateTime.now().millisecondsSinceEpoch.toDouble();
     final currentPosition = _scrollController.position.pixels;
     final scrollDelta = currentPosition - _previousScrollPosition;
+    final timeDelta = currentTime - _lastScrollUpdateTime;
     
-    if (scrollDelta > 10) { // Scrolling down
-      if (_isBottomBarVisible && mounted) {
-        setState(() {
-          _isBottomBarVisible = false;
-        });
-      }
-    } else if (scrollDelta < -10) { // Scrolling up
-      if (!_isBottomBarVisible && mounted) {
-        setState(() {
-          _isBottomBarVisible = true;
-        });
-      }
+    // Calculate scroll velocity (pixels per millisecond)
+    final scrollVelocity = timeDelta > 0 ? scrollDelta / timeDelta : 0;
+    
+    // Adjust thresholds based on velocity
+    final isScrollingDown = scrollDelta > 0;
+    final isScrollingUp = scrollDelta < 0;
+    
+    // Show/hide based on scroll direction and current state
+    if (isScrollingDown && _isBottomBarVisible) {
+      setState(() {
+        _isBottomBarVisible = false;
+      });
+    } else if (isScrollingUp && !_isBottomBarVisible) {
+      setState(() {
+        _isBottomBarVisible = true;
+      });
     }
     
+    // Update previous values
     _previousScrollPosition = currentPosition;
+    _lastScrollUpdateTime = currentTime;
   }
 
   @override
