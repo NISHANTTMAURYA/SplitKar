@@ -564,6 +564,11 @@ class _FriendsListViewState extends State<_GroupsListView> {
               ),
             ),
           ),
+          SliverPadding(
+            padding: EdgeInsets.only(
+              bottom: 70 + MediaQuery.of(context).padding.bottom,
+            ),
+          ),
         ],
       ),
     );

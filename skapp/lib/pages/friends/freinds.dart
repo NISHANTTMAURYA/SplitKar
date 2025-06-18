@@ -257,6 +257,9 @@ class _NoFriendsViewState extends State<_NoFriendsView> {
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
     return SingleChildScrollView(
+      padding: EdgeInsets.only(
+        bottom: 70 + MediaQuery.of(context).padding.bottom,
+      ),
       physics: const AlwaysScrollableScrollPhysics(),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.start,
@@ -386,9 +389,11 @@ class _FriendsListViewState extends State<_FriendsListView> {
     return RefreshIndicator(
       onRefresh: widget.onRefresh,
       child: CustomScrollView(
+
         controller: _scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
+
           // Image Header
           SliverPersistentHeader(
             pinned: false,
@@ -431,6 +436,7 @@ class _FriendsListViewState extends State<_FriendsListView> {
           SliverAppBar(
             snap: true,
             floating: true,
+
             expandedHeight: height * 0.05, // Responsive expanded height
             backgroundColor: Colors.transparent,
             elevation: 0,
@@ -577,6 +583,11 @@ class _FriendsListViewState extends State<_FriendsListView> {
                   ),
                 ),
               ),
+            ),
+          ),
+          SliverPadding(
+            padding: EdgeInsets.only(
+              bottom: 70 + MediaQuery.of(context).padding.bottom,
             ),
           ),
         ],

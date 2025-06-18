@@ -130,6 +130,7 @@ class MainPageState extends State<MainPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBody: true,
       key: _scaffoldKey,
       appBar: _selectedIndex == 1 && !_isFriendsListEmpty
           ? CustomAppBar(
