@@ -60,7 +60,7 @@ class ExpenseManager(models.Manager):
         return self.filter(group=group, is_deleted=False).order_by('-date')
 
 class Expense(TimeStampedModel):
-    """Core expense model supporting multiple payers and flexible contexts"""
+    """Core expense model supporting multiple payers and flexible contexts"""   
     
     SPLIT_TYPES = [
         ('equal', 'Equal Split'),

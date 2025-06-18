@@ -24,6 +24,14 @@
         .nav-link:hover {
             text-decoration: underline;
         }
+        .split-percentage-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 5px;
+        }
+        .split-percentage-row input {
+            width: 120px;
+        }
     </style>
 </head>
 <body>
@@ -33,7 +41,7 @@
             <a href="{% url 'api_tester:test_page' %}" class="nav-link">Go to Friend APIs →</a>
         </div>
         <div class="api-section">
-            <h3>Add Expense (Equal Split)</h3>
+            <h3>Add Expense (Equal or Percentage Split)</h3>
             <form id="addExpenseForm" class="mb-3">
                 <div class="mb-3">
                     <label for="description" class="form-label">Description</label>
@@ -63,7 +71,19 @@
                     <label for="notes" class="form-label">Notes</label>
                     <input type="text" class="form-control" id="notes">
                 </div>
-                <button type="submit" class="btn btn-primary">Add Expense</button>
+                <div class="mb-3">
+                    <label for="splitType" class="form-label">Split Type</label>
+                    <select class="form-select" id="splitType">
+                        <option value="equal" selected>Equal</option>
+                        <option value="percentage">Percentage</option>
+                    </select>
+                </div>
+                <div id="percentageSplitsSection" style="display: none;">
+                    <label class="form-label">Splits (for Percentage Split)</label>
+                    <div id="percentageSplitsInputs"></div>
+                    <button type="button" class="btn btn-secondary btn-sm mt-2" id="addSplitBtn">Add Split</button>
+                </div>
+                <button type="submit" class="btn btn-primary mt-3">Add Expense</button>
             </form>
             <div class="response-area" id="addExpenseResponse"></div>
         </div>
@@ -92,24 +112,66 @@
             'Content-Type': 'application/json'
         });
 
+        // Handle split type change
+        document.getElementById('splitType').addEventListener('change', function() {
+            const splitType = this.value;
+            const section = document.getElementById('percentageSplitsSection');
+            section.style.display = splitType === 'percentage' ? 'block' : 'none';
+        });
+
+        // Add split row for percentage split
+        document.getElementById('addSplitBtn').addEventListener('click', function() {
+            const container = document.getElementById('percentageSplitsInputs');
+            const row = document.createElement('div');
+            row.className = 'split-percentage-row';
+            row.innerHTML = `
+                <input type="number" class="form-control" placeholder="User ID" required>
+                <input type="number" class="form-control" placeholder="Percentage" step="0.01" required>
+                <button type="button" class="btn btn-danger btn-sm removeSplitBtn">Remove</button>
+            `;
+            container.appendChild(row);
+        });
+
+        // Remove split row
+        document.getElementById('percentageSplitsInputs').addEventListener('click', function(e) {
+            if (e.target.classList.contains('removeSplitBtn')) {
+                e.target.parentElement.remove();
+            }
+        });
+
         document.getElementById('addExpenseForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const description = document.getElementById('description').value;
             const totalAmount = document.getElementById('totalAmount').value;
             const groupId = document.getElementById('groupId').value;
             const payerId = document.getElementById('payerId').value;
-            const userIds = document.getElementById('userIds').value.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id));
+            const userIds = document.getElementById('userIds').value.split(',').map(id => parseInt(id.trim(), 10)).filter(id => !isNaN(id));
             const currency = document.getElementById('currency').value;
             const notes = document.getElementById('notes').value;
-            const payload = {
+            const splitType = document.getElementById('splitType').value;
+            let payload = {
                 description,
                 total_amount: totalAmount,
                 group_id: groupId,
                 payer_id: payerId,
                 user_ids: userIds,
                 currency,
-                notes
+                notes,
+                split_type: splitType
             };
+            if (splitType === 'percentage') {
+                const splits = [];
+                const rows = document.querySelectorAll('#percentageSplitsInputs .split-percentage-row');
+                rows.forEach(row => {
+                    const inputs = row.querySelectorAll('input');
+                    const userId = parseInt(inputs[0].value, 10);
+                    const percentage = parseFloat(inputs[1].value);
+                    if (!isNaN(userId) && !isNaN(percentage)) {
+                        splits.push({ user_id: userId, percentage });
+                    }
+                });
+                payload.splits = splits;
+            }
             try {
                 const response = await fetch('/api/expenses/add/', {
                     method: 'POST',

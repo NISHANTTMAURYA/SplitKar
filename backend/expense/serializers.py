@@ -12,6 +12,11 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['id', 'username', 'first_name', 'last_name']
 
 
+class SplitSerializer(serializers.Serializer):
+    user_id = serializers.IntegerField()
+    percentage = serializers.DecimalField(max_digits=5, decimal_places=2)
+
+
 class AddExpenseSerializer(serializers.Serializer):
     """Serializer for adding expenses with equal splitting"""
     
@@ -25,6 +30,8 @@ class AddExpenseSerializer(serializers.Serializer):
     group_id = serializers.IntegerField()
     currency = serializers.CharField(max_length=3, default='INR')
     notes = serializers.CharField(max_length=500, required=False, allow_blank=True)
+    split_type = serializers.ChoiceField(choices=[('equal', 'Equal'), ('percentage', 'Percentage')], default='equal')
+    splits = SplitSerializer(many=True, required=False)
     
     def validate_total_amount(self, value):
         """Validate that total amount is positive"""
@@ -102,6 +109,19 @@ class AddExpenseSerializer(serializers.Serializer):
             raise serializers.ValidationError("Group not found or inactive")
         
         attrs['user_ids'] = user_ids  # Overwrite with int-cast user_ids
+
+        # Percentage split validation
+        if attrs.get('split_type', 'equal') == 'percentage':
+            splits = attrs.get('splits')
+            if not splits or len(splits) == 0:
+                raise serializers.ValidationError("Splits are required for percentage split.")
+            split_user_ids = [int(s['user_id']) for s in splits]
+            if set(split_user_ids) != set(user_ids):
+                raise serializers.ValidationError("Splits must be provided for all users in user_ids.")
+            total_percentage = sum(Decimal(s['percentage']) for s in splits)
+            if abs(total_percentage - Decimal('100')) > Decimal('0.01'):
+                raise serializers.ValidationError("Total percentage must equal 100%.")
+        
         return attrs
     
     def create(self, validated_data):
@@ -111,6 +131,8 @@ class AddExpenseSerializer(serializers.Serializer):
         user_ids = validated_data.pop('user_ids')
         payer_id = validated_data.pop('payer_id')
         group_id = validated_data.pop('group_id')
+        split_type = validated_data.pop('split_type', 'equal')
+        splits = validated_data.pop('splits', None)
         
         # Get all users and group
         users = User.objects.filter(id__in=user_ids)
@@ -119,14 +141,13 @@ class AddExpenseSerializer(serializers.Serializer):
         
         # Calculate equal split
         total_amount = validated_data['total_amount']
-        split_amount = total_amount / len(users)
         
         with transaction.atomic():
             # Create expense with group
             expense = Expense.objects.create(
                 **validated_data,
                 group=group,
-                split_type='equal',
+                split_type=split_type,
                 created_by=self.context['request'].user
             )
             
@@ -138,12 +159,25 @@ class AddExpenseSerializer(serializers.Serializer):
             )
             
             # Create equal shares for all users
-            for user in users:
-                ExpenseShare.objects.create(
-                    expense=expense,
-                    user=user,
-                    amount_owed=split_amount
-                )
+            if split_type == 'equal':
+                split_amount = total_amount / len(users)
+                for user in users:
+                    ExpenseShare.objects.create(
+                        expense=expense,
+                        user=user,
+                        amount_owed=split_amount
+                    )
+            elif split_type == 'percentage':
+                for s in splits:
+                    share_user = User.objects.get(id=s['user_id'])
+                    percentage = Decimal(s['percentage'])
+                    owed = (total_amount * percentage / 100).quantize(Decimal('0.01'))
+                    ExpenseShare.objects.create(
+                        expense=expense,
+                        user=share_user,
+                        percentage=percentage,
+                        amount_owed=owed
+                    )
             
             return expense
 
