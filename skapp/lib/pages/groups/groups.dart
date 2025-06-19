@@ -12,6 +12,7 @@ import 'package:skapp/pages/groups/add_group_sheet.dart';
 import 'package:skapp/components/alerts/alert_service.dart';
 import 'package:skapp/pages/screens/group_chat_screen.dart';
 import 'package:skapp/pages/screens/group_chat_screen.dart';
+import 'package:anim_search_bar/anim_search_bar.dart';
 
 class GroupsPage extends StatefulWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
@@ -43,7 +44,10 @@ class GroupsPage extends StatefulWidget {
     // Use provider directly instead of state
     final context = freindsKey.currentContext;
     if (context != null) {
-      await Provider.of<GroupProvider>(context, listen: false).loadGroups(forceRefresh: true);
+      await Provider.of<GroupProvider>(
+        context,
+        listen: false,
+      ).loadGroups(forceRefresh: true);
     }
   }
 
@@ -100,7 +104,10 @@ class GroupsPage extends StatefulWidget {
           final bool shouldRefresh = await AddFriendsSheet.show(context);
           if (shouldRefresh && context.mounted) {
             // Refresh groups using provider
-            await Provider.of<GroupProvider>(context, listen: false).loadGroups(forceRefresh: true);
+            await Provider.of<GroupProvider>(
+              context,
+              listen: false,
+            ).loadGroups(forceRefresh: true);
           }
         },
         child: Padding(
@@ -176,7 +183,11 @@ class _GroupsPageState extends State<GroupsPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.error_outline, size: MediaQuery.of(context).size.width * 0.12, color: Colors.red),
+                  Icon(
+                    Icons.error_outline,
+                    size: MediaQuery.of(context).size.width * 0.12,
+                    color: Colors.red,
+                  ),
                   SizedBox(height: MediaQuery.of(context).size.height * 0.02),
                   Text(
                     provider.error!,
@@ -186,7 +197,7 @@ class _GroupsPageState extends State<GroupsPage> {
                   SizedBox(height: MediaQuery.of(context).size.height * 0.02),
                   ElevatedButton(
                     onPressed: () => provider.loadGroups(forceRefresh: true),
-                    child: Text('Retry')
+                    child: Text('Retry'),
                   ),
                 ],
               ),
@@ -207,7 +218,7 @@ class _GroupsPageState extends State<GroupsPage> {
                 : _NoGroupsView(onAddFriends: () {}),
           ),
         );
-      }
+      },
     );
   }
 }
@@ -308,6 +319,8 @@ class _GroupsListView extends StatefulWidget {
 class _FriendsListViewState extends State<_GroupsListView> {
   late ScrollController _scrollController;
   double _scrollOffset = 0;
+  bool isSearchOpen = false;  // State variable for search bar
+  TextEditingController textController = TextEditingController();
 
   // Define reusable text styles
   TextStyle _getFriendNameStyle(double width) =>
@@ -342,7 +355,7 @@ class _FriendsListViewState extends State<_GroupsListView> {
   }
 
   void _handleScroll() {
-    if (!mounted) return;  // Check if widget is still mounted
+    if (!mounted) return; // Check if widget is still mounted
     setState(() {
       _scrollOffset = _scrollController.offset;
     });
@@ -350,7 +363,8 @@ class _FriendsListViewState extends State<_GroupsListView> {
 
   @override
   void dispose() {
-    _scrollController.removeListener(_handleScroll);  // Remove listener
+    _scrollController.removeListener(_handleScroll); // Remove listener
+    textController.dispose(); // Dispose text controller
     // Only dispose if we created the controller
     if (widget.scrollController == null) {
       _scrollController.dispose();
@@ -375,9 +389,9 @@ class _FriendsListViewState extends State<_GroupsListView> {
     final double buttonFontSize = width * 0.04;
     final double buttonIconSize = width * 0.05;
 
+
     // Get groups from provider
     final groups = context.watch<GroupProvider>().groups;
-
     return RefreshIndicator(
       onRefresh: widget.onRefresh,
       child: CustomScrollView(
@@ -419,31 +433,90 @@ class _FriendsListViewState extends State<_GroupsListView> {
               },
             ),
           ),
-          SliverToBoxAdapter(
-            child: SizedBox(
-              height: height * 0.007,
-            ),
-          ),
+          SliverToBoxAdapter(child: SizedBox(height: height * 0.007)),
           SliverAppBar(
             snap: true,
             floating: true,
-            expandedHeight: height * 0.05,
+            expandedHeight: height * 0.08,
             backgroundColor: Colors.transparent,
             elevation: 0,
             flexibleSpace: SafeArea(
               child: Padding(
                 padding: EdgeInsets.symmetric(
-                  horizontal: width * 0.05,
+                  horizontal: width * 0.04, // Match list item padding
                   vertical: height * 0.012,
                 ),
                 child: Row(
                   children: [
+                    // Search Bar
+                    Container(
+                      height: height * 0.055, // More responsive height
+                      alignment: Alignment.centerLeft,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(30),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.deepPurple.withOpacity(0.1),
+                            blurRadius: 10,
+                            offset: Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Transform.scale(
+                        scale: 1.1,
+                        alignment: Alignment.centerLeft,
+                        child: Padding(
+                          padding: EdgeInsets.only(left: width * 0.01),
+                          child: AnimSearchBar(
+                            width: isSearchOpen 
+                                ? (width * 0.92 - (width * 0.04 * 2) - width * 0.02) // Adjusted width for padding
+                                : width * 0.13,
+                            textController: textController,
+                            onSuffixTap: () {
+                              setState(() {
+                                textController.clear();
+                                isSearchOpen = false;
+                              });
+                            },
+                            onSubmitted: (String value) {
+                              setState(() {
+                                isSearchOpen = false;
+                              });
+                            },
+                            onToggle: (bool value) {
+                              setState(() {
+                                isSearchOpen = value;
+                              });
+                            },
+                            autoFocus: true,
+                            closeSearchOnSuffixTap: true,
+                            color: Colors.white,
+                            textFieldColor: Colors.white,
+                            searchIconColor: Colors.deepPurple,
+                            textFieldIconColor: Colors.deepPurple,
+                            helpText: "Search groups...",
+                            style: TextStyle(
+                              fontSize: width * 0.04,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: width * 0.08), // Match list spacing
+                    // Greeting Text
                     Expanded(
-                      child: Text(
-                        'Heyyloo, ${context.watch<ProfileNotifier>().username ?? 'User'} !!',
-                        style: greetingStyle,
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
+                      child: AnimatedOpacity(
+                        duration: Duration(milliseconds: 300),
+                        opacity: isSearchOpen ? 0.0 : 1.0,
+                        child: Text(
+                          'Heyyloo, ${context.watch<ProfileNotifier>().username ?? 'User'} !!',
+                          style: greetingStyle.copyWith(
+                             // Responsive font size
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
                       ),
                     ),
                   ],
@@ -451,85 +524,87 @@ class _FriendsListViewState extends State<_GroupsListView> {
               ),
             ),
           ),
-
-          SliverToBoxAdapter(
-            child: SizedBox(
-              height: height * 0.007,
-            ),
-          ),
+          SliverToBoxAdapter(child: SizedBox(height: height * 0.007)),
           SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (BuildContext context, int index) {
-                final group = groups[index];
-                final double width = MediaQuery.of(context).size.width;
-                final double avatarSize = width * 0.12;
-                final double imageSize = width * 0.13;
+            delegate: SliverChildBuilderDelegate((
+              BuildContext context,
+              int index,
+            ) {
+              final group = groups[index];
+              final double width = MediaQuery.of(context).size.width;
+              final double avatarSize = width * 0.12;
+              final double imageSize = width * 0.13;
 
-                return GestureDetector(
-                  onTap: () {
-                    Navigator.pushNamed(
-                      context,
-                      '/group-chat',
-                      arguments: {
-                        'chatName': group['name']?.toString() ?? 'Group Chat',
-                        'chatImageUrl': group['profile_picture_url'],
-                        'groupId': group['id'],
-                      },
-                    );
-                  },
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: width * 0.04,
-                      vertical: width * 0.01,
+              return GestureDetector(
+                onTap: () {
+                  Navigator.pushNamed(
+                    context,
+                    '/group-chat',
+                    arguments: {
+                      'chatName': group['name']?.toString() ?? 'Group Chat',
+                      'chatImageUrl': group['profile_picture_url'],
+                      'groupId': group['id'],
+                    },
+                  );
+                },
+                child: Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: width * 0.04,
+                    vertical: width * 0.01,
+                  ),
+                  child: Card(
+                    color: Colors.white,
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(width * 0.04),
                     ),
-                    child: Card(
-                      color: Colors.white,
-                      elevation: 2,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(width * 0.04),
+                    margin: EdgeInsets.symmetric(vertical: width * 0.01),
+                    child: ListTile(
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: width * 0.03,
+                        vertical: width * 0.015,
                       ),
-                      margin: EdgeInsets.symmetric(vertical: width * 0.01),
-                      child: ListTile(
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: width * 0.03,
-                          vertical: width * 0.015,
+                      leading: CircleAvatar(
+                        radius: avatarSize / 2.2,
+                        backgroundColor: Theme.of(
+                          context,
+                        ).colorScheme.inversePrimary.withOpacity(0.7),
+                        child: ClipOval(
+                          child:
+                              (group['profile_picture_url'] != null &&
+                                  (group['profile_picture_url'] as String)
+                                      .isNotEmpty &&
+                                  (group['profile_picture_url'] as String)
+                                      .startsWith('http'))
+                              ? CachedNetworkImage(
+                                  imageUrl: group['profile_picture_url'],
+                                  placeholder: (context, url) => CustomLoader(
+                                    size: avatarSize * 0.6,
+                                    isButtonLoader: true,
+                                  ),
+                                  errorWidget: (context, url, error) => Icon(
+                                    Icons.groups_2_outlined,
+                                    size: avatarSize * 0.6,
+                                  ),
+                                  width: imageSize,
+                                  height: imageSize,
+                                  fit: BoxFit.cover,
+                                )
+                              : Icon(
+                                  Icons.groups_2_outlined,
+                                  size: avatarSize * 0.6,
+                                ),
                         ),
-                        leading: CircleAvatar(
-                          radius: avatarSize / 2.2,
-                          backgroundColor: Theme.of(context)
-                              .colorScheme
-                              .inversePrimary
-                              .withOpacity(0.7),
-                          child: ClipOval(
-                            child: (group['profile_picture_url'] != null &&
-                                    (group['profile_picture_url'] as String).isNotEmpty &&
-                                    (group['profile_picture_url'] as String).startsWith('http'))
-                                ? CachedNetworkImage(
-                                    imageUrl: group['profile_picture_url'],
-                                    placeholder: (context, url) => CustomLoader(
-                                      size: avatarSize * 0.6,
-                                      isButtonLoader: true,
-                                    ),
-                                    errorWidget: (context, url, error) =>
-                                        Icon(Icons.groups_2_outlined, size: avatarSize * 0.6),
-                                    width: imageSize,
-                                    height: imageSize,
-                                    fit: BoxFit.cover,
-                                  )
-                                : Icon(Icons.groups_2_outlined, size: avatarSize * 0.6),
-                          ),
-                        ),
-                        title: Text(
-                          group['name']?.toString() ?? 'Group Name not fetched',
-                          style: groupNameStyle,
-                        ),
+                      ),
+                      title: Text(
+                        group['name']?.toString() ?? 'Group Name not fetched',
+                        style: groupNameStyle,
                       ),
                     ),
                   ),
-                );
-              },
-              childCount: groups.length,
-            ),
+                ),
+              );
+            }, childCount: groups.length),
           ),
           SliverToBoxAdapter(
             child: Padding(
@@ -708,11 +783,7 @@ class _ImageHeaderDelegate extends SliverPersistentHeaderDelegate {
             left: 0,
             right: 0,
             height: maxExtent,
-            child: Image.asset(
-              'assets/images/groups.png',
-             
-              fit: BoxFit.cover,
-            ),
+            child: Image.asset('assets/images/groups.png', fit: BoxFit.cover),
           ),
         ],
       ),

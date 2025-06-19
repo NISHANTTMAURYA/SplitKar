@@ -1,3 +1,4 @@
+import 'package:anim_search_bar/anim_search_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:skapp/pages/friends/friends_service.dart';
@@ -329,6 +330,7 @@ class _FriendsListView extends StatefulWidget {
 
 class _FriendsListViewState extends State<_FriendsListView> {
   late ScrollController _scrollController;
+  bool isSearchOpen = false;
   double _scrollOffset = 0;
 
   // Define reusable text styles
@@ -396,7 +398,7 @@ class _FriendsListViewState extends State<_FriendsListView> {
 
     final double buttonFontSize = width * 0.04;
     final double buttonIconSize = width * 0.05;
-
+    TextEditingController textController = TextEditingController();
     return RefreshIndicator(
       onRefresh: widget.onRefresh,
       child: CustomScrollView(
@@ -445,23 +447,86 @@ class _FriendsListViewState extends State<_FriendsListView> {
           SliverAppBar(
             snap: true,
             floating: true,
-            expandedHeight: height * 0.05, // Responsive expanded height
+            expandedHeight: height * 0.08,
             backgroundColor: Colors.transparent,
             elevation: 0,
             flexibleSpace: SafeArea(
               child: Padding(
                 padding: EdgeInsets.symmetric(
-                  horizontal: width * 0.05, // Responsive horizontal padding
-                  vertical: height * 0.012, // Responsive vertical padding
+                  horizontal: width * 0.04, // Match list item padding
+                  vertical: height * 0.012,
                 ),
                 child: Row(
                   children: [
+                    // Search Bar
+                    Container(
+                      height: height * 0.055, // More responsive height
+                      alignment: Alignment.centerLeft,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(30),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.deepPurple.withOpacity(0.1),
+                            blurRadius: 10,
+                            offset: Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Transform.scale(
+                        scale: 1.1,
+                        alignment: Alignment.centerLeft,
+                        child: Padding(
+                          padding: EdgeInsets.only(left: width * 0.01),
+                          child: AnimSearchBar(
+                            width: isSearchOpen
+                                ? (width * 0.92 - (width * 0.04 * 2) - width * 0.02) // Adjusted width for padding
+                                : width * 0.13,
+                            textController: textController,
+                            onSuffixTap: () {
+                              setState(() {
+                                textController.clear();
+                                isSearchOpen = false;
+                              });
+                            },
+                            onSubmitted: (String value) {
+                              setState(() {
+                                isSearchOpen = false;
+                              });
+                            },
+                            onToggle: (bool value) {
+                              setState(() {
+                                isSearchOpen = value;
+                              });
+                            },
+                            autoFocus: true,
+                            closeSearchOnSuffixTap: true,
+                            color: Colors.white,
+                            textFieldColor: Colors.white,
+                            searchIconColor: Colors.deepPurple,
+                            textFieldIconColor: Colors.deepPurple,
+                            helpText: "Search friends...",
+                            style: TextStyle(
+                              fontSize: width * 0.04,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: width * 0.08), // Match list spacing
+                    // Greeting Text
                     Expanded(
-                      child: Text(
-                        'Heyyloo, ${context.watch<ProfileNotifier>().username ?? 'User'} !!',
-                        style: greetingStyle,
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
+                      child: AnimatedOpacity(
+                        duration: Duration(milliseconds: 300),
+                        opacity: isSearchOpen ? 0.0 : 1.0,
+                        child: Text(
+                          'Heyyloo, ${context.watch<ProfileNotifier>().username ?? 'User'} !!',
+                          style: greetingStyle.copyWith(
+                            // Responsive font size
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
                       ),
                     ),
                   ],
