@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from decimal import Decimal
-from .models import Expense, ExpensePayment, ExpenseShare
+from .models import Expense, ExpensePayment, ExpenseShare, ExpenseCategory
 from connections.models import Group
 
 
@@ -28,6 +28,7 @@ class AddExpenseSerializer(serializers.Serializer):
         min_length=1
     )
     group_id = serializers.IntegerField()
+    category_id = serializers.IntegerField(required=False, allow_null=True)
     currency = serializers.CharField(max_length=3, default='INR')
     notes = serializers.CharField(max_length=500, required=False, allow_blank=True)
     split_type = serializers.ChoiceField(choices=[('equal', 'Equal'), ('percentage', 'Percentage')], default='equal')
@@ -45,6 +46,14 @@ class AddExpenseSerializer(serializers.Serializer):
             group = Group.objects.get(id=value, is_active=True)
         except Group.DoesNotExist:
             raise serializers.ValidationError("Group not found or inactive")
+        return value
+    
+    def validate_category_id(self, value):
+        if value is not None:
+            try:
+                ExpenseCategory.objects.get(id=value)
+            except ExpenseCategory.DoesNotExist:
+                raise serializers.ValidationError("Invalid category ID")
         return value
     
     def validate_payer_id(self, value):
@@ -133,11 +142,15 @@ class AddExpenseSerializer(serializers.Serializer):
         group_id = validated_data.pop('group_id')
         split_type = validated_data.pop('split_type', 'equal')
         splits = validated_data.pop('splits', None)
+        category_id = validated_data.pop('category_id', None)
         
         # Get all users and group
         users = User.objects.filter(id__in=user_ids)
         payer = User.objects.get(id=payer_id)
         group = Group.objects.get(id=group_id)
+        category = None
+        if category_id is not None:
+            category = ExpenseCategory.objects.get(id=category_id)
         
         # Calculate equal split
         total_amount = validated_data['total_amount']
@@ -147,6 +160,7 @@ class AddExpenseSerializer(serializers.Serializer):
             expense = Expense.objects.create(
                 **validated_data,
                 group=group,
+                category=category,
                 split_type=split_type,
                 created_by=self.context['request'].user
             )
@@ -180,6 +194,10 @@ class AddExpenseSerializer(serializers.Serializer):
                     )
             
             return expense
+
+    @staticmethod
+    def get_category_choices():
+        return ExpenseCategory.objects.all().values('id', 'name', 'icon', 'color')
 
 
 class ExpenseResponseSerializer(serializers.Serializer):

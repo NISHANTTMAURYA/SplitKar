@@ -64,6 +64,12 @@
                     <input type="text" class="form-control" id="userIds" required>
                 </div>
                 <div class="mb-3">
+                    <label for="categoryId" class="form-label">Category</label>
+                    <select class="form-select" id="categoryId">
+                        <option value="">-- Select Category --</option>
+                    </select>
+                </div>
+                <div class="mb-3">
                     <label for="currency" class="form-label">Currency</label>
                     <input type="text" class="form-control" id="currency" value="INR">
                 </div>
@@ -112,6 +118,26 @@
             'Content-Type': 'application/json'
         });
 
+        // Fetch categories and populate dropdown
+        async function fetchCategories() {
+            try {
+                const response = await fetch('/api/expenses/categories/', {
+                    headers: getHeaders()
+                });
+                const data = await response.json();
+                const select = document.getElementById('categoryId');
+                data.forEach(cat => {
+                    const option = document.createElement('option');
+                    option.value = cat.id;
+                    option.textContent = `${cat.name} ${cat.icon}`;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                // Optionally handle error
+            }
+        }
+        fetchCategories();
+
         // Handle split type change
         document.getElementById('splitType').addEventListener('change', function() {
             const splitType = this.value;
@@ -146,6 +172,7 @@
             const groupId = document.getElementById('groupId').value;
             const payerId = document.getElementById('payerId').value;
             const userIds = document.getElementById('userIds').value.split(',').map(id => parseInt(id.trim(), 10)).filter(id => !isNaN(id));
+            const categoryId = document.getElementById('categoryId').value;
             const currency = document.getElementById('currency').value;
             const notes = document.getElementById('notes').value;
             const splitType = document.getElementById('splitType').value;
@@ -159,6 +186,9 @@
                 notes,
                 split_type: splitType
             };
+            if (categoryId) {
+                payload.category_id = parseInt(categoryId, 10);
+            }
             if (splitType === 'percentage') {
                 const splits = [];
                 const rows = document.querySelectorAll('#percentageSplitsInputs .split-percentage-row');

@@ -1,13 +1,31 @@
 from django.shortcuts import render
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from django.contrib.auth.models import User
 from decimal import Decimal
-from .models import Expense, ExpensePayment, ExpenseShare
+from .models import Expense, ExpensePayment, ExpenseShare, ExpenseCategory
 from .serializers import AddExpenseSerializer, UserSerializer
 from connections.models import Group
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def list_expense_categories(request):
+    """
+    List all active expense categories
+    """
+    categories = ExpenseCategory.objects.filter(is_active=True).order_by('name')
+    data = [
+        {
+            'id': cat.id,
+            'name': cat.name,
+            'icon': cat.icon,
+            'color': cat.color
+        }
+        for cat in categories
+    ]
+    return Response(data)
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
