@@ -112,12 +112,15 @@ void main() {
   if (Platform.isAndroid || Platform.isIOS) {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   }
-  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    statusBarColor: Colors.deepPurple, // Status bar background color
-    statusBarIconBrightness: Brightness.dark, // Status bar icons (light for dark background)
-    statusBarBrightness: Brightness.dark, // For iOS
-  ));
-  
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.deepPurple, // Status bar background color
+      statusBarIconBrightness:
+          Brightness.dark, // Status bar icons (light for dark background)
+      statusBarBrightness: Brightness.dark, // For iOS
+    ),
+  );
+
   // Initialize logging
   Logger.root.level = Level.ALL;
   Logger.root.onRecord.listen((record) {
@@ -132,11 +135,17 @@ void main() {
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider<ProfileNotifier>(create: (_) => ProfileNotifier()),
-        ChangeNotifierProvider<NotificationService>.value(value: notificationService),
+        ChangeNotifierProvider<ProfileNotifier>(
+          create: (_) => ProfileNotifier(),
+        ),
+        ChangeNotifierProvider<NotificationService>.value(
+          value: notificationService,
+        ),
         Provider<NavigationService>.value(value: navigationService),
         ChangeNotifierProvider<AlertService>.value(value: alertService),
-        ChangeNotifierProvider<FriendsProvider>(create: (_) => FriendsProvider()),
+        ChangeNotifierProvider<FriendsProvider>(
+          create: (_) => FriendsProvider(),
+        ),
         ChangeNotifierProvider<GroupProvider>(create: (_) => GroupProvider()),
       ],
       child: const MyApp(),
@@ -144,108 +153,125 @@ void main() {
   );
 }
 
+final ValueNotifier<bool> _isDarkMode = ValueNotifier(false);
+ValueNotifier<bool> get isDarkMode => _isDarkMode;
+
+// Add this function:
+void toggleAppTheme() {
+  _isDarkMode.value = !_isDarkMode.value;
+}
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
-  
 
   @override
   Widget build(BuildContext context) {
     final display = ui.PlatformDispatcher.instance.displays.first;
     print('Display refresh rate: ${display.refreshRate}');
-    final navigationService = Provider.of<NavigationService>(context, listen: false);
-    
-    return MaterialApp(
-      navigatorKey: navigationService.navigatorKey,
-      debugShowCheckedModeBanner: false,
-      title: 'SplitKar',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-      ),
-      initialRoute: '/',
-      onGenerateRoute: (settings) {
-        switch (settings.name) {
-          case '/':
-            return MaterialPageRoute(
-              settings: settings,
-              builder: (context) => Scaffold(
-                body: Stack(
-                  children: [
-                    AuthWrapper(),
-                    Positioned(
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      child: OfflineBanner(),
+    final navigationService = Provider.of<NavigationService>(
+      context,
+      listen: false,
+    );
+
+    return ValueListenableBuilder(
+      valueListenable: isDarkMode,
+
+      builder: (context, dark, _) {
+        return MaterialApp(
+          navigatorKey: navigationService.navigatorKey,
+          debugShowCheckedModeBanner: false,
+
+          darkTheme: ThemeData.dark(),
+          title: 'SplitKar',
+          theme: ThemeData(
+            colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+            useMaterial3: true,
+          ),
+          themeMode: dark ? ThemeMode.dark : ThemeMode.light,
+          initialRoute: '/',
+          onGenerateRoute: (settings) {
+            switch (settings.name) {
+              case '/':
+                return MaterialPageRoute(
+                  settings: settings,
+                  builder: (context) => Scaffold(
+                    body: Stack(
+                      children: [
+                        AuthWrapper(),
+                        Positioned(
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          child: OfflineBanner(),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              ),
-            );
-          case '/main':
-            final args = settings.arguments as Map<String, dynamic>?;
-            return MaterialPageRoute(
-              settings: settings,
-              builder: (context) => MainPage(
-                initialIndex: 0,
-              ),
-            );
-          case '/settings':
-            return MaterialPageRoute(
-              settings: settings,
-              builder: (context) => const SettingsPage(),
-            );
-          case '/friend-chat':
-            final args = settings.arguments as Map<String, dynamic>?;
-            if (args == null || !args.containsKey('chatName')) {
-              return MaterialPageRoute(
-                builder: (context) => const Scaffold(
-                  body: Center(
-                    child: Text('Error: Friend chat details not provided.'),
                   ),
-                ),
-              );
-            }
-            return MaterialPageRoute(
-              settings: settings,
-              builder: (context) => FriendChatScreen(
-                chatName: args['chatName'] as String,
-                chatImageUrl: args['chatImageUrl'] as String?,
-              ),
-            );
-          case '/group-chat':
-            final args = settings.arguments as Map<String, dynamic>?;
-            if (args == null || !args.containsKey('chatName') || !args.containsKey('groupId')) {
-              return MaterialPageRoute(
-                builder: (context) => const Scaffold(
-                  body: Center(
-                    child: Text('Error: Group chat details not provided.'),
+                );
+              case '/main':
+                final args = settings.arguments as Map<String, dynamic>?;
+                return MaterialPageRoute(
+                  settings: settings,
+                  builder: (context) => MainPage(initialIndex: 0),
+                );
+              case '/settings':
+                return MaterialPageRoute(
+                  settings: settings,
+                  builder: (context) => const SettingsPage(),
+                );
+              case '/friend-chat':
+                final args = settings.arguments as Map<String, dynamic>?;
+                if (args == null || !args.containsKey('chatName')) {
+                  return MaterialPageRoute(
+                    builder: (context) => const Scaffold(
+                      body: Center(
+                        child: Text('Error: Friend chat details not provided.'),
+                      ),
+                    ),
+                  );
+                }
+                return MaterialPageRoute(
+                  settings: settings,
+                  builder: (context) => FriendChatScreen(
+                    chatName: args['chatName'] as String,
+                    chatImageUrl: args['chatImageUrl'] as String?,
                   ),
-                ),
-              );
+                );
+              case '/group-chat':
+                final args = settings.arguments as Map<String, dynamic>?;
+                if (args == null ||
+                    !args.containsKey('chatName') ||
+                    !args.containsKey('groupId')) {
+                  return MaterialPageRoute(
+                    builder: (context) => const Scaffold(
+                      body: Center(
+                        child: Text('Error: Group chat details not provided.'),
+                      ),
+                    ),
+                  );
+                }
+                return MaterialPageRoute(
+                  settings: settings,
+                  builder: (context) => GroupChatScreen(
+                    key: ValueKey('group_chat_${args['groupId']}'),
+                    chatName: args['chatName'] as String,
+                    chatImageUrl: args['chatImageUrl'] as String?,
+                    groupId: args['groupId'] as int,
+                  ),
+                );
+
+              default:
+                return MaterialPageRoute(
+                  builder: (context) => Scaffold(
+                    body: Center(
+                      child: Text('Route ${settings.name} not found'),
+                    ),
+                  ),
+                );
             }
-            return MaterialPageRoute(
-              settings: settings,
-              builder: (context) => GroupChatScreen(
-                key: ValueKey('group_chat_${args['groupId']}'),
-                chatName: args['chatName'] as String,
-                chatImageUrl: args['chatImageUrl'] as String?,
-                groupId: args['groupId'] as int,
-              ),
-            );
-          
-          default:
-            return MaterialPageRoute(
-              builder: (context) => Scaffold(
-                body: Center(
-                  child: Text('Route ${settings.name} not found'),
-                ),
-              ),
-            );
-        }
+          },
+        );
       },
     );
   }
 }
-
-

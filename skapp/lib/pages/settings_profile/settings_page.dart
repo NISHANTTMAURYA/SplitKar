@@ -13,6 +13,8 @@ import 'package:skapp/services/navigation_service.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 
+import '../../components/cuteTheme.dart';
+
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
 
@@ -28,6 +30,7 @@ class _SettingsPageState extends State<SettingsPage> {
     Icons.person,
     Icons.local_activity,
   ];
+
 
   @override
   Widget build(BuildContext context) {
@@ -147,6 +150,7 @@ class _ProfileContent extends StatelessWidget {
     required this.screenWidth,
     required this.screenHeight,
   });
+
 
   @override
   Widget build(BuildContext context) {
@@ -396,79 +400,111 @@ class _SettingsOptionsList extends StatelessWidget {
     );
   }
 
+
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      shrinkWrap: true,
-      physics: NeverScrollableScrollPhysics(),
-      padding: EdgeInsets.symmetric(
-        horizontal: screenWidth * 0.01,
-        vertical: screenHeight * 0.01,
-      ),
+    return Column(
+      mainAxisSize: MainAxisSize.max,
       children: [
-        _buildOptionTile(
-          context,
-          Icons.edit,
-          'Edit Profile Name',
-          () {
-            _logger.info('Navigating to Edit Profile page');
-            _navigateWithAnimation(context, EditProfilePage());
-          },
+        ListTile(
+          leading: Icon(isDarkMode.value?Icons.dark_mode:Icons.light_mode,color:Colors.deepPurple[400]),
+          title: Text(
+            'Theme',
+            style: TextStyle(
+              fontSize: screenWidth * 0.045,
+              color: Colors.black,
+            ),
+          ),
+          trailing: ThemeToggleSwitch(
+            onChanged: (isDark) {
+              // This function runs when user taps the toggle
+              if (isDark) {
+                // Switch to dark theme
+
+
+              } else {
+                // Switch to light theme
+                isDark=true;
+              }
+            },
+          ),
+
         ),
-        _buildOptionTile(
-          context,
-          Icons.list_alt,
-          'List project',
-          () {
-            _logger.info('List project option pressed');
-            // TODO: Implement list project functionality
-          },
-        ),
-        _buildOptionTile(
-          context,
-          Icons.lock,
-          'Change Password',
-          () {
-            _logger.info('Change Password option pressed');
-            // TODO: Implement change password functionality
-          },
-        ),
-        _buildOptionTile(
-          context,
-          Icons.email,
-          'Change Email Address',
-          () {
-            _logger.info('Change Email Address option pressed');
-            // TODO: Implement change email functionality
-          },
-        ),
-        _buildOptionTile(
-          context,
-          Icons.settings,
-          'Settings',
-          () {
-            _logger.info('Settings option pressed');
-            // TODO: Implement settings functionality
-          },
-        ),
-        _buildOptionTile(
-          context,
-          Icons.tune,
-          'Preferences',
-          () {
-            _logger.info('Preferences option pressed');
-            // TODO: Implement preferences functionality
-          },
-        ),
-        _buildOptionTile(
-          context,
-          Icons.logout,
-          'Logout',
-          () {
-            _logger.info('Logout option pressed');
-            onLogout();
-          },
-          isLogout: true,
+        Divider(height: screenHeight * 0.0015, color: Colors.grey[300]),
+
+        ListView(
+          shrinkWrap: true,
+          physics: NeverScrollableScrollPhysics(),
+          padding: EdgeInsets.symmetric(
+            horizontal: screenWidth * 0.01,
+            vertical: screenHeight * 0.01,
+          ),
+          children: [
+            _buildOptionTile(
+              context,
+              Icons.edit,
+              'Edit Profile Name',
+              () {
+                _logger.info('Navigating to Edit Profile page');
+                _navigateWithAnimation(context, EditProfilePage());
+              },
+            ),
+            _buildOptionTile(
+              context,
+              Icons.list_alt,
+              'List project',
+              () {
+                _logger.info('List project option pressed');
+                // TODO: Implement list project functionality
+              },
+            ),
+            _buildOptionTile(
+              context,
+              Icons.lock,
+              'Change Password',
+              () {
+                _logger.info('Change Password option pressed');
+                // TODO: Implement change password functionality
+              },
+            ),
+            _buildOptionTile(
+              context,
+              Icons.email,
+              'Change Email Address',
+              () {
+                _logger.info('Change Email Address option pressed');
+                // TODO: Implement change email functionality
+              },
+            ),
+            _buildOptionTile(
+              context,
+              Icons.settings,
+              'Settings',
+              () {
+                _logger.info('Settings option pressed');
+                // TODO: Implement settings functionality
+              },
+            ),
+            _buildOptionTile(
+              context,
+              Icons.tune,
+              'Preferences',
+              () {
+                _logger.info('Preferences option pressed');
+                // TODO: Implement preferences functionality
+              },
+            ),
+            _buildOptionTile(
+              context,
+              Icons.logout,
+              'Logout',
+              () {
+                _logger.info('Logout option pressed');
+                onLogout();
+              },
+              isLogout: true,
+            ),
+          ],
         ),
       ],
     );
