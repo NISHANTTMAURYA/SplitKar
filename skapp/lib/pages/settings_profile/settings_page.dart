@@ -406,29 +406,9 @@ class _SettingsOptionsList extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.max,
       children: [
-        ListTile(
-          leading: Icon(isDarkMode.value?Icons.dark_mode:Icons.light_mode,color:Colors.deepPurple[400]),
-          title: Text(
-            'Theme',
-            style: TextStyle(
-              fontSize: screenWidth * 0.045,
-              color: Colors.black,
-            ),
-          ),
-          trailing: ThemeToggleSwitch(
-            onChanged: (isDark) {
-              // This function runs when user taps the toggle
-              if (isDark) {
-                // Switch to dark theme
-
-
-              } else {
-                // Switch to light theme
-                isDark=true;
-              }
-            },
-          ),
-
+        _ThemeToggleTile(
+          screenWidth: screenWidth,
+          screenHeight: screenHeight,
         ),
         Divider(height: screenHeight * 0.0015, color: Colors.grey[300]),
 
@@ -603,6 +583,65 @@ class _ProfilePhoto extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _ThemeToggleTile extends StatefulWidget {
+  final double screenWidth;
+  final double screenHeight;
+
+  const _ThemeToggleTile({
+    required this.screenWidth,
+    required this.screenHeight,
+  });
+
+  @override
+  State<_ThemeToggleTile> createState() => _ThemeToggleTileState();
+}
+
+class _ThemeToggleTileState extends State<_ThemeToggleTile> {
+  bool _buttonState = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _buttonState = isDarkMode.value;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: ValueListenableBuilder<bool>(
+        valueListenable: isDarkMode,
+        builder: (context, isDark, child) {
+          return Icon(
+            isDark ? Icons.dark_mode : Icons.light_mode,
+            color: Colors.deepPurple[400]
+          );
+        },
+      ),
+      title: ValueListenableBuilder<bool>(
+        valueListenable: isDarkMode,
+        builder: (context, isDark, child) {
+          return Text(
+            'Theme',
+            style: TextStyle(
+              fontSize: widget.screenWidth * 0.045,
+              color: isDark ? Colors.white : Colors.black,
+            ),
+          );
+        },
+      ),
+      trailing: ThemeToggleSwitch(
+        initialValue: _buttonState,
+        onChanged: (isDark) async {
+          setState(() {
+            _buttonState = isDark;
+          });
+          await toggleAppThemeWithLoading(); // Use the new loading function
+        },
+      ),
     );
   }
 }

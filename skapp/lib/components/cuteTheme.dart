@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 // Just copy this widget to your project
 class ThemeToggleSwitch extends StatefulWidget {
   final Function(bool) onChanged; // This function will be called when toggled
+  final bool initialValue; // Add initial value parameter
 
   const ThemeToggleSwitch({
     Key? key,
     required this.onChanged,
+    this.initialValue = false, // Default to false (light theme)
   }) : super(key: key);
 
   @override
@@ -22,11 +24,17 @@ class _ThemeToggleSwitchState extends State<ThemeToggleSwitch>
   @override
   void initState() {
     super.initState();
+    _isDark = widget.initialValue; // Initialize with the provided value
     _controller = AnimationController(
       duration: const Duration(milliseconds: 300),
       vsync: this,
     );
     _animation = CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
+    
+    // Set initial animation state
+    if (_isDark) {
+      _controller.value = 1.0;
+    }
   }
 
   @override

@@ -156,9 +156,50 @@ void main() {
 final ValueNotifier<bool> _isDarkMode = ValueNotifier(false);
 ValueNotifier<bool> get isDarkMode => _isDarkMode;
 
+// Add loading state for theme change
+final ValueNotifier<bool> _isThemeChanging = ValueNotifier(false);
+ValueNotifier<bool> get isThemeChanging => _isThemeChanging;
+
+// ParallelLoading function
+Future<void> parallelLoading(Future<void> Function() operation, Duration duration) async {
+  // Start the operation
+  final operationFuture = operation();
+  
+  // Wait for the specified duration
+  final timerFuture = Future.delayed(duration);
+  
+  // Race between operation completion and timer
+  await Future.any([operationFuture, timerFuture]);
+}
+
+// FutureRacing function
+Future<T> futureRacing<T>(List<Future<T>> futures) async {
+  return await Future.any(futures);
+}
+
 // Add this function:
 void toggleAppTheme() {
   _isDarkMode.value = !_isDarkMode.value;
+}
+
+// New function for theme change with loading
+Future<void> toggleAppThemeWithLoading() async {
+  if (_isThemeChanging.value) return; // Prevent multiple simultaneous changes
+  
+  _isThemeChanging.value = true;
+  
+  try {
+    await parallelLoading(
+      () async {
+        // Simulate theme change operation
+        await Future.delayed(Duration(milliseconds: 500));
+        _isDarkMode.value = !_isDarkMode.value;
+      },
+      Duration(seconds: 3),
+    );
+  } finally {
+    _isThemeChanging.value = false;
+  }
 }
 
 class MyApp extends StatelessWidget {
