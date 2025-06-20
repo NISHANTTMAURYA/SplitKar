@@ -1,4 +1,4 @@
-import 'package:anim_search_bar/anim_search_bar.dart';
+import 'package:skapp/components/anim_search_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:skapp/pages/friends/friends_service.dart';

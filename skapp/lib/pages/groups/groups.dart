@@ -12,7 +12,7 @@ import 'package:skapp/pages/groups/add_group_sheet.dart';
 import 'package:skapp/components/alerts/alert_service.dart';
 import 'package:skapp/pages/screens/group_chat_screen.dart';
 import 'package:skapp/pages/screens/group_chat_screen.dart';
-import 'package:anim_search_bar/anim_search_bar.dart';
+import 'package:skapp/components/anim_search_bar.dart';
 
 class GroupsPage extends StatefulWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
