@@ -41,7 +41,10 @@ class FreindsPage extends StatefulWidget {
   static Future<void> reloadFriends() async {
     final context = freindsKey.currentContext;
     if (context != null) {
-      final friendsProvider = Provider.of<FriendsProvider>(context, listen: false);
+      final friendsProvider = Provider.of<FriendsProvider>(
+        context,
+        listen: false,
+      );
       await friendsProvider.refreshFriends();
       if (context.mounted) {
         final alertService = Provider.of<AlertService>(context, listen: false);
@@ -202,7 +205,11 @@ class _FreindsPageState extends State<FreindsPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.error_outline, size: width * 0.12, color: Colors.red),
+                  Icon(
+                    Icons.error_outline,
+                    size: width * 0.12,
+                    color: Colors.red,
+                  ),
                   SizedBox(height: height * 0.02),
                   Text(
                     friendsProvider.error!,
@@ -212,7 +219,7 @@ class _FreindsPageState extends State<FreindsPage> {
                   SizedBox(height: height * 0.02),
                   ElevatedButton(
                     onPressed: () => friendsProvider.refreshFriends(),
-                    child: Text('Retry')
+                    child: Text('Retry'),
                   ),
                 ],
               ),
@@ -332,6 +339,8 @@ class _FriendsListViewState extends State<_FriendsListView> {
   late ScrollController _scrollController;
   bool isSearchOpen = false;
   double _scrollOffset = 0;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
   // Define reusable text styles
   TextStyle _getFriendNameStyle(double width) =>
@@ -363,22 +372,30 @@ class _FriendsListViewState extends State<_FriendsListView> {
     super.initState();
     _scrollController = widget.scrollController ?? ScrollController();
     _scrollController.addListener(_handleScroll);
+    _searchController.addListener(_onSearchChanged);
   }
 
   void _handleScroll() {
-    if (!mounted) return;  // Check if widget is still mounted
+    if (!mounted) return;
     setState(() {
       _scrollOffset = _scrollController.offset;
     });
   }
 
+  void _onSearchChanged() {
+    setState(() {
+      _searchQuery = _searchController.text;
+    });
+  }
+
   @override
   void dispose() {
-    _scrollController.removeListener(_handleScroll);  // Remove listener
-    // Only dispose if we created the controller
+    _scrollController.removeListener(_handleScroll);
     if (widget.scrollController == null) {
       _scrollController.dispose();
     }
+    _searchController.removeListener(_onSearchChanged);
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -389,6 +406,12 @@ class _FriendsListViewState extends State<_FriendsListView> {
     final double baseSize = width < height ? width : height;
     final double statusBarHeight = MediaQuery.of(context).padding.top;
 
+    final friendsProvider = Provider.of<FriendsProvider>(
+      context,
+      listen: false,
+    );
+    final filteredFriends = friendsProvider.filterUsers(_searchQuery);
+
     // Get the styles for this build context
     final friendNameStyle = _getFriendNameStyle(width);
     final headerTextStyle = _getHeaderStyle(width);
@@ -398,7 +421,7 @@ class _FriendsListViewState extends State<_FriendsListView> {
 
     final double buttonFontSize = width * 0.04;
     final double buttonIconSize = width * 0.05;
-    TextEditingController textController = TextEditingController();
+
     return RefreshIndicator(
       onRefresh: widget.onRefresh,
       child: CustomScrollView(
@@ -479,12 +502,15 @@ class _FriendsListViewState extends State<_FriendsListView> {
                           padding: EdgeInsets.only(left: width * 0.01),
                           child: AnimSearchBar(
                             width: isSearchOpen
-                                ? (width * 0.92 - (width * 0.04 * 2) - width * 0.02) // Adjusted width for padding
+                                ? (width * 0.92 -
+                                      (width * 0.04 * 2) -
+                                      width *
+                                          0.02) // Adjusted width for padding
                                 : width * 0.13,
-                            textController: textController,
+                            textController: _searchController,
                             onSuffixTap: () {
                               setState(() {
-                                textController.clear();
+                                _searchController.clear();
                                 isSearchOpen = false;
                               });
                             },
@@ -544,11 +570,11 @@ class _FriendsListViewState extends State<_FriendsListView> {
               BuildContext context,
               int index,
             ) {
-              final double width = MediaQuery.of(context).size.width;
+              final friend = filteredFriends[index];
               final double avatarSize = width * 0.12; // Responsive avatar size
               final double imageSize =
                   width * 0.13; // Slightly larger for the image
-      
+
               return Padding(
                 padding: EdgeInsets.symmetric(
                   horizontal: width * 0.04, // 2.5% of screen width
@@ -573,8 +599,9 @@ class _FriendsListViewState extends State<_FriendsListView> {
                         context,
                         '/friend-chat',
                         arguments: {
-                          'chatName': widget.friends[index]['username']?.toString() ?? 'Friend Chat',
-                          'chatImageUrl': widget.friends[index]['profile_picture_url'],
+                          'chatName':
+                              friend['username']?.toString() ?? 'Friend Chat',
+                          'chatImageUrl': friend['profile_picture_url'],
                         },
                       );
                     },
@@ -584,11 +611,14 @@ class _FriendsListViewState extends State<_FriendsListView> {
                         context,
                       ).colorScheme.inversePrimary.withOpacity(0.7),
                       child: ClipOval(
-                        child: (widget.friends[index]['profile_picture_url'] != null &&
-                                (widget.friends[index]['profile_picture_url'] as String).isNotEmpty &&
-                                (widget.friends[index]['profile_picture_url'] as String).startsWith('http'))
+                        child:
+                            (friend['profile_picture_url'] != null &&
+                                (friend['profile_picture_url'] as String)
+                                    .isNotEmpty &&
+                                (friend['profile_picture_url'] as String)
+                                    .startsWith('http'))
                             ? CachedNetworkImage(
-                                imageUrl: widget.friends[index]['profile_picture_url'],
+                                imageUrl: friend['profile_picture_url'],
                                 placeholder: (context, url) => CustomLoader(
                                   size: avatarSize * 0.6,
                                   isButtonLoader: true,
@@ -603,13 +633,13 @@ class _FriendsListViewState extends State<_FriendsListView> {
                       ),
                     ),
                     title: Text(
-                      widget.friends[index]['username']?.toString() ?? 'No Name',
+                      friend['username']?.toString() ?? 'No Name',
                       style: friendNameStyle,
                     ),
                   ),
                 ),
               );
-            }, childCount: widget.friends.length),
+            }, childCount: filteredFriends.length),
           ),
           SliverToBoxAdapter(
             child: Padding(

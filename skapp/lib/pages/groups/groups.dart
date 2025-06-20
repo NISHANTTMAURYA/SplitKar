@@ -319,8 +319,9 @@ class _GroupsListView extends StatefulWidget {
 class _FriendsListViewState extends State<_GroupsListView> {
   late ScrollController _scrollController;
   double _scrollOffset = 0;
-  bool isSearchOpen = false;  // State variable for search bar
-  TextEditingController textController = TextEditingController();
+  bool isSearchOpen = false;
+  final TextEditingController textController = TextEditingController();
+  String _searchQuery = '';
 
   // Define reusable text styles
   TextStyle _getFriendNameStyle(double width) =>
@@ -352,29 +353,41 @@ class _FriendsListViewState extends State<_GroupsListView> {
     super.initState();
     _scrollController = widget.scrollController ?? ScrollController();
     _scrollController.addListener(_handleScroll);
+    textController.addListener(_onSearchChanged);
   }
 
   void _handleScroll() {
-    if (!mounted) return; // Check if widget is still mounted
+    if (!mounted) return;
     setState(() {
       _scrollOffset = _scrollController.offset;
     });
   }
 
+  void _onSearchChanged() {
+    setState(() {
+      _searchQuery = textController.text;
+    });
+  }
+
   @override
   void dispose() {
-    _scrollController.removeListener(_handleScroll); // Remove listener
-    textController.dispose(); // Dispose text controller
-    // Only dispose if we created the controller
+    _scrollController.removeListener(_handleScroll);
+    textController.removeListener(_onSearchChanged);
+    textController.dispose();
     if (widget.scrollController == null) {
       _scrollController.dispose();
     }
     super.dispose();
   }
 
+  
+
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
+    final groupProvider = context.watch<GroupProvider>();
+    final filteredGroups = groupProvider.filteredGroups(_searchQuery);
+
     final double height = MediaQuery.of(context).size.height;
     final double baseSize = width < height ? width : height;
     final double statusBarHeight = MediaQuery.of(context).padding.top;
@@ -390,8 +403,10 @@ class _FriendsListViewState extends State<_GroupsListView> {
     final double buttonIconSize = width * 0.05;
 
 
-    // Get groups from provider
+    // Get groups from provider and filter them
     final groups = context.watch<GroupProvider>().groups;
+
+
     return RefreshIndicator(
       onRefresh: widget.onRefresh,
       child: CustomScrollView(
@@ -468,8 +483,8 @@ class _FriendsListViewState extends State<_GroupsListView> {
                         child: Padding(
                           padding: EdgeInsets.only(left: width * 0.01),
                           child: AnimSearchBar(
-                            width: isSearchOpen 
-                                ? (width * 0.92 - (width * 0.04 * 2) - width * 0.02) // Adjusted width for padding
+                            width: isSearchOpen
+                                ? (width * 0.92 - (width * 0.04 * 2) - width * 0.02)
                                 : width * 0.13,
                             textController: textController,
                             onSuffixTap: () {
@@ -530,8 +545,7 @@ class _FriendsListViewState extends State<_GroupsListView> {
               BuildContext context,
               int index,
             ) {
-              final group = groups[index];
-              final double width = MediaQuery.of(context).size.width;
+              final group = filteredGroups[index];
               final double avatarSize = width * 0.12;
               final double imageSize = width * 0.13;
 
@@ -598,13 +612,13 @@ class _FriendsListViewState extends State<_GroupsListView> {
                       ),
                       title: Text(
                         group['name']?.toString() ?? 'Group Name not fetched',
-                        style: groupNameStyle,
+                        style: _getFriendNameStyle(width),
                       ),
                     ),
                   ),
                 ),
               );
-            }, childCount: groups.length),
+            }, childCount: filteredGroups.length),
           ),
           SliverToBoxAdapter(
             child: Padding(

@@ -457,4 +457,15 @@ class GroupProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  /// Returns groups filtered by the current search query.
+  List<Map<String, dynamic>> filteredGroups([String? query]) {
+    final q = (query ?? _searchQuery).toLowerCase();
+    if (q.isEmpty) return _groups;
+    return _groups.where((group) {
+      final name = (group['name'] ?? '').toString().toLowerCase();
+      final code = (group['group_code'] ?? '').toString().toLowerCase();
+      return name.contains(q) || code.contains(q);
+    }).toList();
+  }
 }
