@@ -628,7 +628,7 @@ class _ThemeToggleTileState extends State<_ThemeToggleTile> {
             'Theme',
             style: TextStyle(
               fontSize: widget.screenWidth * 0.045,
-              color: isDark ? Colors.white : Colors.black,
+              color: Colors.black,
             ),
           );
         },

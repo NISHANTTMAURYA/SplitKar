@@ -12,6 +12,7 @@ import 'package:skapp/pages/settings_profile/settings_page.dart';
 import 'package:logging/logging.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:skapp/widgets/custom_loader.dart';
 import 'package:skapp/widgets/offline_banner.dart';
 import 'package:skapp/services/notification_service.dart';
 import 'package:skapp/services/navigation_service.dart';
@@ -161,13 +162,16 @@ final ValueNotifier<bool> _isThemeChanging = ValueNotifier(false);
 ValueNotifier<bool> get isThemeChanging => _isThemeChanging;
 
 // ParallelLoading function
-Future<void> parallelLoading(Future<void> Function() operation, Duration duration) async {
+Future<void> parallelLoading(
+  Future<void> Function() operation,
+  Duration duration,
+) async {
   // Start the operation
   final operationFuture = operation();
-  
+
   // Wait for the specified duration
   final timerFuture = Future.delayed(duration);
-  
+
   // Race between operation completion and timer
   await Future.any([operationFuture, timerFuture]);
 }
@@ -185,18 +189,22 @@ void toggleAppTheme() {
 // New function for theme change with loading
 Future<void> toggleAppThemeWithLoading() async {
   if (_isThemeChanging.value) return; // Prevent multiple simultaneous changes
-  
+
+  // Add delay to allow button animation to be visible
+  await Future.delayed(Duration(milliseconds: 300));
+
   _isThemeChanging.value = true;
-  
+
   try {
-    await parallelLoading(
-      () async {
-        // Simulate theme change operation
-        await Future.delayed(Duration(milliseconds: 500));
-        _isDarkMode.value = !_isDarkMode.value;
-      },
-      Duration(seconds: 3),
-    );
+    await parallelLoading(() async {
+      // Theme change happens immediately when loading starts
+      _isDarkMode.value = !_isDarkMode.value;
+
+      // Then wait for the remaining time
+      await Future.delayed(
+        Duration(milliseconds: 2700),
+      ); // 3 seconds total - 300ms delay
+    }, Duration(seconds: 3));
   } finally {
     _isThemeChanging.value = false;
   }
@@ -230,6 +238,24 @@ class MyApp extends StatelessWidget {
           ),
           themeMode: dark ? ThemeMode.dark : ThemeMode.light,
           initialRoute: '/',
+          builder: (context, child) {
+            return Stack(
+              children: [
+                child!,
+                // Global theme changing overlay
+                ValueListenableBuilder<bool>(
+                  valueListenable: isThemeChanging,
+                  builder: (context, isChanging, _) {
+                    if (!isChanging) return SizedBox.shrink();
+                    return Container(
+                      color: isDarkMode.value?Colors.black:Colors.white,
+                      child: CustomLoader(),
+                    );
+                  },
+                ),
+              ],
+            );
+          },
           onGenerateRoute: (settings) {
             switch (settings.name) {
               case '/':
