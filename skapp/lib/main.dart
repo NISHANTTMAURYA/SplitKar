@@ -260,24 +260,33 @@ class MyApp extends StatelessWidget {
                 textColor: KPureBlack,
                 iconColor: KDeepPurple400,
                 shadowColor: KDeepPurple400,
-                cardColor: KPureWhite
-
+                cardColor: KPureWhite,
+                selectedNavColor: Colors.deepPurple,
+                unselectedNavColor: Colors.grey,
               ),
             ],
           ),
           darkTheme: ThemeData.dark().copyWith(
             scaffoldBackgroundColor: Color(0xFF2A203D),
-            //221B2F little more pruple
+            //221B2F little more purple
             //2A203D
             //blue purple 1E1E2E
+            // colorScheme: ColorScheme.dark().copyWith(
+            //   inversePrimary: Colors.deepPurple[400], // Custom inversePrimary for dark mode
+            // ),
             extensions: const [
               AppColorScheme(
                 trial: Color(0xFF7C4DFF),
+                
                 textColor: KPureWhite,
                 iconColor: KPureWhite,
                 shadowColor: KDeepPurpleAccent100,
-                cardColor: KDeepPurple400
+                cardColor: KDeepPurple400,
+                selectedNavColor: KPureWhite,
+                unselectedNavColor: Color(0xFF2A203D),
+
               ),
+
             ],
           ),
           themeMode: dark ? ThemeMode.dark : ThemeMode.light,

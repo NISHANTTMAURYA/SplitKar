@@ -42,13 +42,13 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       ),
       elevation: 0,
       shadowColor: Colors.transparent,
-      backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+      backgroundColor: Theme.of(context).brightness == Brightness.light ?Theme.of(context).colorScheme.inversePrimary:Colors.deepPurple[400],
       centerTitle: true,
 
       bottom: is_bottom_needed ? PreferredSize(
         preferredSize: Size.fromHeight(1),
         child: Container(
-          color: Colors.deepPurple[400],
+          color: Theme.of(context).brightness == Brightness.light ?Colors.deepPurple[400]:Colors.deepPurpleAccent[100],
           height: 0.8,
         ),
       ) : null,
@@ -62,7 +62,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
             child: Material(
               child: Ink(
                 decoration: BoxDecoration(
-                  color: Colors.deepPurple[400],
+                  color: Theme.of(context).brightness == Brightness.light ?Colors.deepPurple[400]:Colors.deepPurpleAccent[100],
                   border: Border.all(
                     color: Colors.black,
                   ),
@@ -92,7 +92,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
               child: Material(
                 child: Ink(
                   decoration: BoxDecoration(
-                    color: Colors.deepPurple[400],
+                    color: Theme.of(context).brightness == Brightness.light ?Colors.deepPurple[400]:Colors.deepPurpleAccent[100],
                     border: Border.all(
                       color: Colors.black,
                     ),

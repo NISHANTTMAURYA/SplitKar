@@ -128,17 +128,20 @@ class _BottomNavbarState extends State<BottomNavbar>
               // Curved Bar Background
               Container(
                 height: 52,
+
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.inversePrimary.withOpacity(0.9),
+                  color: Theme.of(context).brightness == Brightness.light ?Theme.of(context).colorScheme.inversePrimary:Colors.deepPurpleAccent[100],
                   // color: Colors.deepPurple[200],
                   borderRadius: BorderRadius.circular(30),
-                  boxShadow: [
+                  boxShadow: Theme.of(context).brightness == Brightness.light
+                      ? [
                     BoxShadow(
                       color: Colors.deepPurpleAccent,
                       blurRadius: 20,
                       offset: Offset(0, 7),
                     ),
-                  ],
+                  ]
+                      : null,
                 ),
               ),
               // True Side-First Stretchy Animated Bubble
@@ -159,7 +162,7 @@ class _BottomNavbarState extends State<BottomNavbar>
                     child: Container(
                       height: 52,
                       decoration: BoxDecoration(
-                        color: Colors.deepPurple.withOpacity(0.3),
+                        color: Colors.deepPurple[400]!.withOpacity(0.6),//Colors.deepPurple.withOpacity(0.3),
                         borderRadius: BorderRadius.circular(30),
                         boxShadow: [
                           BoxShadow(
@@ -190,8 +193,8 @@ class _BottomNavbarState extends State<BottomNavbar>
                               Icon(
                                 widget.icons[index],
                                 color: widget.selectedIndex == index
-                                    ? Colors.deepPurple
-                                    : Colors.grey[700],
+                                    ? appColors.selectedNavColor
+                                    : appColors.unselectedNavColor,
                                 size: 26,
                               ),
                               if (widget.selectedIndex == index) ...[
@@ -199,7 +202,7 @@ class _BottomNavbarState extends State<BottomNavbar>
                                 Text(
                                   widget.labels[index],
                                   style: GoogleFonts.cabin(
-                                    color: Colors.deepPurple,
+                                    color: appColors.selectedNavColor,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 17,
                                   ),

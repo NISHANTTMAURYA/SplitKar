@@ -5,7 +5,7 @@ const Color kSecondaryColor = Colors.amber;
 const Color kAccentColor = Colors.green;
 const Color KPureWhite = Colors.white;
 const Color KPureBlack = Colors.black;
-const Color? KDeepPurple400 = Color(0xFF7E57C2);//deeppurle[400]
+const Color? KDeepPurple400 = Color(0xFF7E57C2);//deeppurple[400]
 const Color? KDeepPurpleAccent100 = Color(0xFFB388FF);
 // const Color? KDeep
 // To add a new color:
@@ -23,6 +23,9 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
   final Color? shadowColor;
   final Color? borderColor;
   final Color? cardColor;
+  final Color? selectedNavColor;
+  final Color? unselectedNavColor;
+  final Color? inverseColor;
 
   const AppColorScheme({
     required this.trial,
@@ -33,10 +36,25 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
     this.shadowColor,
     this.borderColor,
     this.cardColor,
+    this.selectedNavColor,
+    this.unselectedNavColor,
+    this.inverseColor,
   });
 
   @override
-  AppColorScheme copyWith({Color? trial, Color? secondary, Color? accent}) {
+  AppColorScheme copyWith({
+    Color? trial, 
+    Color? secondary, 
+    Color? accent,
+    Color? textColor,
+    Color? iconColor,
+    Color? shadowColor,
+    Color? borderColor,
+    Color? cardColor,
+    Color? selectedNavColor,
+    Color? unselectedNavColor,
+    Color? inverseColor,
+  }) {
     return AppColorScheme(
       trial: trial ?? this.trial,
       secondary: secondary ?? this.secondary,
@@ -46,6 +64,9 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
       shadowColor: shadowColor ?? this.shadowColor,
       borderColor: borderColor ?? this.borderColor,
       cardColor: cardColor ?? this.cardColor,
+      selectedNavColor: selectedNavColor ?? this.selectedNavColor,
+      unselectedNavColor: unselectedNavColor ?? this.unselectedNavColor,
+      inverseColor: inverseColor ?? this.inverseColor,
     );
   }
 
@@ -61,7 +82,9 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
       shadowColor: Color.lerp(shadowColor, other.shadowColor, t),
       borderColor: Color.lerp(borderColor, other.borderColor, t),
       cardColor: Color.lerp(cardColor, other.cardColor, t),
-
+      selectedNavColor: Color.lerp(selectedNavColor, other.selectedNavColor, t),
+      unselectedNavColor: Color.lerp(unselectedNavColor, other.unselectedNavColor, t),
+      inverseColor: Color.lerp(inverseColor, other.inverseColor, t),
     );
   }
 }
@@ -73,3 +96,13 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
 //     secondary: Colors.amber, // <-- Set your new color here
 //   ),
 // ],
+
+
+
+
+// Helper
+// color: widget.selectedIndex == index
+//                                     ? (Theme.of(context).brightness == Brightness.light 
+//                                         ? Theme.of(context).colorScheme.inversePrimary
+//                                         : appColors.selectedNavColor!)
+//                                     : appColors.unselectedNavColor,
