@@ -260,6 +260,7 @@ class MyApp extends StatelessWidget {
                 textColor: KPureBlack,
                 iconColor: KDeepPurple400,
                 shadowColor: KDeepPurple400,
+                cardColor: KPureWhite
 
               ),
             ],
@@ -269,13 +270,13 @@ class MyApp extends StatelessWidget {
             //221B2F little more pruple
             //2A203D
             //blue purple 1E1E2E
-
             extensions: const [
               AppColorScheme(
                 trial: Color(0xFF7C4DFF),
                 textColor: KPureWhite,
                 iconColor: KPureWhite,
-                shadowColor: KDeepPurpleAccent100
+                shadowColor: KDeepPurpleAccent100,
+                cardColor: KDeepPurple400
               ),
             ],
           ),

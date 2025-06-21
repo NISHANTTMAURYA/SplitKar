@@ -14,6 +14,8 @@ import 'package:skapp/pages/screens/group_chat_screen.dart';
 import 'package:skapp/pages/screens/group_chat_screen.dart';
 import 'package:skapp/components/anim_search_bar.dart';
 import 'dart:async';
+import 'package:skapp/utils/app_colors.dart';
+
 class GroupsPage extends StatefulWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
   final PageController? pageController;
@@ -92,7 +94,7 @@ class GroupsPage extends StatefulWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(width * 0.03),
         side: BorderSide(
-          color: Theme.of(context).colorScheme.inversePrimary,
+          color: Colors.white,
           width: 2,
         ),
       ),
@@ -121,7 +123,7 @@ class GroupsPage extends StatefulWidget {
                   Icon(
                     Icons.add,
                     size: iconSize,
-                    color: Theme.of(context).colorScheme.inversePrimary,
+                    color: Colors.white,
                     semanticLabel: 'Make a Group',
                   ),
                   SizedBox(width: 4),
@@ -131,7 +133,7 @@ class GroupsPage extends StatefulWidget {
                       style:
                           textStyle ??
                           TextStyle(
-                            color: Theme.of(context).colorScheme.inversePrimary,
+                            color: Colors.white,
                             fontWeight: FontWeight.w800,
                           ),
                       overflow: TextOverflow.ellipsis,
@@ -283,7 +285,7 @@ class _NoFriendsViewState extends State<_NoGroupsView> {
                   context,
                   widget.onAddFriends,
                   textStyle: TextStyle(
-                    color: Theme.of(context).colorScheme.inversePrimary,
+                    color: Colors.white,
                     fontWeight: FontWeight.w800,
                   ),
                   iconSize: width * 0.05,
@@ -324,14 +326,14 @@ class _FriendsListViewState extends State<_GroupsListView> {
   String _searchQuery = '';
 
   // Define reusable text styles
-  TextStyle _getFriendNameStyle(double width) =>
-      GoogleFonts.cabin(fontSize: width * 0.045);
+  TextStyle _getFriendNameStyle(double width, AppColorScheme appColor) =>
+      GoogleFonts.cabin(fontSize: width * 0.045, color: appColor.textColor);
 
   TextStyle _getHeaderStyle(double width) =>
       GoogleFonts.cabin(fontSize: width * 0.08, fontWeight: FontWeight.bold);
 
-  TextStyle _getGreetingStyle(double width) =>
-      GoogleFonts.cabin(fontSize: width * 0.07, fontWeight: FontWeight.w600);
+  TextStyle _getGreetingStyle(double width, AppColorScheme appColor) =>
+      GoogleFonts.cabin(fontSize: width * 0.07, fontWeight: FontWeight.w600, color: appColor.textColor);
 
   TextStyle _getFriendCountStyle(bool isBold, double width) =>
       GoogleFonts.cabin(
@@ -380,32 +382,29 @@ class _FriendsListViewState extends State<_GroupsListView> {
     super.dispose();
   }
 
-  
-
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
     final groupProvider = context.watch<GroupProvider>();
     final filteredGroups = groupProvider.filteredGroups(_searchQuery);
+    final appColors = Theme.of(context).extension<AppColorScheme>()!;
 
     final double height = MediaQuery.of(context).size.height;
     final double baseSize = width < height ? width : height;
     final double statusBarHeight = MediaQuery.of(context).padding.top;
 
     // Get the styles for this build context
-    final groupNameStyle = _getFriendNameStyle(width);
+    final groupNameStyle = _getFriendNameStyle(width, appColors);
     final headerTextStyle = _getHeaderStyle(width);
-    final greetingStyle = _getGreetingStyle(width);
+    final greetingStyle = _getGreetingStyle(width, appColors);
     final friendCountRegularStyle = _getFriendCountStyle(false, width);
     final friendCountBoldStyle = _getFriendCountStyle(true, width);
 
     final double buttonFontSize = width * 0.04;
     final double buttonIconSize = width * 0.05;
 
-
     // Get groups from provider and filter them
     final groups = context.watch<GroupProvider>().groups;
-
 
     return RefreshIndicator(
       onRefresh: widget.onRefresh,
@@ -567,7 +566,7 @@ class _FriendsListViewState extends State<_GroupsListView> {
                     vertical: width * 0.01,
                   ),
                   child: Card(
-                    color: Colors.white,
+                    color: appColors.cardColor,
                     elevation: 2,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(width * 0.04),
@@ -612,7 +611,7 @@ class _FriendsListViewState extends State<_GroupsListView> {
                       ),
                       title: Text(
                         group['name']?.toString() ?? 'Group Name not fetched',
-                        style: _getFriendNameStyle(width),
+                        style: groupNameStyle,
                       ),
                     ),
                   ),
@@ -738,7 +737,7 @@ class _FriendsHeaderDelegate extends SliverPersistentHeaderDelegate {
                       textStyle: headerTextStyle.copyWith(
                         fontSize: buttonFontSize,
                         fontWeight: FontWeight.w800,
-                        color: Theme.of(context).colorScheme.inversePrimary,
+                        color: Colors.white,
                       ),
                       iconSize: buttonIconSize,
                       width: screenWidth,
@@ -766,9 +765,6 @@ class _FriendsHeaderDelegate extends SliverPersistentHeaderDelegate {
         oldDelegate.screenHeight != screenHeight;
   }
 }
-
-
-
 
 class _ImageHeaderDelegate extends SliverPersistentHeaderDelegate {
   final double statusBarHeight;

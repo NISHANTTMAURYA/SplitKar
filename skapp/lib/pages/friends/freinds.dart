@@ -13,7 +13,7 @@ import 'package:skapp/pages/friends/add_friends_sheet.dart';
 import 'package:skapp/pages/friends/friends_provider.dart';
 import 'package:skapp/components/alerts/alert_service.dart';
 import 'package:skapp/pages/screens/friend_chat_screen.dart';
-
+import 'package:skapp/utils/app_colors.dart';
 class FreindsPage extends StatefulWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
   final PageController? pageController;
@@ -96,7 +96,7 @@ class FreindsPage extends StatefulWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-          color: Theme.of(context).colorScheme.inversePrimary,
+          color: Colors.white,//Theme.of(context).colorScheme.inversePrimary,
           width: 2,
         ),
       ),
@@ -132,7 +132,7 @@ class FreindsPage extends StatefulWidget {
                   Icon(
                     Icons.add,
                     size: iconSize,
-                    color: Theme.of(context).colorScheme.inversePrimary,
+                    color: Colors.white,//Theme.of(context).colorScheme.inversePrimary,
                     semanticLabel: 'Add Friends',
                   ),
                   SizedBox(width: 4),
@@ -140,9 +140,9 @@ class FreindsPage extends StatefulWidget {
                     child: Text(
                       'Add Friends',
                       style:
-                          textStyle ??
+
                           TextStyle(
-                            color: Theme.of(context).colorScheme.inversePrimary,
+                            color: Colors.white, //Theme.of(context).colorScheme.inversePrimary,
                             fontWeight: FontWeight.w800,
                           ),
                       overflow: TextOverflow.ellipsis,
@@ -344,6 +344,7 @@ class _FriendsListViewState extends State<_FriendsListView> {
   bool isSearchOpen = false;
   double _scrollOffset = 0;
   final TextEditingController _searchController = TextEditingController();
+
   String _searchQuery = '';
 
   // @override
@@ -355,14 +356,15 @@ class _FriendsListViewState extends State<_FriendsListView> {
   //   }
   // }
   // Define reusable text styles
-  TextStyle _getFriendNameStyle(double width) =>
-      GoogleFonts.cabin(fontSize: width * 0.045);
+  TextStyle _getFriendNameStyle(double width,AppColorScheme appColor) =>
+      GoogleFonts.cabin(fontSize: width * 0.045
+      ,color: appColor.textColor);
 
   TextStyle _getHeaderStyle(double width) =>
       GoogleFonts.cabin(fontSize: width * 0.08, fontWeight: FontWeight.bold);
 
-  TextStyle _getGreetingStyle(double width) =>
-      GoogleFonts.cabin(fontSize: width * 0.07, fontWeight: FontWeight.w600);
+  TextStyle _getGreetingStyle(double width,AppColorScheme appColor) =>
+      GoogleFonts.cabin(fontSize: width * 0.07, fontWeight: FontWeight.w600,color:appColor.textColor);
 
   TextStyle _getFriendCountStyle(bool isBold, double width) =>
       GoogleFonts.cabin(
@@ -417,7 +419,7 @@ class _FriendsListViewState extends State<_FriendsListView> {
     final double height = MediaQuery.of(context).size.height;
     final double baseSize = width < height ? width : height;
     final double statusBarHeight = MediaQuery.of(context).padding.top;
-
+    final appColors = Theme.of(context).extension<AppColorScheme>()!;
     final friendsProvider = Provider.of<FriendsProvider>(
       context,
       listen: false,
@@ -425,9 +427,9 @@ class _FriendsListViewState extends State<_FriendsListView> {
     final filteredFriends = friendsProvider.filterUsers(_searchQuery);
 
     // Get the styles for this build context
-    final friendNameStyle = _getFriendNameStyle(width);
+    final friendNameStyle = _getFriendNameStyle(width,appColors);
     final headerTextStyle = _getHeaderStyle(width);
-    final greetingStyle = _getGreetingStyle(width);
+    final greetingStyle = _getGreetingStyle(width,appColors);
     final friendCountRegularStyle = _getFriendCountStyle(false, width);
     final friendCountBoldStyle = _getFriendCountStyle(true, width);
 
@@ -593,7 +595,7 @@ class _FriendsListViewState extends State<_FriendsListView> {
                   vertical: width * 0.01, // 1.5% of screen width
                 ),
                 child: Card(
-                  color: Colors.white,
+                  color: appColors.cardColor,
                   elevation: 2,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(

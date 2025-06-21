@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-
+import 'package:skapp/utils/app_colors.dart';
 class BottomNavbar extends StatefulWidget {
   final int selectedIndex;
   final ValueChanged<int> onItemSelected;
@@ -112,6 +112,7 @@ class _BottomNavbarState extends State<BottomNavbar>
 
   @override
   Widget build(BuildContext context) {
+    final appColors = Theme.of(context).extension<AppColorScheme>()!;
     itemWidth = (MediaQuery.of(context).size.width - 40) / widget.labels.length;
     return Padding(
       padding: EdgeInsets.only(
@@ -128,9 +129,7 @@ class _BottomNavbarState extends State<BottomNavbar>
               Container(
                 height: 52,
                 decoration: BoxDecoration(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.inversePrimary.withOpacity(0.9),
+                  color: Theme.of(context).colorScheme.inversePrimary.withOpacity(0.9),
                   // color: Colors.deepPurple[200],
                   borderRadius: BorderRadius.circular(30),
                   boxShadow: [

@@ -7,6 +7,7 @@ const Color KPureWhite = Colors.white;
 const Color KPureBlack = Colors.black;
 const Color? KDeepPurple400 = Color(0xFF7E57C2);//deeppurle[400]
 const Color? KDeepPurpleAccent100 = Color(0xFFB388FF);
+// const Color? KDeep
 // To add a new color:
 // 1. Add a new final Color field (e.g., secondary)
 // 2. Update the constructor, copyWith, and lerp methods
@@ -21,6 +22,7 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
   final Color? iconColor;
   final Color? shadowColor;
   final Color? borderColor;
+  final Color? cardColor;
 
   const AppColorScheme({
     required this.trial,
@@ -30,6 +32,7 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
     this.iconColor,
     this.shadowColor,
     this.borderColor,
+    this.cardColor,
   });
 
   @override
@@ -42,6 +45,7 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
       iconColor: iconColor ?? this.iconColor,
       shadowColor: shadowColor ?? this.shadowColor,
       borderColor: borderColor ?? this.borderColor,
+      cardColor: cardColor ?? this.cardColor,
     );
   }
 
@@ -56,6 +60,8 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
       iconColor: Color.lerp(iconColor, other.iconColor, t),
       shadowColor: Color.lerp(shadowColor, other.shadowColor, t),
       borderColor: Color.lerp(borderColor, other.borderColor, t),
+      cardColor: Color.lerp(cardColor, other.cardColor, t),
+
     );
   }
 }

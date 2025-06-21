@@ -173,6 +173,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                     style: GoogleFonts.cabin(
                       fontSize: titleFontSize.clamp(28.0, 36.0), // slightly reduced for safety
                       fontWeight: FontWeight.w500,
+                      color:appColors.textColor
                     ),
                     overflow: TextOverflow.ellipsis,
                     maxLines: 1,
