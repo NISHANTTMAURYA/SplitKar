@@ -2,6 +2,7 @@ from django.db.models.signals import post_save, post_delete, pre_delete, m2m_cha
 from django.dispatch import receiver
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
+from django.db import models
 from decimal import Decimal
 from .models import (
     Expense, ExpensePayment, ExpenseShare, Settlement, 
@@ -43,6 +44,13 @@ def update_balances_on_payment(sender, instance, created, **kwargs):
         expense = instance.expense
         payer = instance.payer
         
+        # ✅ Auto-mark payer's own share as paid if they have one
+        payer_share = expense.shares.filter(user=payer).first()
+        if payer_share and payer_share.amount_paid_back < payer_share.amount_owed:
+            payer_share.amount_paid_back = payer_share.amount_owed
+            payer_share.save(update_fields=["amount_paid_back"])
+            print(f"[Auto-Paid] {payer.username}'s own share marked as paid")
+        
         # For each person who owes money on this expense
         for share in expense.shares.all():
             share_user = share.user
@@ -68,6 +76,15 @@ def reverse_balance_on_payment_delete(sender, instance, **kwargs):
     """Reverse balance changes when an expense payment is deleted"""
     expense = instance.expense
     payer = instance.payer
+    
+    # ✅ Reverse auto-payment of payer's own share if they had one
+    payer_share = expense.shares.filter(user=payer).first()
+    if payer_share and payer_share.amount_paid_back >= payer_share.amount_owed:
+        # Check if this was auto-paid (amount_paid_back equals amount_owed)
+        # and if this payment was the one that triggered the auto-payment
+        payer_share.amount_paid_back = Decimal('0')  # Reset to unpaid
+        payer_share.save(update_fields=["amount_paid_back"])
+        print(f"[Auto-Paid Reversed] {payer.username}'s own share marked as unpaid")
     
     # Reverse the balance changes
     for share in expense.shares.all():
@@ -149,14 +166,20 @@ def reverse_balance_on_settlement_delete(sender, instance, **kwargs):
 @receiver(post_save, sender=ExpenseShare)
 def update_balance_on_expense_share_change(sender, instance, created, **kwargs):
     """Update balances when expense shares are created or modified"""
+    expense = instance.expense
+    share_user = instance.user
+    
+    # ✅ If user is a payer, auto-mark their own share as paid
+    if share_user in [p.payer for p in expense.payments.all()]:
+        if instance.amount_paid_back < instance.amount_owed:
+            instance.amount_paid_back = instance.amount_owed
+            instance.save(update_fields=["amount_paid_back"])
+            print(f"[Auto-Paid] {share_user.username}'s own share marked as paid")
+    
+    # ✅ Update balances for other users
     if created:
-        expense = instance.expense
-        share_user = instance.user
-        
-        # Update balances with all payers of this expense
         for payment in expense.payments.all():
             payer = payment.payer
-            
             if payer != share_user:  # Don't create balance with yourself
                 # Calculate how much this share_user owes this payer
                 payer_contribution_ratio = payment.amount_paid / expense.total_amount
