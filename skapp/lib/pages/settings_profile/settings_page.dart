@@ -48,7 +48,7 @@ class _SettingsPageState extends State<SettingsPage> {
         key: _scaffoldKey,
         appBar: CustomAppBar(
           scaffoldKey: _scaffoldKey,
-          is_bottom_needed: true,
+          is_bottom_needed: false,
           onBackPressed: () {
             navigationService.popUntilMain();
           },
@@ -189,7 +189,7 @@ class _ProfileContent extends StatelessWidget {
               style: TextStyle(
                 fontSize: screenWidth * 0.06,
                 fontWeight: FontWeight.bold,
-                color: Colors.black,
+                color: appColors.textColor,
               ),
             ),
           ),
@@ -199,7 +199,7 @@ class _ProfileContent extends StatelessWidget {
           margin: EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
           padding: EdgeInsets.symmetric(vertical: screenHeight * 0.01),
           decoration: BoxDecoration(
-            color: appColors.trial, // Use here
+            color:Theme.of(context).colorScheme.inversePrimary, // Use here
             borderRadius: BorderRadius.circular(screenWidth * 0.045),
             boxShadow: [
               BoxShadow(
@@ -244,6 +244,8 @@ class _ProfileHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final appColors = Theme.of(context).extension<AppColorScheme>()!;
+
     return Container(
       width: screenWidth,
       padding: EdgeInsets.symmetric(vertical: screenHeight * 0.035),
@@ -291,7 +293,7 @@ class _ProfileHeader extends StatelessWidget {
             email,
             style: TextStyle(
               fontSize: screenWidth * 0.042,
-              color: Colors.grey[700],
+              color: appColors.textColor,
               fontWeight: FontWeight.w500,
             ),
             textAlign: TextAlign.center,
@@ -301,7 +303,7 @@ class _ProfileHeader extends StatelessWidget {
             '@$username',
             style: TextStyle(
               fontSize: screenWidth * 0.037,
-              color: Colors.grey[600],
+              color: appColors.textColor,
               fontWeight: FontWeight.w500,
               letterSpacing: 0.5,
             ),
@@ -418,6 +420,7 @@ class _SettingsOptionsList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final appColors = Theme.of(context).extension<AppColorScheme>()!;
     return Column(
       mainAxisSize: MainAxisSize.max,
       children: [
@@ -472,24 +475,26 @@ class _SettingsOptionsList extends StatelessWidget {
     String title,
     VoidCallback onTap, {
     bool isLogout = false,
+
   }) {
+    final appColors = Theme.of(context).extension<AppColorScheme>()!;
     return Column(
       children: [
         ListTile(
           leading: Icon(
             icon,
-            color: isLogout ? Colors.red : Colors.deepPurple[400],
+            color: isLogout ? Colors.red : appColors.iconColor,
           ),
           title: Text(
             title,
             style: TextStyle(
               fontSize: screenWidth * 0.045,
-              color: isLogout ? Colors.red : Colors.black,
+              color: isLogout ? Colors.red : appColors.textColor,
             ),
           ),
           trailing: isLogout
               ? null
-              : Icon(Icons.arrow_forward_ios, size: screenWidth * 0.04),
+              : Icon(Icons.arrow_forward_ios, size: screenWidth * 0.04,color: appColors.textColor,),
           onTap: onTap,
         ),
         Divider(height: screenHeight * 0.0015, color: Colors.grey[300]),
@@ -512,6 +517,7 @@ class _ProfilePhoto extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final appColors = Theme.of(context).extension<AppColorScheme>()!;
     final photoSize = screenWidth * 0.3; // Make photo size 30% of screen width
     return Stack(
       alignment: Alignment.center,
@@ -527,7 +533,7 @@ class _ProfilePhoto extends StatelessWidget {
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.deepPurple[400]!,
+                color: appColors.shadowColor!,// Colors.deepPurple[400]!,
                 blurRadius: 15,
                 spreadRadius: 4,
               ),
@@ -591,13 +597,14 @@ class _ThemeToggleTileState extends State<_ThemeToggleTile> {
 
   @override
   Widget build(BuildContext context) {
+    final appColors = Theme.of(context).extension<AppColorScheme>()!;
     return ListTile(
       leading: ValueListenableBuilder<bool>(
         valueListenable: isDarkMode,
         builder: (context, isDark, child) {
           return Icon(
             isDark ? Icons.dark_mode : Icons.light_mode,
-            color: Colors.deepPurple[400],
+            color: appColors.iconColor,
           );
         },
       ),
@@ -608,7 +615,7 @@ class _ThemeToggleTileState extends State<_ThemeToggleTile> {
             'Theme',
             style: TextStyle(
               fontSize: widget.screenWidth * 0.045,
-              color: Colors.black,
+              color: appColors.textColor,
             ),
           );
         },

@@ -254,12 +254,28 @@ class MyApp extends StatelessWidget {
           theme: ThemeData(
             colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
             useMaterial3: true,
-            extensions: const [AppColorScheme(trial: Colors.white)],
-          ),
-          darkTheme: ThemeData.dark().copyWith(
             extensions: const [
               AppColorScheme(
-                trial: Color(0xFF7C4DFF), // Colors.deepPurple[400]
+                trial: kTrialColor,
+                textColor: KPureBlack,
+                iconColor: KDeepPurple400,
+                shadowColor: KDeepPurple400,
+
+              ),
+            ],
+          ),
+          darkTheme: ThemeData.dark().copyWith(
+            scaffoldBackgroundColor: Color(0xFF2A203D),
+            //221B2F little more pruple
+            //2A203D
+            //blue purple 1E1E2E
+
+            extensions: const [
+              AppColorScheme(
+                trial: Color(0xFF7C4DFF),
+                textColor: KPureWhite,
+                iconColor: KPureWhite,
+                shadowColor: KDeepPurpleAccent100
               ),
             ],
           ),

@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:skapp/components/alerts/alert_service.dart';
+import 'package:skapp/utils/app_colors.dart';
 
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
@@ -23,6 +24,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
+    final appColors = Theme.of(context).extension<AppColorScheme>()!;
     final width = MediaQuery.of(context).size.width;
     final height = MediaQuery.of(context).size.height;
     final alertCount = context.watch<AlertService>().totalCount;
@@ -62,7 +64,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                 decoration: BoxDecoration(
                   color: Colors.deepPurple[400],
                   border: Border.all(
-                    color: Theme.of(context).colorScheme.primary,
+                    color: Colors.black,
                   ),
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -92,7 +94,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                   decoration: BoxDecoration(
                     color: Colors.deepPurple[400],
                     border: Border.all(
-                      color: Theme.of(context).colorScheme.primary,
+                      color: Colors.black,
                     ),
                     borderRadius: BorderRadius.circular(12),
                   ),
