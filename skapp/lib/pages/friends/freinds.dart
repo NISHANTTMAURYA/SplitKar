@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:skapp/components/anim_search_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -182,6 +184,8 @@ class _FreindsPageState extends State<FreindsPage> {
     });
   }
 
+
+
   @override
   Widget build(BuildContext context) {
     return Consumer<FriendsProvider>(
@@ -342,6 +346,14 @@ class _FriendsListViewState extends State<_FriendsListView> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
+  // @override
+  // void didChangeDependencies() {
+  //   super.didChangeDependencies();
+  //   // This will trigger a rebuild and ensure scroll controller is attached
+  //   if (_scrollController.hasClients) {
+  //     setState(() {});
+  //   }
+  // }
   // Define reusable text styles
   TextStyle _getFriendNameStyle(double width) =>
       GoogleFonts.cabin(fontSize: width * 0.045);
@@ -799,14 +811,15 @@ class _ImageHeaderDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   Widget build(
-    BuildContext context,
-    double shrinkOffset,
-    bool overlapsContent,
-  ) {
+      BuildContext context,
+      double shrinkOffset,
+      bool overlapsContent,
+      ) {
     final double visibleHeight = maxExtent - shrinkOffset;
 
     return Container(
       height: visibleHeight,
+      color: Colors.white,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
@@ -815,10 +828,7 @@ class _ImageHeaderDelegate extends SliverPersistentHeaderDelegate {
             left: 0,
             right: 0,
             height: maxExtent,
-            child: Image.asset(
-              'assets/images/freinds_scroll.jpg',
-              fit: BoxFit.cover,
-            ),
+            child: _AutoSlidingImages(height: maxExtent),
           ),
         ],
       ),
@@ -836,5 +846,107 @@ class _ImageHeaderDelegate extends SliverPersistentHeaderDelegate {
     return oldDelegate.statusBarHeight != statusBarHeight ||
         oldDelegate.scrollOffset != scrollOffset ||
         oldDelegate.screenHeight != screenHeight;
+  }
+}
+
+class _AutoSlidingImages extends StatefulWidget {
+  final double height;
+
+  const _AutoSlidingImages({required this.height});
+
+  @override
+  _AutoSlidingImagesState createState() => _AutoSlidingImagesState();
+}
+
+class _AutoSlidingImagesState extends State<_AutoSlidingImages> {
+  late PageController _pageController;
+  late Timer _timer;
+  int _currentPage = 0;
+
+  // Add your image paths here
+  final List<String> images = [
+  'assets/images/freinds_scroll.jpg',
+    'assets/images/group.png',
+    'assets/images/chai.png',
+    'assets/images/restaurant.png',
+
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController();
+    _startAutoSlide();
+  }
+
+  void _startAutoSlide() {
+    _timer = Timer.periodic(Duration(seconds: 3), (timer) {
+      if (mounted && _pageController.hasClients) {
+        _pageController.nextPage(
+          duration: Duration(milliseconds: 500),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: widget.height,
+      child: Stack(
+        children: [
+          PageView.builder(
+            controller: _pageController,
+            onPageChanged: (index) {
+              if (mounted) {
+                setState(() {
+                  _currentPage = index % images.length;
+                });
+              }
+            },
+            itemBuilder: (context, index) {
+              return Image.asset(
+                images[index % images.length],
+                fit: BoxFit.cover,
+                width: double.infinity,
+                height: widget.height,
+              );
+            },
+          ),
+          // Page indicators
+          Positioned(
+            bottom: 20,
+            left: 0,
+            right: 0,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(
+                images.length,
+                    (index) => AnimatedContainer(
+                  duration: Duration(milliseconds: 300),
+                  margin: EdgeInsets.symmetric(horizontal: 4),
+                  width: _currentPage == index ? 12 : 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(4),
+                    color: _currentPage == index
+                        ? Colors.black87
+                        : Colors.black54,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
