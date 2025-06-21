@@ -18,7 +18,7 @@ class AppConfig {
       'https://edd3-2405-201-27-518b-5477-e6bb-9995-49d3.ngrok-free.app/api';
 
   // Environment flags
-  static const bool useEmulator = false; // Android Emulator
+  static const bool useEmulator = true; // Android Emulator
   static const bool useNgrok = false; // Ngrok Tunnel
 
   // Select the correct base URL based on flags

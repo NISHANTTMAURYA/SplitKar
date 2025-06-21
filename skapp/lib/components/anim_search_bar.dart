@@ -319,10 +319,12 @@ class _AnimSearchBarState extends State<AnimSearchBar>
                   size: 20.0,
                 ),
                 onPressed: () {
+                  widget.textController.clear();
                   setState(
                         () {
                       ///if the search bar is closed
                       if (toggle == 0) {
+
                         toggle = 1;
                         setState(() {
                           widget.onToggle?.call(true);

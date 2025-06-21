@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:skapp/components/auth_wrapper.dart';
 import 'package:skapp/pages/main_page.dart';
 import 'package:skapp/pages/screens/group_chat_screen.dart';
@@ -19,7 +20,8 @@ import 'package:skapp/services/navigation_service.dart';
 import 'package:skapp/components/alerts/alert_service.dart';
 import 'package:skapp/pages/friends/friends_provider.dart';
 import 'package:skapp/pages/groups/group_provider.dart';
-
+import 'package:skapp/services/auth_service.dart';
+import 'package:skapp/utils/app_colors.dart';
 class ProfileNotifier extends ChangeNotifier {
   final _logger = Logger('ProfileNotifier');
   String? _name;
@@ -105,9 +107,12 @@ class ProfileNotifier extends ChangeNotifier {
   }
 }
 
-void main() {
+void main() async {
   // Initialize Flutter bindings first
   WidgetsFlutterBinding.ensureInitialized();
+  final AuthService auth = AuthService();
+  dynamic userId = await auth.getUserId();
+  await loadThemePref(userId);
 
   // Now we can safely set system UI mode
   if (Platform.isAndroid || Platform.isIOS) {
@@ -186,8 +191,18 @@ void toggleAppTheme() {
   _isDarkMode.value = !_isDarkMode.value;
 }
 
+Future<void> loadThemePref(dynamic userID) async {
+  final prefs = await SharedPreferences.getInstance();
+  final isDark = prefs.getBool('themepref_$userID') ?? false;
+  print('loaded thempref for ${userID}');
+  _isDarkMode.value = isDark;
+}
+
 // New function for theme change with loading
 Future<void> toggleAppThemeWithLoading() async {
+  final prefs = await SharedPreferences.getInstance();
+  final AuthService auth = AuthService();
+  dynamic userId = await auth.getUserId();
   if (_isThemeChanging.value) return; // Prevent multiple simultaneous changes
 
   // Add delay to allow button animation to be visible
@@ -199,6 +214,13 @@ Future<void> toggleAppThemeWithLoading() async {
     await parallelLoading(() async {
       // Theme change happens immediately when loading starts
       _isDarkMode.value = !_isDarkMode.value;
+      try {
+        await prefs.setBool('themepref_$userId', _isDarkMode.value);
+        print('saved themepref to shared pref for user ${userId}');
+      } catch (e) {
+        print('saving to shared pref failed');
+        print(e);
+      }
 
       // Then wait for the remaining time
       await Future.delayed(
@@ -224,17 +246,22 @@ class MyApp extends StatelessWidget {
 
     return ValueListenableBuilder(
       valueListenable: isDarkMode,
-
       builder: (context, dark, _) {
         return MaterialApp(
           navigatorKey: navigationService.navigatorKey,
           debugShowCheckedModeBanner: false,
-
-          darkTheme: ThemeData.dark(),
           title: 'SplitKar',
           theme: ThemeData(
             colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
             useMaterial3: true,
+            extensions: const [AppColorScheme(trial: Colors.white)],
+          ),
+          darkTheme: ThemeData.dark().copyWith(
+            extensions: const [
+              AppColorScheme(
+                trial: Color(0xFF7C4DFF), // Colors.deepPurple[400]
+              ),
+            ],
           ),
           themeMode: dark ? ThemeMode.dark : ThemeMode.light,
           initialRoute: '/',
@@ -248,7 +275,7 @@ class MyApp extends StatelessWidget {
                   builder: (context, isChanging, _) {
                     if (!isChanging) return SizedBox.shrink();
                     return Container(
-                      color: isDarkMode.value?Colors.black:Colors.white,
+                      color: isDarkMode.value ? Colors.black : Colors.white,
                       child: CustomLoader(),
                     );
                   },

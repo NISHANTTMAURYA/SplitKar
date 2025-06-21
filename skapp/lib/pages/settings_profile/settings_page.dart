@@ -14,6 +14,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 
 import '../../components/cuteTheme.dart';
+import 'package:skapp/utils/app_colors.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -31,13 +32,15 @@ class _SettingsPageState extends State<SettingsPage> {
     Icons.local_activity,
   ];
 
-
   @override
   Widget build(BuildContext context) {
     final ScreenHeight = MediaQuery.of(context).size.height;
     final ScreenWidth = MediaQuery.of(context).size.width;
     final profile = Provider.of<ProfileNotifier>(context);
-    final navigationService = Provider.of<NavigationService>(context, listen: false);
+    final navigationService = Provider.of<NavigationService>(
+      context,
+      listen: false,
+    );
 
     // Show loader if profile data is loading
     if (profile.isLoading) {
@@ -87,7 +90,11 @@ class _SettingsPageState extends State<SettingsPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.error_outline, size: ScreenWidth * 0.12, color: Colors.red),
+              Icon(
+                Icons.error_outline,
+                size: ScreenWidth * 0.12,
+                color: Colors.red,
+              ),
               SizedBox(height: ScreenHeight * 0.02),
               Text(
                 profile.error!,
@@ -151,9 +158,11 @@ class _ProfileContent extends StatelessWidget {
     required this.screenHeight,
   });
 
-
   @override
   Widget build(BuildContext context) {
+    // Assign once here
+    final appColors = Theme.of(context).extension<AppColorScheme>()!;
+
     return ListView(
       physics: AlwaysScrollableScrollPhysics(),
       children: [
@@ -168,7 +177,11 @@ class _ProfileContent extends StatelessWidget {
         ),
         SizedBox(height: screenHeight * 0.01),
         Padding(
-          padding: EdgeInsets.only(left: screenWidth * 0.07, top: screenHeight * 0.01, right: screenWidth * 0.07),
+          padding: EdgeInsets.only(
+            left: screenWidth * 0.07,
+            top: screenHeight * 0.01,
+            right: screenWidth * 0.07,
+          ),
           child: Align(
             alignment: Alignment.center,
             child: Text(
@@ -186,7 +199,7 @@ class _ProfileContent extends StatelessWidget {
           margin: EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
           padding: EdgeInsets.symmetric(vertical: screenHeight * 0.01),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: appColors.trial, // Use here
             borderRadius: BorderRadius.circular(screenWidth * 0.045),
             boxShadow: [
               BoxShadow(
@@ -244,7 +257,9 @@ class _ProfileHeader extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          if (photoUrl != null && photoUrl!.isNotEmpty && photoUrl!.startsWith('http')) ...[
+          if (photoUrl != null &&
+              photoUrl!.isNotEmpty &&
+              photoUrl!.startsWith('http')) ...[
             _ProfilePhoto(
               photoUrl: photoUrl!,
               screenWidth: screenWidth,
@@ -325,9 +340,7 @@ class _ProfileHeader extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: Colors.deepPurple[50],
                   borderRadius: BorderRadius.circular(screenWidth * 0.02),
-                  border: Border.all(
-                    color: Colors.deepPurple[200]!,
-                  ),
+                  border: Border.all(color: Colors.deepPurple[200]!),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -391,7 +404,10 @@ class _SettingsOptionsList extends StatelessWidget {
           const begin = Offset(1.0, 0.0);
           const end = Offset.zero;
           const curve = Curves.easeInOut;
-          var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+          var tween = Tween(
+            begin: begin,
+            end: end,
+          ).chain(CurveTween(curve: curve));
           var offsetAnimation = animation.drive(tween);
           return SlideTransition(position: offsetAnimation, child: child);
         },
@@ -400,16 +416,12 @@ class _SettingsOptionsList extends StatelessWidget {
     );
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Column(
       mainAxisSize: MainAxisSize.max,
       children: [
-        _ThemeToggleTile(
-          screenWidth: screenWidth,
-          screenHeight: screenHeight,
-        ),
+        _ThemeToggleTile(screenWidth: screenWidth, screenHeight: screenHeight),
         Divider(height: screenHeight * 0.0015, color: Colors.grey[300]),
 
         ListView(
@@ -420,70 +432,34 @@ class _SettingsOptionsList extends StatelessWidget {
             vertical: screenHeight * 0.01,
           ),
           children: [
-            _buildOptionTile(
-              context,
-              Icons.edit,
-              'Edit Profile Name',
-              () {
-                _logger.info('Navigating to Edit Profile page');
-                _navigateWithAnimation(context, EditProfilePage());
-              },
-            ),
-            _buildOptionTile(
-              context,
-              Icons.list_alt,
-              'List project',
-              () {
-                _logger.info('List project option pressed');
-                // TODO: Implement list project functionality
-              },
-            ),
-            _buildOptionTile(
-              context,
-              Icons.lock,
-              'Change Password',
-              () {
-                _logger.info('Change Password option pressed');
-                // TODO: Implement change password functionality
-              },
-            ),
-            _buildOptionTile(
-              context,
-              Icons.email,
-              'Change Email Address',
-              () {
-                _logger.info('Change Email Address option pressed');
-                // TODO: Implement change email functionality
-              },
-            ),
-            _buildOptionTile(
-              context,
-              Icons.settings,
-              'Settings',
-              () {
-                _logger.info('Settings option pressed');
-                // TODO: Implement settings functionality
-              },
-            ),
-            _buildOptionTile(
-              context,
-              Icons.tune,
-              'Preferences',
-              () {
-                _logger.info('Preferences option pressed');
-                // TODO: Implement preferences functionality
-              },
-            ),
-            _buildOptionTile(
-              context,
-              Icons.logout,
-              'Logout',
-              () {
-                _logger.info('Logout option pressed');
-                onLogout();
-              },
-              isLogout: true,
-            ),
+            _buildOptionTile(context, Icons.edit, 'Edit Profile Name', () {
+              _logger.info('Navigating to Edit Profile page');
+              _navigateWithAnimation(context, EditProfilePage());
+            }),
+            _buildOptionTile(context, Icons.list_alt, 'List project', () {
+              _logger.info('List project option pressed');
+              // TODO: Implement list project functionality
+            }),
+            _buildOptionTile(context, Icons.lock, 'Change Password', () {
+              _logger.info('Change Password option pressed');
+              // TODO: Implement change password functionality
+            }),
+            _buildOptionTile(context, Icons.email, 'Change Email Address', () {
+              _logger.info('Change Email Address option pressed');
+              // TODO: Implement change email functionality
+            }),
+            _buildOptionTile(context, Icons.settings, 'Settings', () {
+              _logger.info('Settings option pressed');
+              // TODO: Implement settings functionality
+            }),
+            _buildOptionTile(context, Icons.tune, 'Preferences', () {
+              _logger.info('Preferences option pressed');
+              // TODO: Implement preferences functionality
+            }),
+            _buildOptionTile(context, Icons.logout, 'Logout', () {
+              _logger.info('Logout option pressed');
+              onLogout();
+            }, isLogout: true),
           ],
         ),
       ],
@@ -494,14 +470,16 @@ class _SettingsOptionsList extends StatelessWidget {
     BuildContext context,
     IconData icon,
     String title,
-    VoidCallback onTap,
-    {bool isLogout = false,
-    }
-  ) {
+    VoidCallback onTap, {
+    bool isLogout = false,
+  }) {
     return Column(
       children: [
         ListTile(
-          leading: Icon(icon, color: isLogout ? Colors.red : Colors.deepPurple[400]),
+          leading: Icon(
+            icon,
+            color: isLogout ? Colors.red : Colors.deepPurple[400],
+          ),
           title: Text(
             title,
             style: TextStyle(
@@ -509,7 +487,9 @@ class _SettingsOptionsList extends StatelessWidget {
               color: isLogout ? Colors.red : Colors.black,
             ),
           ),
-          trailing: isLogout ? null : Icon(Icons.arrow_forward_ios, size: screenWidth * 0.04),
+          trailing: isLogout
+              ? null
+              : Icon(Icons.arrow_forward_ios, size: screenWidth * 0.04),
           onTap: onTap,
         ),
         Divider(height: screenHeight * 0.0015, color: Colors.grey[300]),
@@ -617,7 +597,7 @@ class _ThemeToggleTileState extends State<_ThemeToggleTile> {
         builder: (context, isDark, child) {
           return Icon(
             isDark ? Icons.dark_mode : Icons.light_mode,
-            color: Colors.deepPurple[400]
+            color: Colors.deepPurple[400],
           );
         },
       ),
