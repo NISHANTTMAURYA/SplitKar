@@ -87,16 +87,19 @@ class FreindsPage extends StatefulWidget {
   static Widget addFriendsButton(
     BuildContext context,
     VoidCallback onAddFriends, {
+      required bool Nolist,
     TextStyle? textStyle,
     double? iconSize,
     double? width,
+
   }) {
+    final appColor = Theme.of(context).extension<AppColorScheme>()!;
     return Material(
       color: Colors.transparent,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-          color: Colors.white,//Theme.of(context).colorScheme.inversePrimary,
+          color: Theme.of(context).brightness == Brightness.light ? Nolist ?Colors.black54:Colors.white:Colors.white,//Theme.of(context).colorScheme.inversePrimary,
           width: 2,
         ),
       ),
@@ -132,7 +135,7 @@ class FreindsPage extends StatefulWidget {
                   Icon(
                     Icons.add,
                     size: iconSize,
-                    color: Colors.white,//Theme.of(context).colorScheme.inversePrimary,
+                    color: Theme.of(context).brightness == Brightness.light ?Nolist?Colors.black54:Colors.white:Colors.white,//Theme.of(context).colorScheme.inversePrimary,
                     semanticLabel: 'Add Friends',
                   ),
                   SizedBox(width: 4),
@@ -142,7 +145,7 @@ class FreindsPage extends StatefulWidget {
                       style:
 
                           TextStyle(
-                            color: Colors.white, //Theme.of(context).colorScheme.inversePrimary,
+                            color: Theme.of(context).brightness == Brightness.light ?Nolist?Colors.black54:Colors.white:Colors.white, //Theme.of(context).colorScheme.inversePrimary,
                             fontWeight: FontWeight.w800,
                           ),
                       overflow: TextOverflow.ellipsis,
@@ -268,6 +271,7 @@ class _NoFriendsViewState extends State<_NoFriendsView> {
 
   @override
   Widget build(BuildContext context) {
+    final appColor = Theme.of(context).extension<AppColorScheme>()!;
     final width = MediaQuery.of(context).size.width;
     return SingleChildScrollView(
       padding: EdgeInsets.only(
@@ -279,7 +283,7 @@ class _NoFriendsViewState extends State<_NoFriendsView> {
         children: [
           Container(
             width: double.infinity,
-            decoration: BoxDecoration(color: Colors.deepPurple[400]),
+            decoration: BoxDecoration(color: appColor.cardColor2),
             padding: EdgeInsets.symmetric(
               horizontal: width * 0.04, // Responsive padding
               vertical: width * 0.03,
@@ -309,7 +313,7 @@ class _NoFriendsViewState extends State<_NoFriendsView> {
                 SizedBox(height: width * 0.05),
                 FreindsPage.friendsText(context),
                 SizedBox(height: width * 0.04),
-                FreindsPage.addFriendsButton(context, widget.onAddFriends),
+                FreindsPage.addFriendsButton(context, widget.onAddFriends,Nolist: true),
                 SizedBox(height: width * 0.05),
               ],
             ),
@@ -515,6 +519,7 @@ class _FriendsListViewState extends State<_FriendsListView> {
                         child: Padding(
                           padding: EdgeInsets.only(left: width * 0.01),
                           child: AnimSearchBar(
+
                             width: isSearchOpen
                                 ? (width * 0.92 -
                                       (width * 0.04 * 2) -
@@ -603,52 +608,56 @@ class _FriendsListViewState extends State<_FriendsListView> {
                     ), // Responsive border radius
                   ),
                   margin: EdgeInsets.symmetric(vertical: width * 0.01),
-                  child: ListTile(
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: width * 0.03,
-                      vertical: width * 0.015,
-                    ),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(width * 0.04),
                     onTap: () {
                       Navigator.pushNamed(
                         context,
                         '/friend-chat',
                         arguments: {
                           'chatName':
-                              friend['username']?.toString() ?? 'Friend Chat',
+                          friend['username']?.toString() ?? 'Friend Chat',
                           'chatImageUrl': friend['profile_picture_url'],
                         },
                       );
                     },
-                    leading: CircleAvatar(
-                      radius: avatarSize / 2.2,
-                      backgroundColor: Theme.of(context).brightness == Brightness.light ?
-                      Theme.of(context).colorScheme.inversePrimary.withOpacity(0.7):
-                      Theme.of(context).colorScheme.primary.withOpacity(0.7),
-                      child: ClipOval(
-                        child:
-                            (friend['profile_picture_url'] != null &&
-                                (friend['profile_picture_url'] as String)
-                                    .isNotEmpty &&
-                                (friend['profile_picture_url'] as String)
-                                    .startsWith('http'))
-                            ? CachedNetworkImage(
-                                imageUrl: friend['profile_picture_url'],
-                                placeholder: (context, url) => CustomLoader(
-                                  size: avatarSize * 0.6,
-                                  isButtonLoader: true,
-                                ),
-                                errorWidget: (context, url, error) =>
-                                    Icon(Icons.person, size: avatarSize * 0.6),
-                                width: imageSize,
-                                height: imageSize,
-                                fit: BoxFit.cover,
-                              )
-                            : Icon(Icons.person, size: avatarSize * 0.6),
+                    child: ListTile(
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: width * 0.03,
+                        vertical: width * 0.015,
                       ),
-                    ),
-                    title: Text(
-                      friend['username']?.toString() ?? 'No Name',
-                      style: friendNameStyle,
+
+                      leading: CircleAvatar(
+                        radius: avatarSize / 2.2,
+                        backgroundColor: Theme.of(context).brightness == Brightness.light ?
+                        Theme.of(context).colorScheme.inversePrimary.withOpacity(0.7):
+                        Theme.of(context).colorScheme.primary.withOpacity(0.7),
+                        child: ClipOval(
+                          child:
+                              (friend['profile_picture_url'] != null &&
+                                  (friend['profile_picture_url'] as String)
+                                      .isNotEmpty &&
+                                  (friend['profile_picture_url'] as String)
+                                      .startsWith('http'))
+                              ? CachedNetworkImage(
+                                  imageUrl: friend['profile_picture_url'],
+                                  placeholder: (context, url) => CustomLoader(
+                                    size: avatarSize * 0.6,
+                                    isButtonLoader: true,
+                                  ),
+                                  errorWidget: (context, url, error) =>
+                                      Icon(Icons.person, size: avatarSize * 0.6),
+                                  width: imageSize,
+                                  height: imageSize,
+                                  fit: BoxFit.cover,
+                                )
+                              : Icon(Icons.person, size: avatarSize * 0.6),
+                        ),
+                      ),
+                      title: Text(
+                        friend['username']?.toString() ?? 'No Name',
+                        style: friendNameStyle,
+                      ),
                     ),
                   ),
                 ),
@@ -769,6 +778,7 @@ class _FriendsHeaderDelegate extends SliverPersistentHeaderDelegate {
                     child: FreindsPage.addFriendsButton(
                       context,
                       () {},
+                      Nolist: false,
                       textStyle: headerTextStyle.copyWith(
                         fontSize: buttonFontSize,
                         fontWeight: FontWeight.w800,
@@ -776,6 +786,7 @@ class _FriendsHeaderDelegate extends SliverPersistentHeaderDelegate {
                       ),
                       iconSize: buttonIconSize,
                       width: screenWidth,
+
                     ),
                   ),
                 ],

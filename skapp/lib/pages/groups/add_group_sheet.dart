@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'package:skapp/widgets/custom_loader.dart';
 import 'package:skapp/components/alerts/alert_service.dart';
 
+import '../../utils/app_colors.dart';
 import '../../widgets/bottom_sheet_wrapper.dart';
 import 'group_provider.dart';
 
@@ -135,10 +136,13 @@ class _AddFriendsSheetState extends State<AddFriendsSheet> {
     final isSelected = provider.selectedUsers.contains(profileCode);
     final isFriend = user['is_friend'] ?? false;
     final friendRequestStatus = user['friend_request_status'] ?? 'none';
-
+    final appColor = Theme.of(context).extension<AppColorScheme>()!;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 8.0),
       child: Card(
+        color:Theme.of(context).brightness == Brightness.light
+            ? null
+            : ColorMoredarkerThanScaffold,
         elevation: 2,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: ListTile(

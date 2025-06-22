@@ -248,8 +248,10 @@ class _RegisterPageState extends State<RegisterPage>
                                     ),
                                     SizedBox(height: 16), // Reduced from 20
                                     ElevatedButton(
+
                                       onPressed: isLoading ? null : _handleRegister,
                                       style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.white,
                                         padding: EdgeInsets.symmetric(vertical: 14),
                                         shape: RoundedRectangleBorder(
                                           borderRadius: BorderRadius.circular(12),

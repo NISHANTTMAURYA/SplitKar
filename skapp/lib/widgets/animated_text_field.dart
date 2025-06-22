@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:skapp/utils/app_colors.dart';
 
 class AnimatedTextField extends StatelessWidget {
   final TextEditingController controller;
@@ -28,7 +29,7 @@ class AnimatedTextField extends StatelessWidget {
   Widget build(BuildContext context) {
     final isFocused = focusNode.hasFocus;
     final hasText = controller.text.isNotEmpty;
-
+    final appColor = Theme.of(context).extension<AppColorScheme>()!;
     return AnimatedContainer(
       duration: Duration(milliseconds: 400),
       curve: Curves.easeOutCubic,
@@ -61,7 +62,7 @@ class AnimatedTextField extends StatelessWidget {
             child: Icon(
               prefixIcon,
               key: ValueKey<bool>(isFocused),
-              color: Colors.black,
+              color: backgroundColordarkmode,
             ),
           ),
           suffixIcon: isPassword
@@ -75,7 +76,7 @@ class AnimatedTextField extends StatelessWidget {
                     key: ValueKey<bool>(isFocused),
                     icon: Icon(
                       obscureText ? Icons.visibility : Icons.visibility_off,
-                      color: Colors.black,
+                      color: backgroundColordarkmode,
                     ),
                     onPressed: onTogglePassword,
                   ),

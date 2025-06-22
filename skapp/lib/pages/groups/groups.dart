@@ -85,6 +85,7 @@ class GroupsPage extends StatefulWidget {
   static Widget addGroupsButton(
     BuildContext context,
     VoidCallback onAddFriends, {
+      required bool Nolist,
     TextStyle? textStyle,
     double? iconSize,
     required double width,
@@ -94,7 +95,7 @@ class GroupsPage extends StatefulWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(width * 0.03),
         side: BorderSide(
-          color: Colors.white,
+          color: Theme.of(context).brightness == Brightness.light ?Nolist?Colors.black54:Colors.white:Colors.white,
           width: 2,
         ),
       ),
@@ -123,7 +124,7 @@ class GroupsPage extends StatefulWidget {
                   Icon(
                     Icons.add,
                     size: iconSize,
-                    color: Colors.white,
+                    color: Theme.of(context).brightness == Brightness.light ?Nolist?Colors.black54:Colors.white:Colors.white,
                     semanticLabel: 'Make a Group',
                   ),
                   SizedBox(width: 4),
@@ -131,9 +132,8 @@ class GroupsPage extends StatefulWidget {
                     child: Text(
                       'Make a Group',
                       style:
-                          textStyle ??
                           TextStyle(
-                            color: Colors.white,
+                            color: Theme.of(context).brightness == Brightness.light ?Nolist?Colors.black54:Colors.white:Colors.white,
                             fontWeight: FontWeight.w800,
                           ),
                       overflow: TextOverflow.ellipsis,
@@ -243,6 +243,7 @@ class _NoFriendsViewState extends State<_NoGroupsView> {
 
   @override
   Widget build(BuildContext context) {
+    final appColor = Theme.of(context).extension<AppColorScheme>()!;
     final width = MediaQuery.of(context).size.width;
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
@@ -251,7 +252,7 @@ class _NoFriendsViewState extends State<_NoGroupsView> {
         children: [
           Container(
             width: double.infinity,
-            decoration: BoxDecoration(color: Colors.deepPurple[400]),
+            decoration: BoxDecoration(color: appColor.cardColor2),
             padding: EdgeInsets.symmetric(
               horizontal: width * 0.04, // Responsive padding
               vertical: width * 0.03,
@@ -283,6 +284,7 @@ class _NoFriendsViewState extends State<_NoGroupsView> {
                 SizedBox(height: width * 0.04),
                 GroupsPage.addGroupsButton(
                   context,
+                  Nolist: true,
                   widget.onAddFriends,
                   textStyle: TextStyle(
                     color: Colors.white,
@@ -548,30 +550,31 @@ class _FriendsListViewState extends State<_GroupsListView> {
               final double avatarSize = width * 0.12;
               final double imageSize = width * 0.13;
 
-              return GestureDetector(
-                onTap: () {
-                  Navigator.pushNamed(
-                    context,
-                    '/group-chat',
-                    arguments: {
-                      'chatName': group['name']?.toString() ?? 'Group Chat',
-                      'chatImageUrl': group['profile_picture_url'],
-                      'groupId': group['id'],
-                    },
-                  );
-                },
-                child: Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: width * 0.04,
-                    vertical: width * 0.01,
+              return Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: width * 0.04,
+                  vertical: width * 0.01,
+                ),
+                child: Card(
+                  color: appColors.cardColor,
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(width * 0.04),
                   ),
-                  child: Card(
-                    color: appColors.cardColor,
-                    elevation: 2,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(width * 0.04),
-                    ),
-                    margin: EdgeInsets.symmetric(vertical: width * 0.01),
+                  margin: EdgeInsets.symmetric(vertical: width * 0.01),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(width * 0.04),
+                    onTap: () {
+                      Navigator.pushNamed(
+                        context,
+                        '/group-chat',
+                        arguments: {
+                          'chatName': group['name']?.toString() ?? 'Group Chat',
+                          'chatImageUrl': group['profile_picture_url'],
+                          'groupId': group['id'],
+                        },
+                      );
+                    },
                     child: ListTile(
                       contentPadding: EdgeInsets.symmetric(
                         horizontal: width * 0.03,
@@ -737,6 +740,7 @@ class _FriendsHeaderDelegate extends SliverPersistentHeaderDelegate {
                     child: GroupsPage.addGroupsButton(
                       context,
                       () {},
+                      Nolist: false,
                       textStyle: headerTextStyle.copyWith(
                         fontSize: buttonFontSize,
                         fontWeight: FontWeight.w800,

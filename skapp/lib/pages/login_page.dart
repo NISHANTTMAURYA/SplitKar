@@ -8,7 +8,7 @@ import 'package:skapp/widgets/custom_loader.dart';
 import 'package:flutter/services.dart';
 import 'package:skapp/services/navigation_service.dart';
 import 'package:provider/provider.dart';
-
+import 'package:skapp/utils/app_colors.dart';
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -191,12 +191,17 @@ class _LoginPageState extends State<LoginPage>
                                 ),
                                 SizedBox(height: 20),
                                 ElevatedButton(
+
+
                                   onPressed: isLoading ? null : _handleLogin,
                                   style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.white,
+
                                     padding: EdgeInsets.symmetric(vertical: 14),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(12),
                                     ),
+
                                   ),
                                   child: isLoading
                                       ? CustomLoader(isButtonLoader: true)

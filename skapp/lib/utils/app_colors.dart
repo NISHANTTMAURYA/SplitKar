@@ -8,6 +8,7 @@ const Color KPureBlack = Colors.black;
 const Color? KDeepPurple400 = Color(0xFF7E57C2);//deeppurple[400]
 const Color? KDeepPurpleAccent100 = Color(0xFFB388FF);
 const Color? ColorMoredarkerThanScaffold = Color(0xFF6A4795);
+const Color? backgroundColordarkmode = Color(0xFF2A203D);
 
 // const Color? KDeep
 // To add a new color:
@@ -20,7 +21,7 @@ const Color? ColorMoredarkerThanScaffold = Color(0xFF6A4795);
 
 @immutable
 class AppColorScheme extends ThemeExtension<AppColorScheme> {
-
+  final Color? backgroundColor;
   final Color? secondary;
   final Color? accent;
   final Color? textColor;
@@ -35,7 +36,7 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
   final Color? appBarColor;
 
   const AppColorScheme({
-
+    this.backgroundColor,
     this.secondary,
     this.accent,
     this.textColor,
@@ -52,6 +53,7 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
 
   @override
   AppColorScheme copyWith({
+    Color? backgroundColor,
     Color? trial, 
     Color? secondary, 
     Color? accent,
@@ -67,7 +69,7 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
     Color? appBarColor,
   }) {
     return AppColorScheme(
-
+      backgroundColor: backgroundColor??this.backgroundColor,
       secondary: secondary ?? this.secondary,
       accent: accent ?? this.accent,
       textColor: textColor ?? this.textColor,
@@ -87,7 +89,7 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
   AppColorScheme lerp(ThemeExtension<AppColorScheme>? other, double t) {
     if (other is! AppColorScheme) return this;
     return AppColorScheme(
-
+      backgroundColor: Color.lerp(backgroundColor, other.backgroundColor, t),
       secondary: Color.lerp(secondary, other.secondary, t),
       accent: Color.lerp(accent, other.accent, t),
       textColor: Color.lerp(textColor, other.textColor, t),

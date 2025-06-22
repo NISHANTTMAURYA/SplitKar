@@ -7,7 +7,7 @@ import '../../components/alerts/alert_service.dart';
 import 'friend_request_status.dart';
 import '../../widgets/bottom_sheet_wrapper.dart';
 import 'friends_provider.dart';
-
+import 'package:skapp/utils/app_colors.dart';
 class AddFriendsSheet extends StatefulWidget {
   // Allow both private and public construction
   const AddFriendsSheet({super.key});
@@ -39,6 +39,7 @@ class _AddFriendsSheetState extends State<AddFriendsSheet> {
   }
 
   Widget _buildSearchField() {
+
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -102,7 +103,7 @@ class _AddFriendsSheetState extends State<AddFriendsSheet> {
     final requestStatus = FriendRequestStatus.fromString(user['friend_request_status'] as String?);
 
     Widget trailingWidget;
-    
+    final appColor = Theme.of(context).extension<AppColorScheme>()!;
     if (requestStatus.isSent || isPending) {
       trailingWidget = TextButton.icon(
         icon: const Icon(Icons.hourglass_empty),
@@ -134,9 +135,13 @@ class _AddFriendsSheetState extends State<AddFriendsSheet> {
       );
     }
 
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 8.0),
       child: Card(
+        color:Theme.of(context).brightness == Brightness.light
+            ? null
+            : ColorMoredarkerThanScaffold,
         elevation: 2,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),

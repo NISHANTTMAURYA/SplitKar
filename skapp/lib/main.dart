@@ -195,7 +195,7 @@ void toggleAppTheme() {
 
 Future<void> loadThemePref(dynamic userID) async {
   final prefs = await SharedPreferences.getInstance();
-  final isDark = prefs.getBool('themepref_$userID') ?? false;
+  final isDark = prefs.getBool('themepref_$userID') ?? true;
   print('loaded thempref for ${userID}');
   _isDarkMode.value = isDark;
 }
@@ -288,7 +288,7 @@ class MyApp extends StatelessWidget {
                 iconColor: KPureWhite,
                 shadowColor: KDeepPurpleAccent100,
                 cardColor: KDeepPurple400,
-                selectedNavColor: KPureWhite,
+                selectedNavColor: KDeepPurpleAccent100,
                 unselectedNavColor: Color(0xFF2A203D),
                 cardColor2: ColorMoredarkerThanScaffold
 
@@ -309,7 +309,7 @@ class MyApp extends StatelessWidget {
                   builder: (context, isChanging, _) {
                     if (!isChanging) return SizedBox.shrink();
                     return Container(
-                      color: isDarkMode.value ? Colors.black : Colors.white,
+                      color: isDarkMode.value ? Color(0xFF2A203D) : Colors.white,
                       child: CustomLoader(),
                     );
                   },

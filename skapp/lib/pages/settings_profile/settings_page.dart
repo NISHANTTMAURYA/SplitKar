@@ -200,7 +200,7 @@ class _ProfileContent extends StatelessWidget {
           margin: EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
           padding: EdgeInsets.symmetric(vertical: screenHeight * 0.01),
           decoration: BoxDecoration(
-            color:Theme.of(context).colorScheme.inversePrimary, // Use here
+            color: Theme.of(context).colorScheme.inversePrimary, // Use here
             borderRadius: BorderRadius.circular(screenWidth * 0.045),
             boxShadow: [
               BoxShadow(
@@ -219,12 +219,12 @@ class _ProfileContent extends StatelessWidget {
           ),
         ),
         SizedBox(height: screenHeight * 0.03),
-        ElevatedButton(
-          onPressed: () {
-            Navigator.of(context).pushNamed('/notification-playground');
-          },
-          child: Text("Open Notification Playground"),
-        ),
+        // ElevatedButton(
+        //   onPressed: () {
+        //     Navigator.of(context).pushNamed('/notification-playground');
+        //   },
+        //   child: Text("Open Notification Playground"),
+        // ),
       ],
     );
   }
@@ -482,7 +482,6 @@ class _SettingsOptionsList extends StatelessWidget {
     String title,
     VoidCallback onTap, {
     bool isLogout = false,
-
   }) {
     final appColors = Theme.of(context).extension<AppColorScheme>()!;
     return Column(
@@ -490,18 +489,28 @@ class _SettingsOptionsList extends StatelessWidget {
         ListTile(
           leading: Icon(
             icon,
-            color: isLogout ? Colors.red : appColors.iconColor,
+            color: isLogout
+                ? Theme.of(context).brightness == Brightness.light
+                      ? Colors.red
+                      : backgroundColordarkmode
+                : appColors.iconColor,
           ),
           title: Text(
             title,
             style: TextStyle(
               fontSize: screenWidth * 0.045,
-              color: isLogout ? Colors.red : appColors.textColor,
+              color: isLogout ? Theme.of(context).brightness == Brightness.light
+                  ? Colors.red
+                  : backgroundColordarkmode: appColors.textColor,
             ),
           ),
           trailing: isLogout
               ? null
-              : Icon(Icons.arrow_forward_ios, size: screenWidth * 0.04,color: appColors.textColor,),
+              : Icon(
+                  Icons.arrow_forward_ios,
+                  size: screenWidth * 0.04,
+                  color: appColors.textColor,
+                ),
           onTap: onTap,
         ),
         Divider(height: screenHeight * 0.0015, color: Colors.grey[300]),
@@ -540,7 +549,7 @@ class _ProfilePhoto extends StatelessWidget {
             ),
             boxShadow: [
               BoxShadow(
-                color: appColors.shadowColor!,// Colors.deepPurple[400]!,
+                color: appColors.shadowColor!, // Colors.deepPurple[400]!,
                 blurRadius: 15,
                 spreadRadius: 4,
               ),
