@@ -162,7 +162,7 @@ class _BottomNavbarState extends State<BottomNavbar>
                     child: Container(
                       height: 52,
                       decoration: BoxDecoration(
-                        color: Colors.deepPurple[400]!.withOpacity(0.6),//Colors.deepPurple.withOpacity(0.3),
+                        color: appColors.cardColor2!.withOpacity(0.9),
                         borderRadius: BorderRadius.circular(30),
                         boxShadow: [
                           BoxShadow(

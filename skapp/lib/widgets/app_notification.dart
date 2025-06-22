@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-
+import 'package:skapp/utils/app_colors.dart';
 /// A modern, customizable notification widget that supports two types of notifications:
 /// 
 /// 1. Regular Notifications (isImportant: false):
@@ -174,6 +174,7 @@ class _AppNotificationState extends State<AppNotification> with SingleTickerProv
 
   @override
   Widget build(BuildContext context) {
+    final appColor =Theme.of(context).extension<AppColorScheme>()!;
     return SlideTransition(
       position: _offsetAnimation,
       child: FadeTransition(
@@ -192,7 +193,7 @@ class _AppNotificationState extends State<AppNotification> with SingleTickerProv
             secondaryBackground: const SizedBox.shrink(),
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: (Theme.of(context).brightness == Brightness.light ? Colors.white: KDeepPurpleAccent100),
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
@@ -234,9 +235,10 @@ class _AppNotificationState extends State<AppNotification> with SingleTickerProv
                               if (widget.title != null) ...[
                                 Text(
                                   widget.title!,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 16,
+                                    color: appColor.textColor,
                                   ),
                                 ),
                                 const SizedBox(height: 4),
@@ -244,7 +246,7 @@ class _AppNotificationState extends State<AppNotification> with SingleTickerProv
                               Text(
                                 widget.message,
                                 style: TextStyle(
-                                  color: Colors.grey[800],
+                                  color: appColor.textColor,
                                   fontSize: 14,
                                 ),
                               ),
@@ -257,16 +259,12 @@ class _AppNotificationState extends State<AppNotification> with SingleTickerProv
                           child: Container(
                             padding: const EdgeInsets.all(4),
                             decoration: BoxDecoration(
-                              color: widget.isImportant 
-                                ? Colors.deepPurple.withOpacity(0.1)
-                                : Colors.grey[100],
+                              color: Colors.deepPurple[400]!.withOpacity(0.7),
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Icon(
                               Icons.close,
-                              color: widget.isImportant 
-                                ? Colors.deepPurple
-                                : Colors.grey[400],
+                              color:Colors.white ,
                               size: 20,
                             ),
                           ),

@@ -22,6 +22,8 @@ import 'package:skapp/pages/friends/friends_provider.dart';
 import 'package:skapp/pages/groups/group_provider.dart';
 import 'package:skapp/services/auth_service.dart';
 import 'package:skapp/utils/app_colors.dart';
+import 'package:skapp/pages/notification_playground.dart';
+
 class ProfileNotifier extends ChangeNotifier {
   final _logger = Logger('ProfileNotifier');
   String? _name;
@@ -244,6 +246,8 @@ class MyApp extends StatelessWidget {
       listen: false,
     );
 
+    
+
     return ValueListenableBuilder(
       valueListenable: isDarkMode,
       builder: (context, dark, _) {
@@ -256,13 +260,15 @@ class MyApp extends StatelessWidget {
             useMaterial3: true,
             extensions: const [
               AppColorScheme(
-                trial: kTrialColor,
+
                 textColor: KPureBlack,
                 iconColor: KDeepPurple400,
                 shadowColor: KDeepPurple400,
                 cardColor: KPureWhite,
                 selectedNavColor: Colors.deepPurple,
                 unselectedNavColor: Colors.grey,
+                cardColor2: KDeepPurple400,
+
               ),
             ],
           ),
@@ -271,12 +277,12 @@ class MyApp extends StatelessWidget {
             //221B2F little more purple
             //2A203D
             //blue purple 1E1E2E
-            // colorScheme: ColorScheme.dark().copyWith(
-            //   inversePrimary: Colors.deepPurple[400], // Custom inversePrimary for dark mode
-            // ),
+            colorScheme: ColorScheme.dark().copyWith(
+              inversePrimary: KDeepPurple400, // Custom inversePrimary for dark mode
+            ),
             extensions: const [
               AppColorScheme(
-                trial: Color(0xFF7C4DFF),
+
                 
                 textColor: KPureWhite,
                 iconColor: KPureWhite,
@@ -284,6 +290,8 @@ class MyApp extends StatelessWidget {
                 cardColor: KDeepPurple400,
                 selectedNavColor: KPureWhite,
                 unselectedNavColor: Color(0xFF2A203D),
+                cardColor2: ColorMoredarkerThanScaffold
+
 
               ),
 
@@ -379,7 +387,10 @@ class MyApp extends StatelessWidget {
                     groupId: args['groupId'] as int,
                   ),
                 );
-
+              case '/notification-playground':
+                return MaterialPageRoute(
+                  builder: (context) => NotificationPlayground(),
+                );
               default:
                 return MaterialPageRoute(
                   builder: (context) => Scaffold(

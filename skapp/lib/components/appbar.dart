@@ -42,7 +42,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       ),
       elevation: 0,
       shadowColor: Colors.transparent,
-      backgroundColor: Theme.of(context).brightness == Brightness.light ?Theme.of(context).colorScheme.inversePrimary:Colors.deepPurple[400],
+      backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       centerTitle: true,
 
       bottom: is_bottom_needed ? PreferredSize(

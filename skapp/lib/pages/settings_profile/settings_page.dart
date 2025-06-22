@@ -200,7 +200,7 @@ class _ProfileContent extends StatelessWidget {
           margin: EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
           padding: EdgeInsets.symmetric(vertical: screenHeight * 0.01),
           decoration: BoxDecoration(
-            color:Theme.of(context).brightness == Brightness.light ?Theme.of(context).colorScheme.inversePrimary:Colors.deepPurple[400], // Use here
+            color:Theme.of(context).colorScheme.inversePrimary, // Use here
             borderRadius: BorderRadius.circular(screenWidth * 0.045),
             boxShadow: [
               BoxShadow(
@@ -219,6 +219,12 @@ class _ProfileContent extends StatelessWidget {
           ),
         ),
         SizedBox(height: screenHeight * 0.03),
+        ElevatedButton(
+          onPressed: () {
+            Navigator.of(context).pushNamed('/notification-playground');
+          },
+          child: Text("Open Notification Playground"),
+        ),
       ],
     );
   }
@@ -251,7 +257,7 @@ class _ProfileHeader extends StatelessWidget {
       width: screenWidth,
       padding: EdgeInsets.symmetric(vertical: screenHeight * 0.035),
       decoration: BoxDecoration(
-        color: Theme.of(context).brightness == Brightness.light ?Theme.of(context).colorScheme.inversePrimary:Colors.deepPurple[400],
+        color: Theme.of(context).colorScheme.inversePrimary,
         borderRadius: BorderRadius.only(
           bottomLeft: Radius.circular(screenWidth * 0.1),
           bottomRight: Radius.circular(screenWidth * 0.1),

@@ -75,6 +75,7 @@ import '../../widgets/bottom_sheet_wrapper.dart';
 import '../../widgets/custom_loader.dart';
 import 'package:logging/logging.dart';
 import 'package:skapp/pages/main_page.dart';
+import 'package:skapp/utils/app_colors.dart';
 
 // Category count model for UI
 class AlertCategoryCount {
@@ -215,7 +216,10 @@ class AlertSheet extends StatefulWidget {
                 value: context.read<AlertService>(),
                 child: Builder(
                   builder: (context) {
-                    final alertService = Provider.of<AlertService>(context, listen: false);
+                    final alertService = Provider.of<AlertService>(
+                      context,
+                      listen: false,
+                    );
                     return AlertSheet(
                       alertService: alertService,
                       onClose: () {
@@ -239,7 +243,8 @@ class AlertSheet extends StatefulWidget {
   State<AlertSheet> createState() => _AlertSheetState();
 }
 
-class _AlertSheetState extends State<AlertSheet> with SingleTickerProviderStateMixin {
+class _AlertSheetState extends State<AlertSheet>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   AlertCategory? _selectedFilter;
   static final _logger = Logger('AlertSheet');
@@ -263,13 +268,15 @@ class _AlertSheetState extends State<AlertSheet> with SingleTickerProviderStateM
         final aTotalCount = widget.alertService.categoryCounts
             .firstWhere(
               (c) => c.category == a,
-              orElse: () => AlertCategoryCount(category: a, total: 0, unread: 0),
+              orElse: () =>
+                  AlertCategoryCount(category: a, total: 0, unread: 0),
             )
             .total;
         final bTotalCount = widget.alertService.categoryCounts
             .firstWhere(
               (c) => c.category == b,
-              orElse: () => AlertCategoryCount(category: b, total: 0, unread: 0),
+              orElse: () =>
+                  AlertCategoryCount(category: b, total: 0, unread: 0),
             )
             .total;
 
@@ -278,23 +285,27 @@ class _AlertSheetState extends State<AlertSheet> with SingleTickerProviderStateM
         if (aTotalCount == 0 && bTotalCount > 0) return 1;
 
         // Sort by responsive alerts first
-        final aHasResponse = widget.alertService.alerts
-            .any((alert) => alert.category == a && alert.requiresResponse);
-        final bHasResponse = widget.alertService.alerts
-            .any((alert) => alert.category == b && alert.requiresResponse);
+        final aHasResponse = widget.alertService.alerts.any(
+          (alert) => alert.category == a && alert.requiresResponse,
+        );
+        final bHasResponse = widget.alertService.alerts.any(
+          (alert) => alert.category == b && alert.requiresResponse,
+        );
         if (aHasResponse != bHasResponse) return aHasResponse ? -1 : 1;
 
         // Then sort by unread count
         final aCount = widget.alertService.categoryCounts
             .firstWhere(
               (c) => c.category == a,
-              orElse: () => AlertCategoryCount(category: a, total: 0, unread: 0),
+              orElse: () =>
+                  AlertCategoryCount(category: a, total: 0, unread: 0),
             )
             .unread;
         final bCount = widget.alertService.categoryCounts
             .firstWhere(
               (c) => c.category == b,
-              orElse: () => AlertCategoryCount(category: a, total: 0, unread: 0),
+              orElse: () =>
+                  AlertCategoryCount(category: a, total: 0, unread: 0),
             )
             .unread;
         return bCount.compareTo(aCount);
@@ -318,13 +329,17 @@ class _AlertSheetState extends State<AlertSheet> with SingleTickerProviderStateM
   AlertCategory? _findNextCategoryWithAlerts(AlertCategory? currentCategory) {
     if (_sortedCategories.isEmpty) return null;
 
-    int startIndex = currentCategory == null ? 0 : _sortedCategories.indexOf(currentCategory);
+    int startIndex = currentCategory == null
+        ? 0
+        : _sortedCategories.indexOf(currentCategory);
     if (startIndex == -1) startIndex = 0;
 
     // First try categories after the current one
     for (int i = startIndex + 1; i < _sortedCategories.length; i++) {
       final category = _sortedCategories[i];
-      if (widget.alertService.alerts.any((a) => a.category == category && a.shouldShow)) {
+      if (widget.alertService.alerts.any(
+        (a) => a.category == category && a.shouldShow,
+      )) {
         return category;
       }
     }
@@ -332,7 +347,9 @@ class _AlertSheetState extends State<AlertSheet> with SingleTickerProviderStateM
     // If no categories after, try from the beginning
     for (int i = 0; i < startIndex; i++) {
       final category = _sortedCategories[i];
-      if (widget.alertService.alerts.any((a) => a.category == category && a.shouldShow)) {
+      if (widget.alertService.alerts.any(
+        (a) => a.category == category && a.shouldShow,
+      )) {
         return category;
       }
     }
@@ -343,7 +360,8 @@ class _AlertSheetState extends State<AlertSheet> with SingleTickerProviderStateM
   void _switchToNextCategoryWithAlerts() {
     final nextCategory = _findNextCategoryWithAlerts(_selectedFilter);
     if (nextCategory != null) {
-      final nextIndex = _sortedCategories.indexOf(nextCategory) + 1; // +1 for "All" tab
+      final nextIndex =
+          _sortedCategories.indexOf(nextCategory) + 1; // +1 for "All" tab
       _tabController.animateTo(nextIndex);
     } else {
       _tabController.animateTo(0);
@@ -353,10 +371,10 @@ class _AlertSheetState extends State<AlertSheet> with SingleTickerProviderStateM
   @override
   void didUpdateWidget(AlertSheet oldWidget) {
     super.didUpdateWidget(oldWidget);
-    
+
     if (widget.alertService.alerts != oldWidget.alertService.alerts) {
       _updateSortedCategories();
-      
+
       // Update current alerts safely
       setState(() {
         _currentAlerts = widget.alertService.alerts;
@@ -606,7 +624,9 @@ class _AlertSheetState extends State<AlertSheet> with SingleTickerProviderStateM
     // Filter alerts by selected category and visibility
     final filteredAlerts = _selectedFilter == null
         ? _currentAlerts.where((a) => a.shouldShow).toList()
-        : _currentAlerts.where((a) => a.category == _selectedFilter && a.shouldShow).toList();
+        : _currentAlerts
+              .where((a) => a.category == _selectedFilter && a.shouldShow)
+              .toList();
 
     if (filteredAlerts.isEmpty) {
       _switchToNextCategoryWithAlerts();
@@ -636,6 +656,7 @@ class _AlertSheetState extends State<AlertSheet> with SingleTickerProviderStateM
     AlertItem alert,
     AlertService alertService,
   ) {
+    final appColor = Theme.of(context).extension<AppColorScheme>()!;
     return Selector<AlertService, bool>(
       selector: (_, service) => service.isProcessing(alert.id),
       builder: (context, isProcessing, child) {
@@ -653,10 +674,16 @@ class _AlertSheetState extends State<AlertSheet> with SingleTickerProviderStateM
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
                 color: alert.requiresResponse
-                    ? Theme.of(context).colorScheme.primary.withOpacity(0.05)
+                    ? (Theme.of(context).brightness == Brightness.light
+                          ? Theme.of(
+                              context,
+                            ).colorScheme.primary.withOpacity(0.05)
+                          : ColorMoredarkerThanScaffold)
                     : (alert.isRead
                           ? Theme.of(context).cardColor
-                          : Theme.of(context).colorScheme.primary.withOpacity(0.05)),
+                          : Theme.of(
+                              context,
+                            ).colorScheme.primary.withOpacity(0.05)),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -665,8 +692,12 @@ class _AlertSheetState extends State<AlertSheet> with SingleTickerProviderStateM
                     leading: Stack(
                       children: [
                         CircleAvatar(
-                          backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                          child: alert.imageUrl != null && alert.imageUrl!.isNotEmpty
+                          backgroundColor: Theme.of(
+                            context,
+                          ).colorScheme.primary.withOpacity(0.1),
+                          child:
+                              alert.imageUrl != null &&
+                                  alert.imageUrl!.isNotEmpty
                               ? ClipOval(
                                   child: CachedNetworkImage(
                                     imageUrl: alert.imageUrl!,
@@ -675,11 +706,15 @@ class _AlertSheetState extends State<AlertSheet> with SingleTickerProviderStateM
                                     fit: BoxFit.cover,
                                     placeholder: (context, url) => Icon(
                                       alert.icon,
-                                      color: Theme.of(context).colorScheme.primary,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.primary,
                                     ),
                                     errorWidget: (context, url, error) => Icon(
                                       alert.icon,
-                                      color: Theme.of(context).colorScheme.primary,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.primary,
                                     ),
                                   ),
                                 )
@@ -699,7 +734,9 @@ class _AlertSheetState extends State<AlertSheet> with SingleTickerProviderStateM
                                 color: Theme.of(context).colorScheme.primary,
                                 shape: BoxShape.circle,
                                 border: Border.all(
-                                  color: Theme.of(context).scaffoldBackgroundColor,
+                                  color: Theme.of(
+                                    context,
+                                  ).scaffoldBackgroundColor,
                                   width: 2,
                                 ),
                               ),
@@ -724,7 +761,7 @@ class _AlertSheetState extends State<AlertSheet> with SingleTickerProviderStateM
                         Text(
                           _formatTimestamp(alert.timestamp),
                           style: GoogleFonts.cabin(
-                            color: Colors.grey[600],
+                            color: Theme.of(context).brightness == Brightness.light ?Colors.grey[600]:KPureBlack,
                             fontSize: 12,
                           ),
                         ),
@@ -740,17 +777,17 @@ class _AlertSheetState extends State<AlertSheet> with SingleTickerProviderStateM
                           return Padding(
                             padding: const EdgeInsets.only(left: 8.0),
                             child: TextButton.icon(
-                              onPressed: isProcessing 
-                                ? null 
-                                : () {
-                                    // Ensure context is valid before action
-                                    if (context.mounted) {
-                                      action.onPressed();
-                                    }
-                                  },
+                              onPressed: isProcessing
+                                  ? null
+                                  : () {
+                                      // Ensure context is valid before action
+                                      if (context.mounted) {
+                                        action.onPressed();
+                                      }
+                                    },
                               style: TextButton.styleFrom(
                                 foregroundColor: action.color,
-                                backgroundColor: isProcessing 
+                                backgroundColor: isProcessing
                                     ? Colors.grey.withOpacity(0.1)
                                     : null,
                               ),

@@ -579,9 +579,9 @@ class _FriendsListViewState extends State<_GroupsListView> {
                       ),
                       leading: CircleAvatar(
                         radius: avatarSize / 2.2,
-                        backgroundColor: Theme.of(
-                          context,
-                        ).colorScheme.inversePrimary.withOpacity(0.7),
+                        backgroundColor: Theme.of(context).brightness == Brightness.light ?
+                        Theme.of(context).colorScheme.inversePrimary.withOpacity(0.7):
+                        Theme.of(context).colorScheme.primary.withOpacity(0.7),
                         child: ClipOval(
                           child:
                               (group['profile_picture_url'] != null &&
@@ -707,13 +707,16 @@ class _FriendsHeaderDelegate extends SliverPersistentHeaderDelegate {
     final double clampedGap = rawGap.clamp(16.0, 140.0); // Increased max gap
     final double easedGap =
         clampedGap * (1 - (clampedGap / 300) * 0.3); // Adjusted easing
+    final appColors = Theme.of(context).extension<AppColorScheme>()!;
 
     return Container(
-      decoration: BoxDecoration(color: Colors.deepPurple[400]),
+      decoration: BoxDecoration(color:appColors.cardColor2 ),
+      //0xFF6A4795
       child: SizedBox(
         height: maxExtent,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
+
           children: [
             Container(
               width: double.infinity,

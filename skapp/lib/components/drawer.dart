@@ -7,7 +7,7 @@ import 'package:skapp/widgets/custom_loader.dart';
 import 'package:skapp/pages/main_page.dart';
 import 'package:skapp/services/navigation_service.dart';
 import 'package:logging/logging.dart';
-
+import 'package:skapp/utils/app_colors.dart';
 class AppDrawer extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onItemSelected;
@@ -25,6 +25,7 @@ class AppDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final appColor = Theme.of(context).extension<AppColorScheme>()!;
     final profile = Provider.of<ProfileNotifier>(context);
     final navigationService = Provider.of<NavigationService>(
       context,
@@ -37,7 +38,7 @@ class AppDrawer extends StatelessWidget {
 
     return Drawer(
       elevation: 0,
-      backgroundColor: Colors.deepPurple[400]!.withOpacity(1),
+      backgroundColor:appColor.cardColor2,
       child: SafeArea(
         child: SingleChildScrollView(
           child: Column(
