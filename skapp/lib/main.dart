@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:skapp/components/auth_wrapper.dart';
@@ -168,11 +169,17 @@ ValueNotifier<bool> get isDarkMode => _isDarkMode;
 final ValueNotifier<bool> _isThemeChanging = ValueNotifier(false);
 ValueNotifier<bool> get isThemeChanging => _isThemeChanging;
 
+// Function to get system theme
+bool getSystemTheme() {
+  final brightness = SchedulerBinding.instance.platformDispatcher.platformBrightness;
+  return brightness == Brightness.dark;
+}
+
 // ParallelLoading function
 Future<void> parallelLoading(
-  Future<void> Function() operation,
-  Duration duration,
-) async {
+    Future<void> Function() operation,
+    Duration duration,
+    ) async {
   // Start the operation
   final operationFuture = operation();
 
@@ -193,11 +200,49 @@ void toggleAppTheme() {
   _isDarkMode.value = !_isDarkMode.value;
 }
 
+// Modified loadThemePref function with system theme detection
 Future<void> loadThemePref(dynamic userID) async {
   final prefs = await SharedPreferences.getInstance();
-  final isDark = prefs.getBool('themepref_$userID') ?? true;
-  print('loaded thempref for ${userID}');
-  _isDarkMode.value = isDark;
+  final String prefKey = 'themepref_$userID';
+
+  // Check if preference exists
+  if (prefs.containsKey(prefKey)) {
+    // Load saved preference
+    final isDark = prefs.getBool(prefKey) ?? true;
+    print('Loaded saved theme preference for $userID: $isDark');
+    _isDarkMode.value = isDark;
+  } else {
+    // First time launch - use system theme
+    final systemIsDark = getSystemTheme();
+    print('First time launch - using system theme for $userID: $systemIsDark');
+    _isDarkMode.value = systemIsDark;
+
+    // Optionally save the system theme as initial preference
+    try {
+      await prefs.setBool(prefKey, systemIsDark);
+      print('Saved initial system theme preference for $userID');
+    } catch (e) {
+      print('Failed to save initial theme preference: $e');
+    }
+  }
+}
+
+// Alternative version that doesn't save system theme initially
+Future<void> loadThemePrefWithoutSaving(dynamic userID) async {
+  final prefs = await SharedPreferences.getInstance();
+  final String prefKey = 'themepref_$userID';
+
+  if (prefs.containsKey(prefKey)) {
+    // Load saved preference
+    final isDark = prefs.getBool(prefKey) ?? true;
+    print('Loaded saved theme preference for $userID: $isDark');
+    _isDarkMode.value = isDark;
+  } else {
+    // First time launch - use system theme but don't save it
+    final systemIsDark = getSystemTheme();
+    print('First time launch - using system theme for $userID: $systemIsDark');
+    _isDarkMode.value = systemIsDark;
+  }
 }
 
 // New function for theme change with loading
@@ -205,6 +250,7 @@ Future<void> toggleAppThemeWithLoading() async {
   final prefs = await SharedPreferences.getInstance();
   final AuthService auth = AuthService();
   dynamic userId = await auth.getUserId();
+
   if (_isThemeChanging.value) return; // Prevent multiple simultaneous changes
 
   // Add delay to allow button animation to be visible
@@ -218,10 +264,9 @@ Future<void> toggleAppThemeWithLoading() async {
       _isDarkMode.value = !_isDarkMode.value;
       try {
         await prefs.setBool('themepref_$userId', _isDarkMode.value);
-        print('saved themepref to shared pref for user ${userId}');
+        print('Saved theme preference to shared preferences for user $userId');
       } catch (e) {
-        print('saving to shared pref failed');
-        print(e);
+        print('Saving to shared preferences failed: $e');
       }
 
       // Then wait for the remaining time
@@ -233,6 +278,7 @@ Future<void> toggleAppThemeWithLoading() async {
     _isThemeChanging.value = false;
   }
 }
+
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
