@@ -186,6 +186,8 @@ class ProfileApi {
           profileNotifier.setError('No cached data available');
         }
       }
+
+      await syncThemePrefToBackend(context);
     } catch (e) {
       _logger.severe('Error in loadAllProfileData: $e');
       if (_cachedName == null) {
@@ -517,5 +519,26 @@ class ProfileApi {
       _logger.severe('Error setting dark mode: $e');
       rethrow;
     }
+  }
+}
+
+Future<void> syncThemePrefToBackend(BuildContext context) async {
+  final auth = AuthService();
+  final userId = await auth.getUserId();
+  final prefs = await SharedPreferences.getInstance();
+  final String prefKey = 'themepref_$userId';
+
+  // Use the public getter
+  bool isDark = isDarkMode.value;
+  if (!prefs.containsKey(prefKey)) {
+    isDark = prefs.getBool(prefKey) ?? isDark;
+  }
+
+  await Future.delayed(Duration(seconds: 2));
+  try {
+    await ProfileApi().setDarkMode(isDarkMode: isDark);
+    print('Synced theme preference to backend after profile load');
+  } catch (e) {
+    print('Failed to sync theme preference to backend: $e');
   }
 }
