@@ -83,10 +83,11 @@ class UserLoginSerializer(serializers.Serializer):
 class UserSerializer(serializers.ModelSerializer):
     profile_picture_url = serializers.SerializerMethodField()
     profile_code = serializers.SerializerMethodField()
+    isDarkMode = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'profile_picture_url', 'profile_code']
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'profile_picture_url', 'profile_code', 'isDarkMode']
     
     def get_profile_picture_url(self, obj):
         if hasattr(obj, 'profile') and obj.profile.profile_picture_url:
@@ -96,6 +97,11 @@ class UserSerializer(serializers.ModelSerializer):
     def get_profile_code(self, obj):
         if hasattr(obj, 'profile'):
             return obj.profile.profile_code
+        return None
+
+    def get_isDarkMode(self, obj):
+        if hasattr(obj, 'profile'):
+            return obj.profile.isDarkMode
         return None
 
 class ProfileUpdateSerializer(serializers.ModelSerializer):
@@ -133,3 +139,6 @@ class BatchAlertReadSerializer(serializers.Serializer):
         required=True
     )
     batch_id = serializers.CharField(required=False)
+
+class DarkModeSerializer(serializers.Serializer):
+    isDarkMode = serializers.BooleanField(required=True)

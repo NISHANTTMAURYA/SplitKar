@@ -24,6 +24,7 @@ import 'package:skapp/pages/groups/group_provider.dart';
 import 'package:skapp/services/auth_service.dart';
 import 'package:skapp/utils/app_colors.dart';
 import 'package:skapp/pages/notification_playground.dart';
+import 'package:skapp/pages/settings_profile/settings_api.dart';
 
 class ProfileNotifier extends ChangeNotifier {
   final _logger = Logger('ProfileNotifier');
@@ -205,6 +206,15 @@ Future<void> loadThemePref(dynamic userID) async {
   final prefs = await SharedPreferences.getInstance();
   final String prefKey = 'themepref_$userID';
 
+  // Try to use backend value if available
+  final bool? backendIsDark = ProfileApi().cachedIsDarkMode;
+  if (backendIsDark != null) {
+    _isDarkMode.value = backendIsDark;
+    await prefs.setBool(prefKey, backendIsDark);
+    print('Loaded theme from backend for $userID: $backendIsDark');
+    return;
+  }
+
   // Check if preference exists
   if (prefs.containsKey(prefKey)) {
     // Load saved preference
@@ -261,12 +271,22 @@ Future<void> toggleAppThemeWithLoading() async {
   try {
     await parallelLoading(() async {
       // Theme change happens immediately when loading starts
-      _isDarkMode.value = !_isDarkMode.value;
+      final newIsDark = !_isDarkMode.value;
+      _isDarkMode.value = newIsDark;
       try {
-        await prefs.setBool('themepref_$userId', _isDarkMode.value);
+        await prefs.setBool('themepref_$userId', newIsDark);
         print('Saved theme preference to shared preferences for user $userId');
       } catch (e) {
         print('Saving to shared preferences failed: $e');
+      }
+
+      // Make API call to update backend
+      try {
+        await ProfileApi().setDarkMode(isDarkMode: newIsDark);
+        print('Updated dark mode in backend for user $userId');
+      } catch (e) {
+        print('Failed to update dark mode in backend: $e');
+        // Optionally: show a snackbar or revert the local change if you want strict sync
       }
 
       // Then wait for the remaining time

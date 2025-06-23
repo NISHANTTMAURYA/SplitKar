@@ -22,6 +22,7 @@ class ProfileApi {
   static const String _cacheExpiryKey = 'profile_cache_expiry';
   static const Duration _cacheValidity = Duration(minutes: 5);
   static const int _minLoadingTime = 500; // milliseconds
+  static const String _isDarkModeKey = 'cached_is_dark_mode';
 
   final AuthService _authService;
   late SharedPreferences _prefs;
@@ -37,6 +38,7 @@ class ProfileApi {
   String? _cachedName;
   String? _cachedUsername;
   String? _cachedProfileCode;
+  bool? _cachedIsDarkMode;
 
   ProfileApi({AuthService? authService})
     : _authService = authService ?? AuthService();
@@ -50,6 +52,7 @@ class ProfileApi {
   String? get name => _cachedName;
   String? get username => _cachedUsername;
   String? get profileCode => _cachedProfileCode;
+  bool? get cachedIsDarkMode => _cachedIsDarkMode;
 
   Future<void> _initPrefs() async {
     try {
@@ -60,6 +63,7 @@ class ProfileApi {
       _cachedName = _prefs.getString(_nameKey);
       _cachedUsername = _prefs.getString(_usernameKey);
       _cachedProfileCode = _prefs.getString(_profileCodeKey);
+      _cachedIsDarkMode = _prefs.getBool(_isDarkModeKey);
     } catch (e) {
       _logger.severe('Error initializing preferences: $e');
     }
@@ -81,6 +85,9 @@ class ProfileApi {
       }
       if (_cachedProfileCode != null) {
         await _prefs.setString(_profileCodeKey, _cachedProfileCode!);
+      }
+      if (_cachedIsDarkMode != null) {
+        await _prefs.setBool(_isDarkModeKey, _cachedIsDarkMode!);
       }
       // Update cache expiry to 5 minutes from now
       await _prefs.setString(
@@ -209,13 +216,24 @@ class ProfileApi {
         _cachedName = '${_profileDetails?['first_name'] ?? ''} ${_profileDetails?['last_name'] ?? ''}'.trim();
         _cachedUsername = _profileDetails?['username'];
         _cachedProfileCode = _profileDetails?['profile_code'];
-        
+        if (_profileDetails != null && _profileDetails!.containsKey('isDarkMode')) {
+          _cachedIsDarkMode = _profileDetails!['isDarkMode'] == true;
+
+          // Save to SharedPreferences for instant loading next time
+          final prefs = await SharedPreferences.getInstance();
+          final userId = await AuthService().getUserId();
+          if (userId != null) {
+            final String prefKey = 'themepref_$userId';
+            await prefs.setBool(prefKey, _cachedIsDarkMode!);
+          }
+        }
         _logger.info('Parsed profile details:');
         _logger.info('- Photo URL: $_cachedPhotoUrl');
         _logger.info('- Email: $_cachedEmail');
         _logger.info('- Name: $_cachedName'); 
         _logger.info('- Username: $_cachedUsername');
         _logger.info('- Profile Code: $_cachedProfileCode');
+        _logger.info('- isDarkMode: $_cachedIsDarkMode');
         await _cacheProfileData();
         _logger.info('Profile Details cached successfully');
 
@@ -289,7 +307,8 @@ class ProfileApi {
       await _prefs.remove(_nameKey);
       await _prefs.remove(_usernameKey);
       await _prefs.remove(_cacheExpiryKey);
-      await _prefs.remove(_profileCodeKey); 
+      await _prefs.remove(_profileCodeKey);
+      await _prefs.remove(_isDarkModeKey);
       profileNotifier.clearProfile();
 
       if (context.mounted) {
@@ -440,5 +459,63 @@ class ProfileApi {
       _logger.severe('Error parsing backend error response: $e');
     }
     return 'An unexpected error occurred';
+  }
+
+  /// Set dark mode preference on backend and cache
+  Future<bool> setDarkMode({required bool isDarkMode}) async {
+    await _initPrefs();
+    try {
+      String? token = await _authService.getToken();
+      if (token == null) {
+        _logger.warning('No authentication token available');
+        throw 'Session expired. Please log in again.';
+      }
+
+      Future<http.Response> makeRequest(String token) {
+        return http.post(
+          Uri.parse('${AppConfig.baseUrl}/profile/set-dark-mode/'),
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode({'isDarkMode': isDarkMode}),
+        ).timeout(Duration(seconds: 10));
+      }
+
+      http.Response response = await makeRequest(token);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data is Map && data.containsKey('isDarkMode')) {
+          _cachedIsDarkMode = data['isDarkMode'] == true;
+          await _prefs.setBool(_isDarkModeKey, _cachedIsDarkMode!);
+        }
+        return true;
+      } else if (response.statusCode == 401) {
+        // Try to refresh token and retry
+        final refreshSuccess = await _authService.handleTokenRefresh();
+        if (refreshSuccess) {
+          token = await _authService.getToken();
+          if (token == null) throw 'Session expired. Please log in again.';
+          response = await makeRequest(token);
+          if (response.statusCode == 200) {
+            final data = jsonDecode(response.body);
+            if (data is Map && data.containsKey('isDarkMode')) {
+              _cachedIsDarkMode = data['isDarkMode'] == true;
+              await _prefs.setBool(_isDarkModeKey, _cachedIsDarkMode!);
+            }
+            return true;
+          }
+        }
+        throw 'Session expired. Please log in again.';
+      } else {
+        final errorMessage = _parseBackendError(response);
+        _logger.warning('Set dark mode failed: $errorMessage');
+        throw errorMessage;
+      }
+    } catch (e) {
+      _logger.severe('Error setting dark mode: $e');
+      rethrow;
+    }
   }
 }

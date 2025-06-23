@@ -7,7 +7,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 import os
-from .serializers import UserRegistrationSerializer, UserLoginSerializer, UserSerializer, ProfileUpdateSerializer, MarkAlertReadSerializer, BatchAlertReadSerializer
+from .serializers import UserRegistrationSerializer, UserLoginSerializer, UserSerializer, ProfileUpdateSerializer, MarkAlertReadSerializer, BatchAlertReadSerializer, DarkModeSerializer
 from django.contrib.auth import authenticate
 from django.db.models import Q
 from django.core.exceptions import ValidationError
@@ -318,3 +318,16 @@ class MarkAllAlertsReadView(APIView):
                 'marked_count': len(alert_types)
             })
         return Response(serializer.errors, status=400)
+
+class SetDarkModeAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = DarkModeSerializer(data=request.data)
+        if serializer.is_valid():
+            is_dark_mode = serializer.validated_data['isDarkMode']
+            profile = request.user.profile
+            profile.isDarkMode = is_dark_mode
+            profile.save()
+            return Response({'isDarkMode': profile.isDarkMode}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

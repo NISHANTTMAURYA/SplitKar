@@ -39,7 +39,8 @@ from .views import (
     ProfileUpdateAPIView,
     AlertReadStatusView,
     MarkAlertReadView,
-    MarkAllAlertsReadView
+    MarkAllAlertsReadView,
+    SetDarkModeAPIView
 )
 from rest_framework_simplejwt.views import TokenVerifyView
 
@@ -58,6 +59,7 @@ urlpatterns = [
     path('auth/token/refresh/', CustomTokenRefreshView.as_view(), name='token-refresh'),
     path('profile/', ProfileDetailsAPIView, name='profile-details'),
     path('profile/update/', ProfileUpdateAPIView.as_view(), name='profile-update'),
+    path('profile/set-dark-mode/', SetDarkModeAPIView.as_view(), name='set-dark-mode'),
     path('alerts/read-status/', AlertReadStatusView.as_view(), name='alert-read-status'),
     path('alerts/mark-read/', MarkAlertReadView.as_view(), name='mark-alert-read'),
     path('alerts/mark-all-read/', MarkAllAlertsReadView.as_view(), name='mark-all-read'),

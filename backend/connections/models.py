@@ -23,6 +23,7 @@ class Profile(TimeStampedModel):
     profile_code = models.CharField(max_length=20, unique=True, db_index=True) 
     is_active = models.BooleanField(default=True) 
     profile_picture_url = models.URLField(max_length=500, blank=True, null=True)
+    isDarkMode  = models.BooleanField(default=False)
     
     class Meta: 
         indexes = [ 
