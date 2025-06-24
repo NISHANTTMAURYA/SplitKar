@@ -6,7 +6,7 @@ from django.db import models
 from decimal import Decimal
 from .models import (
     Expense, ExpensePayment, ExpenseShare, Settlement, 
-    Balance, ExpenseCategory
+    Balance, ExpenseCategory, UserTotalBalance
 )
 from connections.models import Group, Profile
 
@@ -274,6 +274,22 @@ def cleanup_zero_balances(sender, instance, **kwargs):
         # Don't delete immediately to avoid recursion, just mark for cleanup
         # You could run a periodic task to clean these up
         pass
+
+@receiver(post_save, sender=Balance)
+def update_user_total_balance_on_balance_change(sender, instance, **kwargs):
+    """Update UserTotalBalance whenever a Balance is created or updated."""
+    user1 = instance.user1
+    user2 = instance.user2
+    # Get all balances between these two users (across all groups)
+    from django.db.models import Q
+    balances = sender.objects.filter(
+        Q(user1=user1, user2=user2) | Q(user1=user2, user2=user1)
+    )
+    total = Decimal('0.00')
+    for bal in balances:
+        total += bal.get_balance_for_user(user1)
+    # Store the total balance (from user1's perspective)
+    UserTotalBalance.objects.update_total_balance(user1, user2, total - UserTotalBalance.objects.get_total_balance_between_users(user1, user2).total_balance)
 
 # ============================================================================
 # EXPENSE CATEGORY SIGNALS

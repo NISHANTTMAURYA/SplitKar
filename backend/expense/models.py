@@ -434,6 +434,46 @@ class Balance(TimeStampedModel):
         else:
             raise ValueError("User not part of this balance")
 
+class UserTotalBalanceManager(models.Manager):
+    def get_total_balance_between_users(self, user1, user2):
+        # Ensure consistent ordering
+        if user1.id > user2.id:
+            user1, user2 = user2, user1
+        obj, created = self.get_or_create(user1=user1, user2=user2, defaults={'total_balance': Decimal('0.00')})
+        return obj
+
+    def update_total_balance(self, user1, user2, amount_change):
+        obj = self.get_total_balance_between_users(user1, user2)
+        if user1.id < user2.id:
+            obj.total_balance += amount_change
+        else:
+            obj.total_balance -= amount_change
+        obj.save()
+        return obj
+
+class UserTotalBalance(models.Model):
+    user1 = models.ForeignKey(User, on_delete=models.CASCADE, related_name='total_balances_as_user1')
+    user2 = models.ForeignKey(User, on_delete=models.CASCADE, related_name='total_balances_as_user2')
+    total_balance = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
+    last_updated = models.DateTimeField(auto_now=True)
+
+    objects = UserTotalBalanceManager()
+
+    class Meta:
+        unique_together = ('user1', 'user2')
+        indexes = [
+            models.Index(fields=['user1', 'user2']),
+            models.Index(fields=['user2', 'user1']),
+        ]
+
+    def __str__(self):
+        if self.total_balance > 0:
+            return f"{self.user1.username} owes ₹{self.total_balance} to {self.user2.username}"
+        elif self.total_balance < 0:
+            return f"{self.user2.username} owes ₹{abs(self.total_balance)} to {self.user1.username}"
+        else:
+            return f"{self.user1.username} and {self.user2.username} are settled"
+
 # Default expense categories
 EXPENSE_CATEGORIES = [
     ('Food & Dining', '🍽️', '#FF6B6B'),

@@ -7,7 +7,8 @@ from .models import (
     ExpensePayment,
     ExpenseShare,
     Settlement,
-    Balance
+    Balance,
+    UserTotalBalance
 )
 
 @admin.register(ExpenseCategory)
@@ -133,3 +134,6 @@ class ExpenseShareAdmin(admin.ModelAdmin):
     def get_remaining(self, obj):
         return obj.amount_owed - obj.amount_paid_back
     get_remaining.short_description = 'Remaining Amount'
+
+admin.site.register(UserTotalBalance)
+
