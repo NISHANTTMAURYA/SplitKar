@@ -45,6 +45,16 @@ def expense_test_page(request):
     response.set_cookie('jwt_token', access_token)
     return response
 
+@login_required
+def friend_expense_test_page(request):
+    # Generate JWT token for the logged-in user
+    user = request.user
+    refresh = RefreshToken.for_user(user)
+    access_token = str(refresh.access_token)
+    response = render(request, 'api_tester/friend_expense_test_page.html')
+    response.set_cookie('jwt_token', access_token)
+    return response
+
 def login_view(request):
     if request.method == 'POST':
         username = request.POST.get('username')

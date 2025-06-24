@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Friend Expense API Tester</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .api-section {
+            margin-bottom: 2rem;
+            padding: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .response-area {
+            margin-top: 1rem;
+            padding: 1rem;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            min-height: 100px;
+        }
+        .nav-link {
+            color: #0d6efd;
+            text-decoration: none;
+        }
+        .nav-link:hover {
+            text-decoration: underline;
+        }
+        .split-percentage-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 5px;
+        }
+        .split-percentage-row input {
+            width: 120px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Friend Expense API Tester</h1>
+            <a href="{% url 'api_tester:test_page' %}" class="nav-link">Go to Friend APIs →</a>
+        </div>
+        <div class="api-section">
+            <h3>Add Friend Expense (Equal or Percentage Split)</h3>
+            <form id="addFriendExpenseForm" class="mb-3">
+                <div class="mb-3">
+                    <label for="description" class="form-label">Description</label>
+                    <input type="text" class="form-control" id="description" required>
+                </div>
+                <div class="mb-3">
+                    <label for="totalAmount" class="form-label">Total Amount</label>
+                    <input type="number" step="0.01" class="form-control" id="totalAmount" required>
+                </div>
+                <div class="mb-3">
+                    <label for="payerId" class="form-label">Payer ID</label>
+                    <input type="number" class="form-control" id="payerId" required>
+                </div>
+                <div class="mb-3">
+                    <label for="friendIds" class="form-label">Friend IDs (comma separated, include payer)</label>
+                    <input type="text" class="form-control" id="friendIds" required>
+                </div>
+                <div class="mb-3">
+                    <label for="categoryId" class="form-label">Category</label>
+                    <select class="form-select" id="categoryId">
+                        <option value="">-- Select Category --</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="currency" class="form-label">Currency</label>
+                    <input type="text" class="form-control" id="currency" value="INR">
+                </div>
+                <div class="mb-3">
+                    <label for="notes" class="form-label">Notes</label>
+                    <input type="text" class="form-control" id="notes">
+                </div>
+                <div class="mb-3">
+                    <label for="splitType" class="form-label">Split Type</label>
+                    <select class="form-select" id="splitType">
+                        <option value="equal" selected>Equal</option>
+                        <option value="percentage">Percentage</option>
+                    </select>
+                </div>
+                <div id="percentageSplitsSection" style="display: none;">
+                    <label class="form-label">Splits (for Percentage Split)</label>
+                    <div id="percentageSplitsInputs"></div>
+                    <button type="button" class="btn btn-secondary btn-sm mt-2" id="addSplitBtn">Add Split</button>
+                </div>
+                <button type="submit" class="btn btn-primary mt-3">Add Friend Expense</button>
+            </form>
+            <div class="response-area" id="addFriendExpenseResponse"></div>
+        </div>
+    </div>
+    <script>
+        // Get CSRF token and JWT token from cookies
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        const csrftoken = getCookie('csrftoken');
+        const jwtToken = getCookie('jwt_token');
+        const getHeaders = () => ({
+            'X-CSRFToken': csrftoken,
+            'Authorization': `Bearer ${jwtToken}`,
+            'Content-Type': 'application/json'
+        });
+
+        // Fetch categories and populate dropdown
+        async function fetchCategories() {
+            try {
+                const response = await fetch('/api/expenses/categories/', {
+                    headers: getHeaders()
+                });
+                const data = await response.json();
+                const select = document.getElementById('categoryId');
+                data.forEach(cat => {
+                    const option = document.createElement('option');
+                    option.value = cat.id;
+                    option.textContent = `${cat.name} ${cat.icon}`;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                // Optionally handle error
+            }
+        }
+        fetchCategories();
+
+        // Handle split type change
+        document.getElementById('splitType').addEventListener('change', function() {
+            const splitType = this.value;
+            const section = document.getElementById('percentageSplitsSection');
+            section.style.display = splitType === 'percentage' ? 'block' : 'none';
+        });
+
+        // Add split row for percentage split
+        document.getElementById('addSplitBtn').addEventListener('click', function() {
+            const container = document.getElementById('percentageSplitsInputs');
+            const row = document.createElement('div');
+            row.className = 'split-percentage-row';
+            row.innerHTML = `
+                <input type="number" class="form-control" placeholder="User ID" required>
+                <input type="number" class="form-control" placeholder="Percentage" step="0.01" required>
+                <button type="button" class="btn btn-danger btn-sm removeSplitBtn">Remove</button>
+            `;
+            container.appendChild(row);
+        });
+
+        // Remove split row
+        document.getElementById('percentageSplitsInputs').addEventListener('click', function(e) {
+            if (e.target.classList.contains('removeSplitBtn')) {
+                e.target.parentElement.remove();
+            }
+        });
+
+        document.getElementById('addFriendExpenseForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const description = document.getElementById('description').value;
+            const totalAmount = document.getElementById('totalAmount').value;
+            const payerId = document.getElementById('payerId').value;
+            const friendIds = document.getElementById('friendIds').value.split(',').map(id => parseInt(id.trim(), 10)).filter(id => !isNaN(id));
+            const categoryId = document.getElementById('categoryId').value;
+            const currency = document.getElementById('currency').value;
+            const notes = document.getElementById('notes').value;
+            const splitType = document.getElementById('splitType').value;
+            let payload = {
+                description,
+                total_amount: totalAmount,
+                payer_id: payerId,
+                friend_ids: friendIds,
+                currency,
+                notes,
+                split_type: splitType
+            };
+            if (categoryId) {
+                payload.category_id = parseInt(categoryId, 10);
+            }
+            if (splitType === 'percentage') {
+                const splits = [];
+                const rows = document.querySelectorAll('#percentageSplitsInputs .split-percentage-row');
+                rows.forEach(row => {
+                    const inputs = row.querySelectorAll('input');
+                    const userId = parseInt(inputs[0].value, 10);
+                    const percentage = parseFloat(inputs[1].value);
+                    if (!isNaN(userId) && !isNaN(percentage)) {
+                        splits.push({ user_id: userId, percentage });
+                    }
+                });
+                payload.splits = splits;
+            }
+            try {
+                const response = await fetch('/api/expenses/add-friend/', {
+                    method: 'POST',
+                    headers: getHeaders(),
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+                document.getElementById('addFriendExpenseResponse').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('addFriendExpenseResponse').textContent = 'Error: ' + error.message;
+            }
+        });
+    </script>
+</body>
+</html> 

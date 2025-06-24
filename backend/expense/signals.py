@@ -168,7 +168,7 @@ def update_balance_on_expense_share_change(sender, instance, created, **kwargs):
     """Update balances when expense shares are created or modified"""
     expense = instance.expense
     share_user = instance.user
-    
+            
     # ✅ If user is a payer, auto-mark their own share as paid
     if share_user in [p.payer for p in expense.payments.all()]:
         if instance.amount_paid_back < instance.amount_owed:
