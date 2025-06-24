@@ -5,9 +5,10 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from django.contrib.auth.models import User
 from decimal import Decimal
-from .models import Expense, ExpensePayment, ExpenseShare, ExpenseCategory
-from .serializers import AddExpenseSerializer, UserSerializer, AddFriendExpenseSerializer
+from .models import Expense, ExpensePayment, ExpenseShare, ExpenseCategory, UserTotalBalance
+from .serializers import AddExpenseSerializer, UserSerializer, AddFriendExpenseSerializer, UserTotalBalanceSerializer
 from connections.models import Group
+from django.db import models
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -172,3 +173,14 @@ def add_friend_expense(request):
             },
             status=status.HTTP_400_BAD_REQUEST
         )
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def list_user_total_balances(request):
+    """
+    List all balances the current user has with all other users (friends).
+    """
+    user = request.user
+    balances = UserTotalBalance.objects.filter(models.Q(user1=user) | models.Q(user2=user)).exclude(total_balance=0)
+    serializer = UserTotalBalanceSerializer(balances, many=True, context={'user': user})
+    return Response(serializer.data)
