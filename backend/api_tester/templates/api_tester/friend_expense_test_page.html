@@ -89,6 +89,17 @@
             </form>
             <div class="response-area" id="addFriendExpenseResponse"></div>
         </div>
+        <div class="api-section">
+            <h3>Check Expenses & Balance With a Friend</h3>
+            <form id="expensesWithFriendForm" class="mb-3">
+                <div class="mb-3">
+                    <label for="friendUserId" class="form-label">Friend's User ID</label>
+                    <input type="number" class="form-control" id="friendUserId" required>
+                </div>
+                <button type="submit" class="btn btn-info">Fetch Expenses & Balance</button>
+            </form>
+            <div class="response-area" id="expensesWithFriendResponse"></div>
+        </div>
     </div>
     <script>
         // Get CSRF token and JWT token from cookies
@@ -206,6 +217,23 @@
                 document.getElementById('addFriendExpenseResponse').textContent = JSON.stringify(data, null, 2);
             } catch (error) {
                 document.getElementById('addFriendExpenseResponse').textContent = 'Error: ' + error.message;
+            }
+        });
+
+        // Expenses and balance with friend API
+        document.getElementById('expensesWithFriendForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const friendUserId = document.getElementById('friendUserId').value;
+            const responseArea = document.getElementById('expensesWithFriendResponse');
+            responseArea.textContent = 'Loading...';
+            try {
+                const response = await fetch(`/api/expenses/expenses-with-friend/?user_id=${friendUserId}`, {
+                    headers: getHeaders()
+                });
+                const data = await response.json();
+                responseArea.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                responseArea.textContent = 'Error: ' + error.message;
             }
         });
     </script>

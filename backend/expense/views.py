@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from django.contrib.auth.models import User
 from decimal import Decimal
 from .models import Expense, ExpensePayment, ExpenseShare, ExpenseCategory, UserTotalBalance
-from .serializers import AddExpenseSerializer, UserSerializer, AddFriendExpenseSerializer, UserTotalBalanceSerializer
+from .serializers import AddExpenseSerializer, UserSerializer, AddFriendExpenseSerializer, UserTotalBalanceSerializer, ExpenseListSerializer
 from connections.models import Group
 from django.db import models
 
@@ -184,3 +184,41 @@ def list_user_total_balances(request):
     balances = UserTotalBalance.objects.filter(models.Q(user1=user) | models.Q(user2=user)).exclude(total_balance=0)
     serializer = UserTotalBalanceSerializer(balances, many=True, context={'user': user})
     return Response(serializer.data)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def expenses_and_balance_with_friend(request):
+    """
+    Show all expenses and the balance between the current user and a specified friend (by user_id).
+    """
+    user = request.user
+    friend_id = request.GET.get('user_id')
+    if not friend_id:
+        return Response({'error': 'user_id parameter is required.'}, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        friend = User.objects.get(id=friend_id)
+    except User.DoesNotExist:
+        return Response({'error': 'Friend not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    # Get all expenses involving both users (either as payer or share)
+    expenses = Expense.objects.filter(
+        (models.Q(payments__payer=user) & models.Q(shares__user=friend)) |
+        (models.Q(payments__payer=friend) & models.Q(shares__user=user)) |
+        (models.Q(shares__user=user) & models.Q(shares__user=friend))
+    ).distinct().order_by('-date')
+
+    expense_serializer = ExpenseListSerializer(expenses, many=True, context={'user': user})
+
+    # Fetch the UserTotalBalance object for the user pair, but do not create if missing
+    user1, user2 = (user, friend) if user.id < friend.id else (friend, user)
+    try:
+        balance_obj = UserTotalBalance.objects.get(user1=user1, user2=user2)
+    except UserTotalBalance.DoesNotExist:
+        balance_obj = UserTotalBalance(user1=user1, user2=user2, total_balance=0)
+    balance_serializer = UserTotalBalanceSerializer(balance_obj, context={'user': user})
+    balance_data = balance_serializer.data
+
+    return Response({
+        'expenses': expense_serializer.data,
+        'balance': balance_data
+    })

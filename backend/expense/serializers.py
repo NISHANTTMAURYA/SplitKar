@@ -3,6 +3,7 @@ from django.contrib.auth.models import User
 from decimal import Decimal
 from .models import Expense, ExpensePayment, ExpenseShare, ExpenseCategory, UserTotalBalance
 from connections.models import Group, Friendship
+from django.db.models import Sum
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -341,3 +342,24 @@ class UserTotalBalanceSerializer(serializers.ModelSerializer):
             return obj.user2.username
         else:
             return obj.user1.username 
+
+
+class ExpenseListSerializer(serializers.ModelSerializer):
+    you_paid = serializers.SerializerMethodField()
+    you_owe = serializers.SerializerMethodField()
+    group_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Expense
+        fields = ['expense_id', 'description', 'total_amount', 'currency', 'date', 'group_name', 'you_paid', 'you_owe']
+
+    def get_group_name(self, obj):
+        return obj.group.name if obj.group else None
+
+    def get_you_paid(self, obj):
+        user = self.context.get('user')
+        return obj.payments.filter(payer=user).aggregate(total=Sum('amount_paid'))['total'] or 0
+
+    def get_you_owe(self, obj):
+        user = self.context.get('user')
+        return obj.shares.filter(user=user).aggregate(total=Sum('amount_owed'))['total'] or 0 
