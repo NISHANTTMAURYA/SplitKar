@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+// need to add 2 border color
+// need to add textcolor2
+//need to add subtitlecolor 1 and 2
+//need to add iconcolor2
 
 const Color kTrialColor = Colors.white;
 const Color kSecondaryColor = Colors.amber;

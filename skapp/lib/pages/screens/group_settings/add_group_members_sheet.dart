@@ -6,7 +6,7 @@ import 'package:skapp/widgets/custom_loader.dart';
 import 'package:skapp/services/notification_service.dart';
 import 'package:skapp/pages/groups/group_service.dart';
 import 'package:skapp/pages/groups/group_provider.dart';
-
+import 'package:skapp/utils/app_colors.dart';
 class AddGroupMembersSheet extends StatefulWidget {
   final int groupId;
   final String groupName;
@@ -147,10 +147,11 @@ class _AddGroupMembersSheetState extends State<AddGroupMembersSheet> {
     if (isDisabled && isSelected) {
       provider.removeUserFromSelection(profileCode);
     }
-
+    final appColors = Theme.of(context).extension<AppColorScheme>()!;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 8.0),
       child: Card(
+        color:appColors.cardColor2,
         elevation: 2,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: ListTile(
@@ -212,15 +213,15 @@ class _AddGroupMembersSheetState extends State<AddGroupMembersSheet> {
                   margin: const EdgeInsets.only(top: 4),
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
-                    color: Colors.purple.withOpacity(0.1),
+                    color: Colors.deepPurpleAccent[100]!.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.purple.withOpacity(0.3)),
+                    border: Border.all(color: backgroundColordarkmode!.withOpacity(0.3)),
                   ),
                   child: Text(
                     'Already a Member',
                     style: GoogleFonts.cabin(
                       fontSize: 12,
-                      color: Colors.purple[700],
+                      color: Colors.deepPurpleAccent[100],
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -378,7 +379,7 @@ class _AddGroupMembersSheetState extends State<AddGroupMembersSheet> {
                               style: GoogleFonts.cabin(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.purple[700],
+                                color: Colors.deepPurpleAccent[100],
                               ),
                             ),
                           ),

@@ -26,12 +26,14 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     final double avatarSize = MobileUtils.getScreenWidth(context) * 0.1; // Responsive avatar size (e.g., 10% of screen width)
 
     return Scaffold(
-      appBar: PreferredSize(  
+      appBar: PreferredSize(
         preferredSize: Size.fromHeight(MobileUtils.getScreenHeight(context) * 0.08), // Adjusted AppBar height for responsiveness
         child: AppBar(
           automaticallyImplyLeading: false, // Control leading manually
           toolbarHeight: MobileUtils.getScreenHeight(context) * 0.08, // Set the actual toolbar height
           backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+
+
           leading: IconButton( // Back button
             icon: const Icon(Icons.arrow_back, color: Colors.white), // Assuming white icon for purple background
             onPressed: () {
@@ -54,7 +56,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                   padding: EdgeInsets.only(right: MobileUtils.getScreenWidth(context) * 0.02), // Responsive padding
                   child: CircleAvatar(
                     radius: avatarSize / 2,
-                    backgroundColor: Theme.of(context).colorScheme.inversePrimary.withOpacity(0.7),
+                    backgroundColor: Theme.of(context).colorScheme.inversePrimary,
                     child: ClipOval(
                       child: (widget.chatImageUrl != null &&
                               widget.chatImageUrl!.isNotEmpty &&
