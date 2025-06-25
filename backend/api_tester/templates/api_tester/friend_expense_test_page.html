@@ -100,6 +100,11 @@
             </form>
             <div class="response-area" id="expensesWithFriendResponse"></div>
         </div>
+        <div class="api-section">
+            <h3>Get My Balances With All Users</h3>
+            <button id="fetchUserTotalBalancesBtn" class="btn btn-primary">Fetch My Balances</button>
+            <div class="response-area" id="userTotalBalancesResponse"></div>
+        </div>
     </div>
     <script>
         // Get CSRF token and JWT token from cookies
@@ -228,6 +233,21 @@
             responseArea.textContent = 'Loading...';
             try {
                 const response = await fetch(`/api/expenses/expenses-with-friend/?user_id=${friendUserId}`, {
+                    headers: getHeaders()
+                });
+                const data = await response.json();
+                responseArea.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                responseArea.textContent = 'Error: ' + error.message;
+            }
+        });
+
+        // User total balances API
+        document.getElementById('fetchUserTotalBalancesBtn').addEventListener('click', async () => {
+            const responseArea = document.getElementById('userTotalBalancesResponse');
+            responseArea.textContent = 'Loading...';
+            try {
+                const response = await fetch('/api/expenses/user-total-balances/', {
                     headers: getHeaders()
                 });
                 const data = await response.json();
