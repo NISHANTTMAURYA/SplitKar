@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from decimal import Decimal
-from .models import Expense, ExpensePayment, ExpenseShare, ExpenseCategory, UserTotalBalance
+from .models import Expense, ExpensePayment, ExpenseShare, ExpenseCategory, UserTotalBalance, Balance
 from connections.models import Group, Friendship
 from django.db.models import Sum
 
@@ -342,6 +342,15 @@ class UserTotalBalanceSerializer(serializers.ModelSerializer):
             return obj.user2.username
         else:
             return obj.user1.username 
+
+
+class BalanceSerializer(serializers.ModelSerializer):
+    user1 = UserSerializer()
+    user2 = UserSerializer()
+    
+    class Meta:
+        model = Balance
+        fields = ['id', 'user1', 'user2', 'balance_amount', 'currency', 'group']
 
 
 class ExpenseListSerializer(serializers.ModelSerializer):
