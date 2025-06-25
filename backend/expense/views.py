@@ -5,8 +5,8 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from django.contrib.auth.models import User
 from decimal import Decimal
-from .models import Expense, ExpensePayment, ExpenseShare, ExpenseCategory, UserTotalBalance
-from .serializers import AddExpenseSerializer, UserSerializer, AddFriendExpenseSerializer, UserTotalBalanceSerializer, ExpenseListSerializer
+from .models import Expense, ExpensePayment, ExpenseShare, ExpenseCategory, UserTotalBalance, Balance
+from .serializers import AddExpenseSerializer, UserSerializer, AddFriendExpenseSerializer, UserTotalBalanceSerializer, ExpenseListSerializer, BalanceSerializer
 from connections.models import Group
 from django.db import models
 
@@ -222,3 +222,25 @@ def expenses_and_balance_with_friend(request):
         'expenses': expense_serializer.data,
         'balance': balance_data
     })
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def group_member_balances(request):
+    """
+    Show all balances between members of a specified group (by group_id).
+    """
+    group_id = request.GET.get('group_id')
+    if not group_id:
+        return Response({'error': 'group_id parameter is required.'}, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        group = Group.objects.get(id=group_id, is_active=True)
+    except Group.DoesNotExist:
+        return Response({'error': 'Group not found or inactive.'}, status=status.HTTP_404_NOT_FOUND)
+
+    # Only members can view balances
+    if request.user not in group.members.all():
+        return Response({'error': 'You are not a member of this group.'}, status=status.HTTP_403_FORBIDDEN)
+
+    balances = Balance.objects.filter(group=group).exclude(balance_amount=0)
+    serializer = BalanceSerializer(balances, many=True)
+    return Response(serializer.data)

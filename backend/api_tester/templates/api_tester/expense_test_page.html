@@ -93,6 +93,17 @@
             </form>
             <div class="response-area" id="addExpenseResponse"></div>
         </div>
+        <div class="api-section">
+            <h3>Get Group Member Balances</h3>
+            <form id="groupBalancesForm" class="mb-3">
+                <div class="mb-3">
+                    <label for="groupBalancesGroupId" class="form-label">Group ID</label>
+                    <input type="number" class="form-control" id="groupBalancesGroupId" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Get Balances</button>
+            </form>
+            <div class="response-area" id="groupBalancesResponse"></div>
+        </div>
     </div>
     <script>
         // Get CSRF token and JWT token from cookies
@@ -212,6 +223,23 @@
                 document.getElementById('addExpenseResponse').textContent = JSON.stringify(data, null, 2);
             } catch (error) {
                 document.getElementById('addExpenseResponse').textContent = 'Error: ' + error.message;
+            }
+        });
+
+        // Group Member Balances API
+        document.getElementById('groupBalancesForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const groupId = document.getElementById('groupBalancesGroupId').value;
+            if (!groupId) return;
+            try {
+                const response = await fetch(`/api/expenses/group-balances/?group_id=${groupId}`, {
+                    method: 'GET',
+                    headers: getHeaders()
+                });
+                const data = await response.json();
+                document.getElementById('groupBalancesResponse').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('groupBalancesResponse').textContent = 'Error: ' + error.message;
             }
         });
     </script>
