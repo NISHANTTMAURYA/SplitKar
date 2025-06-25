@@ -354,21 +354,46 @@ class BalanceSerializer(serializers.ModelSerializer):
 
 
 class ExpenseListSerializer(serializers.ModelSerializer):
-    you_paid = serializers.SerializerMethodField()
+    payer_id = serializers.SerializerMethodField()
+    owed_breakdown = serializers.SerializerMethodField()
     you_owe = serializers.SerializerMethodField()
     group_name = serializers.SerializerMethodField()
+    category = serializers.SerializerMethodField()
 
     class Meta:
         model = Expense
-        fields = ['expense_id', 'description', 'total_amount', 'currency', 'date', 'group_name', 'you_paid', 'you_owe']
+        fields = ['expense_id', 'description', 'total_amount', 'currency', 'date', 'group_name', 'payer_id', 'owed_breakdown', 'you_owe', 'category']
 
     def get_group_name(self, obj):
         return obj.group.name if obj.group else None
 
-    def get_you_paid(self, obj):
-        user = self.context.get('user')
-        return obj.payments.filter(payer=user).aggregate(total=Sum('amount_paid'))['total'] or 0
+    def get_payer_id(self, obj):
+        payment = obj.payments.first()
+        return payment.payer.id if payment else None
+
+    def get_owed_breakdown(self, obj):
+        payments = obj.payments.all()
+        if not payments:
+            return []
+        payer = payments.first().payer
+        breakdown = []
+        for share in obj.shares.exclude(user=payer):
+            breakdown.append({
+                'user_id': share.user.id,
+                'amount_owed': str(share.amount_owed)
+            })
+        return breakdown
 
     def get_you_owe(self, obj):
         user = self.context.get('user')
         return obj.shares.filter(user=user).aggregate(total=Sum('amount_owed'))['total'] or 0 
+
+    def get_category(self, obj):
+        if obj.category:
+            return {
+                'id': obj.category.id,
+                'name': obj.category.name,
+                'icon': obj.category.icon,
+                'color': obj.category.color,
+            }
+        return None 

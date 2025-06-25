@@ -244,3 +244,25 @@ def group_member_balances(request):
     balances = Balance.objects.filter(group=group).exclude(balance_amount=0)
     serializer = BalanceSerializer(balances, many=True)
     return Response(serializer.data)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def group_expenses(request):
+    """
+    Fetch all expenses for a specified group (by group_id).
+    """
+    group_id = request.GET.get('group_id')
+    if not group_id:
+        return Response({'error': 'group_id parameter is required.'}, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        group = Group.objects.get(id=group_id, is_active=True)
+    except Group.DoesNotExist:
+        return Response({'error': 'Group not found or inactive.'}, status=status.HTTP_404_NOT_FOUND)
+
+    # Only members can view group expenses
+    if request.user not in group.members.all():
+        return Response({'error': 'You are not a member of this group.'}, status=status.HTTP_403_FORBIDDEN)
+
+    expenses = Expense.objects.filter(group=group).order_by('-date')
+    serializer = ExpenseListSerializer(expenses, many=True, context={'user': request.user})
+    return Response(serializer.data)
