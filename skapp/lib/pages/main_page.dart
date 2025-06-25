@@ -105,11 +105,15 @@ class MainPageState extends State<MainPage> {
 
     // Defer loading until after the first frame
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await ProfileApi().loadAllProfileData(context, forceRefresh: true);
-      if (context.mounted) {
-        final alertService = Provider.of<AlertService>(context, listen: false);
-        await alertService.fetchAlerts(context);
-      }
+      if (!context.mounted) return;
+
+      // Start both operations in parallel
+      final profileFuture = ProfileApi().loadAllProfileData(context, forceRefresh: true);
+      final alertService = Provider.of<AlertService>(context, listen: false);
+      final alertsFuture = alertService.fetchAlerts(context);
+
+      // Wait for both to complete (optional)
+      await Future.wait([profileFuture, alertsFuture]);
     });
   }
 

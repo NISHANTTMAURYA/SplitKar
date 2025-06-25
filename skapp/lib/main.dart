@@ -315,11 +315,13 @@ class _MyAppState extends State<MyApp> {
     // TODO: implement initState
     super.initState();
     initialization();
+
   }
   Future<void> initialization() async {
     await Future.delayed(Duration(seconds: 1));
     FlutterNativeSplash.remove();
   }
+
 
 
   @override
