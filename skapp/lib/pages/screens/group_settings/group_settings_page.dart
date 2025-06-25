@@ -430,6 +430,315 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
     );
   }
 
+  Widget _buildGroupInfoCard() {
+    if (_groupDetails == null) return const SizedBox.shrink();
+    final appColor = Theme.of(context).extension<AppColorScheme>()!;
+    return Container(
+      margin: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: appColor.cardColor,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Header
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [appColor.cardColor2!, appColor.cardColor2!.withOpacity(0.7)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(20),
+                topRight: Radius.circular(20),
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.group, color: Colors.white, size: 24),
+                ),
+                const SizedBox(width: 16),
+                Text(
+                  'Group Information',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Content
+          Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.description, color: Colors.blue, size: 20),
+                          const SizedBox(width: 8),
+                          Text('Description', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Text(_groupDetails!['description'] ?? 'No description available'),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.green[900]!.withOpacity(0.4),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(Icons.person, color: Colors.green, size: 24),
+                            const SizedBox(height: 8),
+                            Text('Created by', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                            Text(_groupDetails!['created_by']['username'], style: TextStyle(fontWeight: FontWeight.w500)),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.orange[900]!.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(Icons.people, color: Colors.orange, size: 24),
+                            const SizedBox(height: 8),
+                            Text('Members', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                            Text('${_groupDetails!['member_count']}', style: TextStyle(fontWeight: FontWeight.w500)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.purple.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.access_time, color: Colors.purple, size: 20),
+                      const SizedBox(width: 12),
+                      Text('Created: \\${_groupDetails!['created_at']}'),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMembersCard() {
+    if (_groupDetails == null) return const SizedBox.shrink();
+    final appColor = Theme.of(context).extension<AppColorScheme>()!;
+    return Container(
+      margin: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: appColor.cardColor,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header with gradient
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  appColor.cardColor2!,
+                  appColor.cardColor2!.withOpacity(0.7),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(20),
+                topRight: Radius.circular(20),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.people,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Members',
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${_groupDetails!['members'].length} travelers',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Colors.white.withOpacity(0.8),
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                if (_groupDetails!['is_admin'] ?? false)
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.2),
+                        width: 1,
+                      ),
+                    ),
+                    child: TextButton.icon(
+                      onPressed: () {
+                        // Get existing member profile codes
+                        final existingMemberCodes = List<String>.from(
+                          _groupDetails!['members'].map(
+                                (member) => member['profile_code'] as String,
+                          ),
+                        );
+
+                        // Get pending invitation profile codes
+                        final sentInvitations = (_groupDetails!['sent_invitations'] ?? [])
+                            .map((invitation) => invitation['invited_user_profile_code'] as String);
+                        final receivedInvitations = (_groupDetails!['received_invitations'] ?? [])
+                            .map((invitation) => invitation['invited_user_profile_code'] as String);
+
+                        final pendingInvitationCodes = List<String>.from([
+                          ...sentInvitations,
+                          ...receivedInvitations,
+                        ]);
+
+                        AddGroupMembersSheet.show(
+                          context,
+                          widget.groupId,
+                          _groupDetails!['name'],
+                          existingMemberCodes,
+                          pendingInvitationCodes,
+                        ).then((shouldRefresh) {
+                          if (shouldRefresh) {
+                            _fetchGroupDetails();
+                          }
+                        });
+                      },
+                      icon: const Icon(
+                        Icons.person_add,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                      label: const Text(
+                        'Add',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          // Members list
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _groupDetails!['members'].length,
+              separatorBuilder: (context, index) => const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                final member = _groupDetails!['members'][index];
+                return _buildEnhancedMemberTile(member);
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final appColor = Theme.of(context).extension<AppColorScheme>()!;
@@ -464,310 +773,13 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                     child: ListView(
                       children: [
                         // Group Info Card
-                        Container(
-                          margin: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: appColor.cardColor,
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.08),
-                                blurRadius: 20,
-                                offset: const Offset(0, 8),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            children: [
-                              // Header
-                              Container(
-                                padding: const EdgeInsets.all(24),
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [appColor.cardColor2!, appColor.cardColor2!.withOpacity(0.7)],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  ),
-                                  borderRadius: const BorderRadius.only(
-                                    topLeft: Radius.circular(20),
-                                    topRight: Radius.circular(20),
-                                  ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(12),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white.withOpacity(0.15),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: const Icon(Icons.group, color: Colors.white, size: 24),
-                                    ),
-                                    const SizedBox(width: 16),
-                                    Text(
-                                      'Group Information',
-                                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              // Content
-                              Padding(
-                                padding: const EdgeInsets.all(24),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(20),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white.withOpacity(0.05),
-                                        borderRadius: BorderRadius.circular(16),
-                                      ),
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Row(
-                                            children: [
-                                              Icon(Icons.description, color: Colors.blue, size: 20),
-                                              const SizedBox(width: 8),
-                                              Text('Description', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
-                                            ],
-                                          ),
-                                          const SizedBox(height: 12),
-                                          Text(_groupDetails!['description'] ?? 'No description available'),
-                                        ],
-                                      ),
-                                    ),
-                                    const SizedBox(height: 20),
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: Container(
-                                            padding: const EdgeInsets.all(16),
-                                            decoration: BoxDecoration(
-                                              color: Colors.green[900]!.withOpacity(0.4),
-                                              borderRadius: BorderRadius.circular(12),
-                                            ),
-                                            child: Column(
-                                              children: [
-                                                Icon(Icons.person, color: Colors.green, size: 24),
-                                                const SizedBox(height: 8),
-                                                Text('Created by', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
-                                                Text(_groupDetails!['created_by']['username'], style: TextStyle(fontWeight: FontWeight.w500)),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: Container(
-                                            padding: const EdgeInsets.all(16),
-                                            decoration: BoxDecoration(
-                                              color: Colors.orange[900]!.withOpacity(0.2),
-                                              borderRadius: BorderRadius.circular(12),
-                                            ),
-                                            child: Column(
-                                              children: [
-                                                Icon(Icons.people, color: Colors.orange, size: 24),
-                                                const SizedBox(height: 8),
-                                                Text('Members', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
-                                                Text('${_groupDetails!['member_count']}', style: TextStyle(fontWeight: FontWeight.w500)),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 12),
-                                    Container(
-                                      padding: const EdgeInsets.all(16),
-                                      decoration: BoxDecoration(
-                                        color: Colors.purple.withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          Icon(Icons.access_time, color: Colors.purple, size: 20),
-                                          const SizedBox(width: 12),
-                                          Text('Created: ${_groupDetails!['created_at']}'),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                        _buildGroupInfoCard(),
 
                         // Trip Details Card (if applicable)
                         _buildTripDetails(),
 
                         // Members List Card
-                        Container(
-                          margin: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: appColor.cardColor,
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.08),
-                                blurRadius: 20,
-                                offset: const Offset(0, 8),
-                              ),
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.04),
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Header with gradient
-                              Container(
-                                padding: const EdgeInsets.all(24),
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      appColor.cardColor2!,
-                                      appColor.cardColor2!.withOpacity(0.7),
-                                    ],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  ),
-                                  borderRadius: const BorderRadius.only(
-                                    topLeft: Radius.circular(20),
-                                    topRight: Radius.circular(20),
-                                  ),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.all(12),
-                                          decoration: BoxDecoration(
-                                            color: Colors.white.withOpacity(0.15),
-                                            borderRadius: BorderRadius.circular(12),
-                                          ),
-                                          child: const Icon(
-                                            Icons.people,
-                                            color: Colors.white,
-                                            size: 24,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 16),
-                                        Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              'Members',
-                                              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.white,
-                                                letterSpacing: 0.5,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 4),
-                                            Text(
-                                              '${_groupDetails!['members'].length} travelers',
-                                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                                color: Colors.white.withOpacity(0.8),
-                                                fontStyle: FontStyle.italic,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                    if (_groupDetails!['is_admin'] ?? false)
-                                      Container(
-                                        decoration: BoxDecoration(
-                                          color: Colors.white.withOpacity(0.15),
-                                          borderRadius: BorderRadius.circular(12),
-                                          border: Border.all(
-                                            color: Colors.white.withOpacity(0.2),
-                                            width: 1,
-                                          ),
-                                        ),
-                                        child: TextButton.icon(
-                                          onPressed: () {
-                                            // Get existing member profile codes
-                                            final existingMemberCodes = List<String>.from(
-                                              _groupDetails!['members'].map(
-                                                    (member) => member['profile_code'] as String,
-                                              ),
-                                            );
-
-                                            // Get pending invitation profile codes
-                                            final sentInvitations = (_groupDetails!['sent_invitations'] ?? [])
-                                                .map((invitation) => invitation['invited_user_profile_code'] as String);
-                                            final receivedInvitations = (_groupDetails!['received_invitations'] ?? [])
-                                                .map((invitation) => invitation['invited_user_profile_code'] as String);
-
-                                            final pendingInvitationCodes = List<String>.from([
-                                              ...sentInvitations,
-                                              ...receivedInvitations,
-                                            ]);
-
-                                            AddGroupMembersSheet.show(
-                                              context,
-                                              widget.groupId,
-                                              _groupDetails!['name'],
-                                              existingMemberCodes,
-                                              pendingInvitationCodes,
-                                            ).then((shouldRefresh) {
-                                              if (shouldRefresh) {
-                                                _fetchGroupDetails();
-                                              }
-                                            });
-                                          },
-                                          icon: const Icon(
-                                            Icons.person_add,
-                                            color: Colors.white,
-                                            size: 20,
-                                          ),
-                                          label: const Text(
-                                            'Add',
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.w600,
-                                              letterSpacing: 0.3,
-                                            ),
-                                          ),
-                                          style: TextButton.styleFrom(
-                                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                            minimumSize: Size.zero,
-                                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                          ),
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                              ),
-                              // Members list
-                              Padding(
-                                padding: const EdgeInsets.all(16),
-                                child: ListView.separated(
-                                  shrinkWrap: true,
-                                  physics: const NeverScrollableScrollPhysics(),
-                                  itemCount: _groupDetails!['members'].length,
-                                  separatorBuilder: (context, index) => const SizedBox(height: 12),
-                                  itemBuilder: (context, index) {
-                                    final member = _groupDetails!['members'][index];
-                                    return _buildEnhancedMemberTile(member);
-                                  },
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                        _buildMembersCard(),
                       ],
                     ),
                   ),

@@ -217,7 +217,8 @@ class AppDrawer extends StatelessWidget {
                     style: GoogleFonts.cabin(color: Colors.white, fontSize: 17),
                   ),
                   selected: selectedIndex == index,
-                  selectedTileColor: Colors.deepPurple.withOpacity(0.2),
+                  selectedTileColor: Theme.of(context).brightness == Brightness.light ?Colors.deepPurple.withOpacity(0.2):
+                  KDeepPurpleAccent100!.withOpacity(0.2),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
                   ),
