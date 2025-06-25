@@ -64,8 +64,8 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isAdmin
-              ? backgroundColordarkmode!.withOpacity(0.5)
-              : Colors.white.withOpacity(0.1),
+              ? appColors.borderColor2 ?? Colors.blue.withOpacity(0.5)
+              : appColors.borderColor3 ?? Colors.white.withOpacity(0.1),
           width: 1,
         ),
       ),
@@ -80,7 +80,7 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(28),
                     border: Border.all(
-                      color: isAdmin ? Colors.blue[800]!.withOpacity(0.8) : Colors.grey.withOpacity(0.8),
+                      color: isAdmin ? (appColors.borderColor2 ?? Colors.blue[800]!.withOpacity(0.8)) : (appColors.borderColor3 ?? Colors.grey.withOpacity(0.8)),
                       width: 2,
                     ),
                   ),
@@ -90,15 +90,15 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                         ? CachedNetworkImageProvider(member['profile_picture_url'])
                         : null,
                     backgroundColor: isAdmin
-                        ? Colors.blue.withOpacity(0.1)
-                        : Colors.grey.withOpacity(0.1),
+                        ? (appColors.borderColor2 ?? Colors.blue.withOpacity(0.1))
+                        : (appColors.borderColor3 ?? Colors.grey.withOpacity(0.1)),
                     child: member['profile_picture_url'] == null
                         ? Text(
                       member['username'][0].toUpperCase(),
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: isAdmin ? Colors.blue : Colors.grey[700],
+                        color: isAdmin ? (appColors.borderColor2 ?? Colors.blue) : (appColors.textColor2 ?? Colors.grey[700]),
                       ),
                     )
                         : null,
@@ -111,10 +111,9 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                     child: Container(
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
-
-                        color: Colors.blue,
+                        color: appColors.borderColor2,
                         gradient: LinearGradient(
-                          colors: [backgroundColordarkmode!, Colors.blue[600]!],
+                          colors: [backgroundColordarkmode!, appColors.borderColor2 ?? Colors.blue[600]!],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
@@ -145,7 +144,7 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                             letterSpacing: 0.3,
-                            color: isAdmin ? backgroundColordarkmode : null,
+                            color: isAdmin ? appColors.borderColor2 : null,
                           ),
                           overflow: TextOverflow.ellipsis,
                           maxLines: 1,
@@ -157,14 +156,14 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
-                              colors: [backgroundColordarkmode!.withOpacity(0.4), Colors.blue[800]!],
+                              colors: [appColors.borderColor2!.withOpacity(0.4), appColors.borderColor2 ?? Colors.blue[800]!],
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
                             ),
                             borderRadius: BorderRadius.circular(12),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.blue.withOpacity(0.3),
+                                color: (appColors.borderColor2 ?? Colors.blue).withOpacity(0.3),
                                 blurRadius: 4,
                                 offset: const Offset(0, 2),
                               ),
@@ -206,7 +205,7 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                         member['profile_code'] ?? 'No profile code',
                         style: TextStyle(
                           fontSize: 13,
-                          color: KDeepPurpleAccent100,
+                          color: appColors.textColor2 ?? KDeepPurpleAccent100,
                           letterSpacing: 0.2,
                         ),
                       ),
@@ -218,7 +217,6 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
             // Action Button
             if (currentUserIsAdmin && !isAdmin)
               Container(
-
                 margin: const EdgeInsets.only(left: 12),
                 child: Material(
                   color: Colors.transparent,
@@ -226,15 +224,14 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                     borderRadius: BorderRadius.circular(16),
                     onTap: () => _showRemoveConfirmation(member),
                     child: Container(
-
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.red[50],
+                        color: appColors.iconColor2?.withOpacity(0.08),
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.red[200]!, width: 1),
+                        border: Border.all(color: appColors.iconColor2 ?? Colors.red, width: 1),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.red.withOpacity(0.1),
+                            color: (appColors.iconColor2 ?? Colors.red).withOpacity(0.1),
                             blurRadius: 4,
                             offset: const Offset(0, 2),
                           ),
@@ -242,9 +239,8 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                       ),
                       child: Icon(
                         Icons.person_remove,
-                        color: backgroundColordarkmode!,
+                        color: appColors.iconColor2 ?? backgroundColordarkmode!,
                         size: 20,
-
                       ),
                     ),
                   ),
@@ -359,9 +355,9 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                     color: Colors.white.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.flight_takeoff,
-                    color: Colors.white,
+                    color: appColor.iconColor2,
                     size: 24,
                   ),
                 ),
@@ -381,12 +377,12 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
             padding: const EdgeInsets.all(24),
             child: Column(
               children: [
-                _buildEnhancedTripDetailRow(Icons.location_on, 'Destination', tripDetails['destination'], Colors.red),
-                _buildEnhancedTripDetailRow(Icons.calendar_today, 'Start Date', tripDetails['start_date'], Colors.green),
-                _buildEnhancedTripDetailRow(Icons.event, 'End Date', tripDetails['end_date'], Colors.blue),
-                _buildEnhancedTripDetailRow(Icons.info_outline, 'Status', tripDetails['trip_status'], Colors.orange),
+                _buildEnhancedTripDetailRow(Icons.location_on, 'Destination', tripDetails['destination'], appColor.iconColor2 ?? Colors.red),
+                _buildEnhancedTripDetailRow(Icons.calendar_today, 'Start Date', tripDetails['start_date'], appColor.subtitleColor1 ?? Colors.green),
+                _buildEnhancedTripDetailRow(Icons.event, 'End Date', tripDetails['end_date'], appColor.subtitleColor2 ?? Colors.orange),
+                _buildEnhancedTripDetailRow(Icons.info_outline, 'Status', tripDetails['trip_status'], appColor.iconColor2 ?? Colors.orange),
                 if (tripDetails['budget'] != null)
-                  _buildEnhancedTripDetailRow(Icons.account_balance_wallet, 'Budget', '₹${tripDetails['budget']}', Colors.purple),
+                  _buildEnhancedTripDetailRow(Icons.account_balance_wallet, 'Budget', '₹${tripDetails['budget']}', appColor.iconColor2 ?? Colors.purple),
               ],
             ),
           ),
@@ -470,7 +466,7 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                     color: Colors.white.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.group, color: Colors.white, size: 24),
+                  child: Icon(Icons.group, color: appColor.iconColor, size: 24),
                 ),
                 const SizedBox(width: 16),
                 Text(
@@ -500,7 +496,7 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.description, color: Colors.blue, size: 20),
+                          Icon(Icons.description, color: appColor.iconColor2, size: 20),
                           const SizedBox(width: 8),
                           Text('Description', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
                         ],
@@ -517,12 +513,12 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                       child: Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Colors.green[900]!.withOpacity(0.4),
+                          color: appColor.subtitleColor1?.withOpacity(0.15),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Column(
                           children: [
-                            Icon(Icons.person, color: Colors.green, size: 24),
+                            Icon(Icons.person, color: appColor.subtitleColor1, size: 24),
                             const SizedBox(height: 8),
                             Text('Created by', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
                             Text(_groupDetails!['created_by']['username'], style: TextStyle(fontWeight: FontWeight.w500)),
@@ -535,12 +531,12 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                       child: Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Colors.orange[900]!.withOpacity(0.2),
+                          color: appColor.subtitleColor2?.withOpacity(0.15),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Column(
                           children: [
-                            Icon(Icons.people, color: Colors.orange, size: 24),
+                            Icon(Icons.people, color: appColor.subtitleColor2, size: 24),
                             const SizedBox(height: 8),
                             Text('Members', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
                             Text('${_groupDetails!['member_count']}', style: TextStyle(fontWeight: FontWeight.w500)),
@@ -554,14 +550,14 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.purple.withOpacity(0.1),
+                    color: appColor.iconColor2?.withOpacity(0.08),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.access_time, color: Colors.purple, size: 20),
+                      Icon(Icons.access_time, color: appColor.iconColor2, size: 20),
                       const SizedBox(width: 12),
-                      Text('Created: \\${_groupDetails!['created_at']}'),
+                      Text('Created: ${_groupDetails!['created_at']}'),
                     ],
                   ),
                 ),
