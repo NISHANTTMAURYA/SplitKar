@@ -31,7 +31,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         child: AppBar(
           automaticallyImplyLeading: false, // Control leading manually
           toolbarHeight: MobileUtils.getScreenHeight(context) * 0.08, // Set the actual toolbar height
-          backgroundColor: Colors.deepPurple[400],
+          backgroundColor: Theme.of(context).colorScheme.inversePrimary,
           leading: IconButton( // Back button
             icon: const Icon(Icons.arrow_back, color: Colors.white), // Assuming white icon for purple background
             onPressed: () {
@@ -105,7 +105,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
           crossAxisAlignment: CrossAxisAlignment.center,
 
           children: [
-            CustomLoader(),
+            // CustomLoader(),
             Text('working on it')
           ],
         ), // Replaced text with CustomLoader

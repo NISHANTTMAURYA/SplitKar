@@ -6,14 +6,12 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:skapp/pages/screens/group_settings/group_settings_api.dart';
 import 'package:skapp/services/notification_service.dart';
 import 'package:skapp/pages/screens/group_settings/add_group_members_sheet.dart';
+import 'package:skapp/utils/app_colors.dart';
 
 class GroupSettingsPage extends StatefulWidget {
   final int groupId;
 
-  const GroupSettingsPage({
-    super.key,
-    required this.groupId,
-  });
+  const GroupSettingsPage({super.key, required this.groupId});
 
   @override
   State<GroupSettingsPage> createState() => _GroupSettingsPageState();
@@ -55,8 +53,9 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
   }
 
   Widget _buildMemberTile(Map<String, dynamic> member) {
-    final bool isAdmin = _groupDetails!['admins']
-        .any((admin) => admin['id'] == member['id']);
+    final bool isAdmin = _groupDetails!['admins'].any(
+      (admin) => admin['id'] == member['id'],
+    );
     final bool currentUserIsAdmin = _groupDetails!['is_admin'] ?? false;
 
     return ListTile(
@@ -68,7 +67,11 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
             ? Text(member['username'][0].toUpperCase())
             : null,
       ),
-      title: Text(member['username']),
+      title: Text(
+        member['username'],
+        overflow: TextOverflow.ellipsis,
+        maxLines: 1,
+      ),
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -104,31 +107,23 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                   borderRadius: BorderRadius.circular(8),
                   onTap: () => _showRemoveConfirmation(member),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.red[50],
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: Colors.red[200]!,
-                        width: 1,
-                      ),
+                      border: Border.all(color: Colors.red[200]!, width: 1),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
                           Icons.remove_circle_outline,
                           color: Colors.red[700],
                           size: 18,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Remove',
-                          style: TextStyle(
-                            color: Colors.red[700],
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
                         ),
                       ],
                     ),
@@ -146,16 +141,16 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text('Remove ${member['username']}?'),
-          content: Text('Are you sure you want to remove ${member['username']} from this group?'),
+          content: Text(
+            'Are you sure you want to remove ${member['username']} from this group?',
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
               child: const Text('Cancel'),
             ),
             TextButton(
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.red,
-              ),
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
               onPressed: () => Navigator.of(context).pop(true),
               child: const Text('Remove'),
             ),
@@ -209,10 +204,7 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Trip Details',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
+            Text('Trip Details', style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 16),
             _buildTripDetailRow('Destination', tripDetails['destination']),
             _buildTripDetailRow('Start Date', tripDetails['start_date']),
@@ -232,10 +224,7 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         children: [
-          Text(
-            '$label: ',
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
+          Text('$label: ', style: const TextStyle(fontWeight: FontWeight.bold)),
           Text(value),
         ],
       ),
@@ -244,139 +233,182 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(_groupDetails?['name'] ?? 'Group Settings'),
-      ),
-      body: _isLoading
-          ? const Center(child: CustomLoader())
-          : _error != null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'Error: $_error',
-                        style: const TextStyle(color: Colors.red),
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _fetchGroupDetails,
-                        child: const Text('Retry'),
-                      ),
-                    ],
-                  ),
-                )
-              : RefreshIndicator(
-                  onRefresh: _fetchGroupDetails,
-                  child: ListView(
-                    children: [
-                      // Group Info Card
-                      Card(
-                        margin: const EdgeInsets.all(16),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
+    final appColor = Theme.of(context).extension<AppColorScheme>()!;
+    return _isLoading
+        ? Container(color:backgroundColordarkmode,child: Center(child: CustomLoader()))
+        : Scaffold(
+            appBar: AppBar(
+              title: Text(_groupDetails?['name'] ?? 'Group Settings'),
+              backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+            ),
+            body: _isLoading
+                ? const Center(child: CustomLoader())
+                : _error != null
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Error: $_error',
+                          style: const TextStyle(color: Colors.red),
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: _fetchGroupDetails,
+                          child: const Text('Retry'),
+                        ),
+                      ],
+                    ),
+                  )
+                : RefreshIndicator(
+                    onRefresh: _fetchGroupDetails,
+                    child: ListView(
+                      children: [
+                        // Group Info Card
+                        Card(
+                          color: appColor.cardColor2,
+                          margin: const EdgeInsets.all(16),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Group Information',
+                                  style: Theme.of(context).textTheme.titleLarge,
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'Description',
+                                  style: Theme.of(
+                                    context,
+                                  ).textTheme.titleMedium,
+                                ),
+                                Text(
+                                  _groupDetails!['description'] ??
+                                      'No description',
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'Created by: ${_groupDetails!['created_by']['username']}',
+                                ),
+                                Text(
+                                  'Members: ${_groupDetails!['member_count']}',
+                                ),
+                                Text(
+                                  'Created at: ${_groupDetails!['created_at']}',
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        // Trip Details Card (if applicable)
+                        _buildTripDetails(),
+
+                        // Members List Card
+                        Card(
+                          color: appColor.cardColor2,
+                          margin: const EdgeInsets.all(16),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                'Group Information',
-                                style: Theme.of(context).textTheme.titleLarge,
+                              Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      'Members',
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.titleLarge,
+                                    ),
+                                    if (_groupDetails!['is_admin'] ?? false)
+                                      TextButton.icon(
+                                        onPressed: () {
+                                          // Get existing member profile codes
+                                          final existingMemberCodes =
+                                              List<String>.from(
+                                                _groupDetails!['members'].map(
+                                                  (member) =>
+                                                      member['profile_code']
+                                                          as String,
+                                                ),
+                                              );
+
+                                          // Get pending invitation profile codes - include both sent and received invitations
+                                          final sentInvitations =
+                                              (_groupDetails!['sent_invitations'] ??
+                                                      [])
+                                                  .map(
+                                                    (invitation) =>
+                                                        invitation['invited_user_profile_code']
+                                                            as String,
+                                                  );
+                                          final receivedInvitations =
+                                              (_groupDetails!['received_invitations'] ??
+                                                      [])
+                                                  .map(
+                                                    (invitation) =>
+                                                        invitation['invited_user_profile_code']
+                                                            as String,
+                                                  );
+
+                                          final pendingInvitationCodes =
+                                              List<String>.from([
+                                                ...sentInvitations,
+                                                ...receivedInvitations,
+                                              ]);
+
+                                          AddGroupMembersSheet.show(
+                                            context,
+                                            widget.groupId,
+                                            _groupDetails!['name'],
+                                            existingMemberCodes,
+                                            pendingInvitationCodes,
+                                          ).then((shouldRefresh) {
+                                            if (shouldRefresh) {
+                                              _fetchGroupDetails();
+                                            }
+                                          });
+                                        },
+                                        icon: Icon(
+                                          Icons.person_add,
+                                          color: appColor.iconColor,
+                                        ),
+                                        label: Text(
+                                          'Add',
+                                          style: TextStyle(
+                                            color: appColor.textColor,
+                                          ),
+                                        ),
+                                        style: TextButton.styleFrom(
+                                          foregroundColor: Theme.of(
+                                            context,
+                                          ).colorScheme.primary,
+                                        ),
+                                      ),
+                                  ],
+                                ),
                               ),
-                              const SizedBox(height: 16),
-                              Text(
-                                'Description',
-                                style: Theme.of(context).textTheme.titleMedium,
-                              ),
-                              Text(_groupDetails!['description'] ?? 'No description'),
-                              const SizedBox(height: 16),
-                              Text(
-                                'Created by: ${_groupDetails!['created_by']['username']}',
-                              ),
-                              Text(
-                                'Members: ${_groupDetails!['member_count']}',
-                              ),
-                              Text(
-                                'Created at: ${_groupDetails!['created_at']}',
+                              ListView.builder(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                itemCount: _groupDetails!['members'].length,
+                                itemBuilder: (context, index) {
+                                  final member =
+                                      _groupDetails!['members'][index];
+                                  return _buildMemberTile(member);
+                                },
                               ),
                             ],
                           ),
                         ),
-                      ),
-
-                      // Trip Details Card (if applicable)
-                      _buildTripDetails(),
-
-                      // Members List Card
-                      Card(
-                        margin: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    'Members',
-                                    style: Theme.of(context).textTheme.titleLarge,
-                                  ),
-                                  if (_groupDetails!['is_admin'] ?? false)
-                                    TextButton.icon(
-                                      onPressed: () {
-                                        // Get existing member profile codes
-                                        final existingMemberCodes = List<String>.from(
-                                          _groupDetails!['members'].map((member) => member['profile_code'] as String)
-                                        );
-
-                                        // Get pending invitation profile codes - include both sent and received invitations
-                                        final sentInvitations = (_groupDetails!['sent_invitations'] ?? [])
-                                            .map((invitation) => invitation['invited_user_profile_code'] as String);
-                                        final receivedInvitations = (_groupDetails!['received_invitations'] ?? [])
-                                            .map((invitation) => invitation['invited_user_profile_code'] as String);
-                                        
-                                        final pendingInvitationCodes = List<String>.from([
-                                          ...sentInvitations,
-                                          ...receivedInvitations,
-                                        ]);
-
-                                        AddGroupMembersSheet.show(
-                                          context,
-                                          widget.groupId,
-                                          _groupDetails!['name'],
-                                          existingMemberCodes,
-                                          pendingInvitationCodes,
-                                        ).then((shouldRefresh) {
-                                          if (shouldRefresh) {
-                                            _fetchGroupDetails();
-                                          }
-                                        });
-                                      },
-                                      icon: const Icon(Icons.person_add),
-                                      label: const Text('Add'),
-                                      style: TextButton.styleFrom(
-                                        foregroundColor: Theme.of(context).colorScheme.primary,
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                            ListView.builder(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: _groupDetails!['members'].length,
-                              itemBuilder: (context, index) {
-                                final member = _groupDetails!['members'][index];
-                                return _buildMemberTile(member);
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-    );
+          );
   }
 }

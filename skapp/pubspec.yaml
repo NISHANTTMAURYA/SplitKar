@@ -91,6 +91,7 @@ flutter:
     - assets/images/restaurant.png
     - assets/images/SplitKarDarkLogo.png
     - assets/images/logo2.png
+    - assets/images/branding.png
 
    
 
@@ -136,6 +137,7 @@ flutter_native_splash:
   android_12:
     image: assets/images/logo2.png # Same image or create Android 12 specific one
     color: "#E8D2D9"               # Same color or different for Android 12
+#    branding: assets/images/branding.png # Same image or create Android 12 specific one
 
 
 #SplitKar text color -> 432E6A

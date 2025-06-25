@@ -25,6 +25,7 @@ import 'package:skapp/services/auth_service.dart';
 import 'package:skapp/utils/app_colors.dart';
 import 'package:skapp/pages/notification_playground.dart';
 import 'package:skapp/pages/settings_profile/settings_api.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 
 class ProfileNotifier extends ChangeNotifier {
   final _logger = Logger('ProfileNotifier');
@@ -113,7 +114,8 @@ class ProfileNotifier extends ChangeNotifier {
 
 void main() async {
   // Initialize Flutter bindings first
-  WidgetsFlutterBinding.ensureInitialized();
+  WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
   final AuthService auth = AuthService();
   dynamic userId = await auth.getUserId();
   await loadThemePref(userId);
@@ -300,8 +302,25 @@ Future<void> toggleAppThemeWithLoading() async {
 }
 
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  @override
+  void initState()  {
+    // TODO: implement initState
+    super.initState();
+    initialization();
+  }
+  Future<void> initialization() async {
+    await Future.delayed(Duration(seconds: 1));
+    FlutterNativeSplash.remove();
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -312,7 +331,7 @@ class MyApp extends StatelessWidget {
       listen: false,
     );
 
-    
+
 
     return ValueListenableBuilder(
       valueListenable: isDarkMode,
@@ -349,7 +368,7 @@ class MyApp extends StatelessWidget {
             extensions: const [
               AppColorScheme(
 
-                
+
                 textColor: KPureWhite,
                 iconColor: KPureWhite,
                 shadowColor: KDeepPurpleAccent100,
