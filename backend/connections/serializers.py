@@ -4,6 +4,8 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 from .models import FriendRequest, Profile, Group, GroupInvitation, Friendship
+from expense.models import Balance
+from django.db import models
 
 
 class FriendRequestByCodeSerializer(serializers.Serializer):
@@ -405,6 +407,19 @@ class RemoveGroupMemberSerializer(serializers.Serializer):
         current_user_profile_code = self.context['request'].user.profile.profile_code
         if current_user_profile_code in value:
             raise serializers.ValidationError("You cannot remove yourself from the group")
+        
+        # Check if balances are settled for each user in the group
+        unsettled_users = []
+        for profile in existing_profiles:
+            user = profile.user
+            # Check if user has any non-zero balances in this group
+            balances = Balance.objects.filter(group=group).filter(
+                models.Q(user1=user) | models.Q(user2=user)
+            ).exclude(balance_amount=0)
+            if balances.exists():
+                unsettled_users.append(profile.profile_code)
+        if unsettled_users:
+            raise serializers.ValidationError(f"Cannot remove users with unsettled balances in this group: {unsettled_users}")
         
         return value
     
