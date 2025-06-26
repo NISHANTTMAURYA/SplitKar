@@ -52,86 +52,203 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
     super.dispose();
   }
 
-  Widget _buildMemberTile(Map<String, dynamic> member) {
+  Widget _buildEnhancedMemberTile(Map<String, dynamic> member) {
     final bool isAdmin = _groupDetails!['admins'].any(
-      (admin) => admin['id'] == member['id'],
+          (admin) => admin['id'] == member['id'],
     );
     final bool currentUserIsAdmin = _groupDetails!['is_admin'] ?? false;
-
-    return ListTile(
-      leading: CircleAvatar(
-        backgroundImage: member['profile_picture_url'] != null
-            ? CachedNetworkImageProvider(member['profile_picture_url'])
-            : null,
-        child: member['profile_picture_url'] == null
-            ? Text(member['username'][0].toUpperCase())
-            : null,
+    final appColors = Theme.of(context).extension<AppColorScheme>()!;
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isAdmin
+              ? appColors.borderColor2 ?? Colors.blue.withOpacity(0.5)
+              : appColors.borderColor3 ?? Colors.white.withOpacity(0.1),
+          width: 1,
+        ),
       ),
-      title: Text(
-        member['username'],
-        overflow: TextOverflow.ellipsis,
-        maxLines: 1,
-      ),
-      subtitle: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          member['profile_code'] != null
-              ? Text(member['profile_code'])
-              : const Text('No profile code'),
-          if (isAdmin)
-            Container(
-              margin: const EdgeInsets.only(top: 4),
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.blue[100],
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.blue[300]!),
-              ),
-              child: Text(
-                'Admin',
-                style: TextStyle(
-                  color: Colors.blue[900],
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            // Enhanced Avatar
+            Stack(
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(28),
+                    border: Border.all(
+                      color: isAdmin ? (appColors.borderColor2 ?? Colors.blue[800]!.withOpacity(0.8)) : (appColors.borderColor3 ?? Colors.grey.withOpacity(0.8)),
+                      width: 2,
+                    ),
+                  ),
+                  child: CircleAvatar(
+                    radius: 25,
+                    backgroundImage: member['profile_picture_url'] != null
+                        ? CachedNetworkImageProvider(member['profile_picture_url'])
+                        : null,
+                    backgroundColor: isAdmin
+                        ? (appColors.borderColor2 ?? Colors.blue.withOpacity(0.1))
+                        : (appColors.borderColor3 ?? Colors.grey.withOpacity(0.1)),
+                    child: member['profile_picture_url'] == null
+                        ? Text(
+                      member['username'][0].toUpperCase(),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: isAdmin ? (appColors.borderColor2 ?? Colors.blue) : (appColors.textColor2 ?? Colors.grey[700]),
+                      ),
+                    )
+                        : null,
+                  ),
                 ),
+                if (isAdmin)
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: appColors.borderColor2,
+                        gradient: LinearGradient(
+                          colors: [backgroundColordarkmode!, appColors.borderColor2 ?? Colors.blue[600]!],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.white, width: 2),
+                      ),
+                      child: const Icon(
+                        Icons.star,
+                        color: Colors.white,
+                        size: 12,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(width: 16),
+            // Member Info
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          member['username'],
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.3,
+                            color: isAdmin ? appColors.borderColor2 : null,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                      ),
+                      if (isAdmin)
+                        Container(
+                          margin: const EdgeInsets.only(left: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [appColors.borderColor2!.withOpacity(0.4), appColors.borderColor2 ?? Colors.blue[800]!],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: (appColors.borderColor2 ?? Colors.blue).withOpacity(0.3),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.star,
+                                color: Colors.white,
+                                size: 12,
+                              ),
+                              const SizedBox(width: 4),
+                              const Text(
+                                'Admin',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.badge,
+                        size: 14,
+                        color: appColors.iconColor,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        member['profile_code'] ?? 'No profile code',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: appColors.textColor2 ?? KDeepPurpleAccent100,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-        ],
-      ),
-      trailing: currentUserIsAdmin && !isAdmin
-          ? Container(
-              margin: const EdgeInsets.only(left: 8),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(8),
-                  onTap: () => _showRemoveConfirmation(member),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.red[50],
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.red[200]!, width: 1),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.remove_circle_outline,
-                          color: Colors.red[700],
-                          size: 18,
-                        ),
-                      ],
+            // Action Button
+            if (currentUserIsAdmin && !isAdmin)
+              Container(
+                margin: const EdgeInsets.only(left: 12),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: () => _showRemoveConfirmation(member),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: appColors.iconColor2?.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: appColors.iconColor2 ?? Colors.red, width: 1),
+                        boxShadow: [
+                          BoxShadow(
+                            color: (appColors.iconColor2 ?? Colors.red).withOpacity(0.1),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        Icons.person_remove,
+                        color: appColors.iconColor2 ?? backgroundColordarkmode!,
+                        size: 20,
+                      ),
                     ),
                   ),
                 ),
               ),
-            )
-          : null,
+          ],
+        ),
+      ),
     );
   }
 
@@ -196,36 +313,423 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
     if (tripDetails == null) {
       return const SizedBox.shrink();
     }
+    final appColor = Theme.of(context).extension<AppColorScheme>()!;
 
-    return Card(
+    return Container(
       margin: const EdgeInsets.all(16),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Trip Details', style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 16),
-            _buildTripDetailRow('Destination', tripDetails['destination']),
-            _buildTripDetailRow('Start Date', tripDetails['start_date']),
-            _buildTripDetailRow('End Date', tripDetails['end_date']),
-            _buildTripDetailRow('Status', tripDetails['trip_status']),
-            if (tripDetails['budget'] != null)
-              _buildTripDetailRow('Budget', '₹${tripDetails['budget']}'),
-          ],
-        ),
+      decoration: BoxDecoration(
+        color: appColor.cardColor,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Header
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  appColor.cardColor2!,
+                  appColor.cardColor2!.withOpacity(0.7),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(20),
+                topRight: Radius.circular(20),
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.flight_takeoff,
+                    color: appColor.iconColor2,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Text(
+                  'Trip Details',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Content
+          Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              children: [
+                _buildEnhancedTripDetailRow(Icons.location_on, 'Destination', tripDetails['destination'], appColor.iconColor2 ?? Colors.red),
+                _buildEnhancedTripDetailRow(Icons.calendar_today, 'Start Date', tripDetails['start_date'], appColor.subtitleColor1 ?? Colors.green),
+                _buildEnhancedTripDetailRow(Icons.event, 'End Date', tripDetails['end_date'], appColor.subtitleColor2 ?? Colors.orange),
+                _buildEnhancedTripDetailRow(Icons.info_outline, 'Status', tripDetails['trip_status'], appColor.iconColor2 ?? Colors.orange),
+                if (tripDetails['budget'] != null)
+                  _buildEnhancedTripDetailRow(Icons.account_balance_wallet, 'Budget', '₹${tripDetails['budget']}', appColor.iconColor2 ?? Colors.purple),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildTripDetailRow(String label, String? value) {
+  Widget _buildEnhancedTripDetailRow(IconData icon, String label, String? value, Color iconColor) {
     if (value == null) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Row(
         children: [
-          Text('$label: ', style: const TextStyle(fontWeight: FontWeight.bold)),
-          Text(value),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: iconColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: iconColor, size: 20),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: Colors.grey[600])),
+                Text(value, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 16)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGroupInfoCard() {
+    if (_groupDetails == null) return const SizedBox.shrink();
+    final appColor = Theme.of(context).extension<AppColorScheme>()!;
+    return Container(
+      margin: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: appColor.cardColor,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Header
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [appColor.cardColor2!, appColor.cardColor2!.withOpacity(0.7)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(20),
+                topRight: Radius.circular(20),
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(Icons.group, color: appColor.iconColor, size: 24),
+                ),
+                const SizedBox(width: 16),
+                Text(
+                  'Group Information',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Content
+          Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.description, color: appColor.iconColor2, size: 20),
+                          const SizedBox(width: 8),
+                          Text('Description', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Text(_groupDetails!['description'] ?? 'No description available'),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: appColor.subtitleColor1?.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(Icons.person, color: appColor.subtitleColor1, size: 24),
+                            const SizedBox(height: 8),
+                            Text('Created by', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                            Text(_groupDetails!['created_by']['username'], style: TextStyle(fontWeight: FontWeight.w500)),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: appColor.subtitleColor2?.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(Icons.people, color: appColor.subtitleColor2, size: 24),
+                            const SizedBox(height: 8),
+                            Text('Members', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                            Text('${_groupDetails!['member_count']}', style: TextStyle(fontWeight: FontWeight.w500)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: appColor.iconColor2?.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.access_time, color: appColor.iconColor2, size: 20),
+                      const SizedBox(width: 12),
+                      Text('Created: ${_groupDetails!['created_at']}'),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMembersCard() {
+    if (_groupDetails == null) return const SizedBox.shrink();
+    final appColor = Theme.of(context).extension<AppColorScheme>()!;
+    return Container(
+      margin: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: appColor.cardColor,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
+          ),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header with gradient
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  appColor.cardColor2!,
+                  appColor.cardColor2!.withOpacity(0.7),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(20),
+                topRight: Radius.circular(20),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.people,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Members',
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${_groupDetails!['members'].length} travelers',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Colors.white.withOpacity(0.8),
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                if (_groupDetails!['is_admin'] ?? false)
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.2),
+                        width: 1,
+                      ),
+                    ),
+                    child: TextButton.icon(
+                      onPressed: () {
+                        // Get existing member profile codes
+                        final existingMemberCodes = List<String>.from(
+                          _groupDetails!['members'].map(
+                                (member) => member['profile_code'] as String,
+                          ),
+                        );
+
+                        // Get pending invitation profile codes
+                        final sentInvitations = (_groupDetails!['sent_invitations'] ?? [])
+                            .map((invitation) => invitation['invited_user_profile_code'] as String);
+                        final receivedInvitations = (_groupDetails!['received_invitations'] ?? [])
+                            .map((invitation) => invitation['invited_user_profile_code'] as String);
+
+                        final pendingInvitationCodes = List<String>.from([
+                          ...sentInvitations,
+                          ...receivedInvitations,
+                        ]);
+
+                        AddGroupMembersSheet.show(
+                          context,
+                          widget.groupId,
+                          _groupDetails!['name'],
+                          existingMemberCodes,
+                          pendingInvitationCodes,
+                        ).then((shouldRefresh) {
+                          if (shouldRefresh) {
+                            _fetchGroupDetails();
+                          }
+                        });
+                      },
+                      icon: const Icon(
+                        Icons.person_add,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                      label: const Text(
+                        'Add',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          // Members list
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _groupDetails!['members'].length,
+              separatorBuilder: (context, index) => const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                final member = _groupDetails!['members'][index];
+                return _buildEnhancedMemberTile(member);
+              },
+            ),
+          ),
         ],
       ),
     );
@@ -265,147 +769,13 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                     child: ListView(
                       children: [
                         // Group Info Card
-                        Card(
-                          color: appColor.cardColor2,
-                          margin: const EdgeInsets.all(16),
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Group Information',
-                                  style: Theme.of(context).textTheme.titleLarge,
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  'Description',
-                                  style: Theme.of(
-                                    context,
-                                  ).textTheme.titleMedium,
-                                ),
-                                Text(
-                                  _groupDetails!['description'] ??
-                                      'No description',
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  'Created by: ${_groupDetails!['created_by']['username']}',
-                                ),
-                                Text(
-                                  'Members: ${_groupDetails!['member_count']}',
-                                ),
-                                Text(
-                                  'Created at: ${_groupDetails!['created_at']}',
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
+                        _buildGroupInfoCard(),
 
                         // Trip Details Card (if applicable)
                         _buildTripDetails(),
 
                         // Members List Card
-                        Card(
-                          color: appColor.cardColor2,
-                          margin: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.all(16),
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      'Members',
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.titleLarge,
-                                    ),
-                                    if (_groupDetails!['is_admin'] ?? false)
-                                      TextButton.icon(
-                                        onPressed: () {
-                                          // Get existing member profile codes
-                                          final existingMemberCodes =
-                                              List<String>.from(
-                                                _groupDetails!['members'].map(
-                                                  (member) =>
-                                                      member['profile_code']
-                                                          as String,
-                                                ),
-                                              );
-
-                                          // Get pending invitation profile codes - include both sent and received invitations
-                                          final sentInvitations =
-                                              (_groupDetails!['sent_invitations'] ??
-                                                      [])
-                                                  .map(
-                                                    (invitation) =>
-                                                        invitation['invited_user_profile_code']
-                                                            as String,
-                                                  );
-                                          final receivedInvitations =
-                                              (_groupDetails!['received_invitations'] ??
-                                                      [])
-                                                  .map(
-                                                    (invitation) =>
-                                                        invitation['invited_user_profile_code']
-                                                            as String,
-                                                  );
-
-                                          final pendingInvitationCodes =
-                                              List<String>.from([
-                                                ...sentInvitations,
-                                                ...receivedInvitations,
-                                              ]);
-
-                                          AddGroupMembersSheet.show(
-                                            context,
-                                            widget.groupId,
-                                            _groupDetails!['name'],
-                                            existingMemberCodes,
-                                            pendingInvitationCodes,
-                                          ).then((shouldRefresh) {
-                                            if (shouldRefresh) {
-                                              _fetchGroupDetails();
-                                            }
-                                          });
-                                        },
-                                        icon: Icon(
-                                          Icons.person_add,
-                                          color: appColor.iconColor,
-                                        ),
-                                        label: Text(
-                                          'Add',
-                                          style: TextStyle(
-                                            color: appColor.textColor,
-                                          ),
-                                        ),
-                                        style: TextButton.styleFrom(
-                                          foregroundColor: Theme.of(
-                                            context,
-                                          ).colorScheme.primary,
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                              ),
-                              ListView.builder(
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                itemCount: _groupDetails!['members'].length,
-                                itemBuilder: (context, index) {
-                                  final member =
-                                      _groupDetails!['members'][index];
-                                  return _buildMemberTile(member);
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
+                        _buildMembersCard(),
                       ],
                     ),
                   ),

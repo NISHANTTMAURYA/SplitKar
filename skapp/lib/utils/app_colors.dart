@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+// need to add 2 border color
+// need to add textcolor2
+//need to add subtitlecolor 1 and 2
+//need to add iconcolor2
 
 const Color kTrialColor = Colors.white;
 const Color kSecondaryColor = Colors.amber;
@@ -34,6 +38,12 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
   final Color? inverseColor;
   final Color? cardColor2;
   final Color? appBarColor;
+  final Color? borderColor2;
+  final Color? borderColor3;
+  final Color? textColor2;
+  final Color? subtitleColor1;
+  final Color? subtitleColor2;
+  final Color? iconColor2;
 
   const AppColorScheme({
     this.backgroundColor,
@@ -49,6 +59,12 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
     this.inverseColor,
     this.cardColor2,
     this.appBarColor,
+    this.borderColor2,
+    this.borderColor3,
+    this.textColor2,
+    this.subtitleColor1,
+    this.subtitleColor2,
+    this.iconColor2,
   });
 
   @override
@@ -67,6 +83,12 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
     Color? inverseColor,
     Color? cardColor2,
     Color? appBarColor,
+    Color? borderColor2,
+    Color? borderColor3,
+    Color? textColor2,
+    Color? subtitleColor1,
+    Color? subtitleColor2,
+    Color? iconColor2,
   }) {
     return AppColorScheme(
       backgroundColor: backgroundColor??this.backgroundColor,
@@ -82,6 +104,12 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
       inverseColor: inverseColor ?? this.inverseColor,
       cardColor2: cardColor2 ?? this.cardColor2,
       appBarColor: appBarColor ?? this.appBarColor,
+      borderColor2: borderColor2 ?? this.borderColor2,
+      borderColor3: borderColor3 ?? this.borderColor3,
+      textColor2: textColor2 ?? this.textColor2,
+      subtitleColor1: subtitleColor1 ?? this.subtitleColor1,
+      subtitleColor2: subtitleColor2 ?? this.subtitleColor2,
+      iconColor2: iconColor2 ?? this.iconColor2,
     );
   }
 
@@ -102,6 +130,12 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
       inverseColor: Color.lerp(inverseColor, other.inverseColor, t),
       cardColor2: Color.lerp(cardColor2, other.cardColor2, t),
       appBarColor: Color.lerp(appBarColor, other.appBarColor, t),
+      borderColor2: Color.lerp(borderColor2, other.borderColor2, t),
+      borderColor3: Color.lerp(borderColor3, other.borderColor3, t),
+      textColor2: Color.lerp(textColor2, other.textColor2, t),
+      subtitleColor1: Color.lerp(subtitleColor1, other.subtitleColor1, t),
+      subtitleColor2: Color.lerp(subtitleColor2, other.subtitleColor2, t),
+      iconColor2: Color.lerp(iconColor2, other.iconColor2, t),
     );
   }
 

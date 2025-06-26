@@ -315,11 +315,13 @@ class _MyAppState extends State<MyApp> {
     // TODO: implement initState
     super.initState();
     initialization();
+
   }
   Future<void> initialization() async {
     await Future.delayed(Duration(seconds: 1));
     FlutterNativeSplash.remove();
   }
+
 
 
   @override
@@ -345,7 +347,6 @@ class _MyAppState extends State<MyApp> {
             useMaterial3: true,
             extensions: const [
               AppColorScheme(
-
                 textColor: KPureBlack,
                 iconColor: KDeepPurple400,
                 shadowColor: KDeepPurple400,
@@ -353,7 +354,12 @@ class _MyAppState extends State<MyApp> {
                 selectedNavColor: Colors.deepPurple,
                 unselectedNavColor: Colors.grey,
                 cardColor2: KDeepPurple400,
-
+                borderColor2: Colors.deepPurpleAccent,
+                borderColor3: Colors.grey,
+                textColor2: Colors.grey,
+                subtitleColor1: Colors.deepPurple,
+                subtitleColor2: Colors.deepPurpleAccent,
+                iconColor2: Colors.deepPurple,
               ),
             ],
           ),
@@ -367,19 +373,20 @@ class _MyAppState extends State<MyApp> {
             ),
             extensions: const [
               AppColorScheme(
-
-
                 textColor: KPureWhite,
                 iconColor: KPureWhite,
                 shadowColor: KDeepPurpleAccent100,
                 cardColor: KDeepPurple400,
                 selectedNavColor: KDeepPurpleAccent100,
                 unselectedNavColor: Color(0xFF2A203D),
-                cardColor2: ColorMoredarkerThanScaffold
-
-
+                cardColor2: ColorMoredarkerThanScaffold,
+                borderColor2: KDeepPurpleAccent100,
+                borderColor3: Colors.grey,
+                textColor2: Colors.grey,
+                subtitleColor1: KDeepPurpleAccent100,
+                subtitleColor2: Colors.deepPurple,
+                iconColor2: KDeepPurpleAccent100,
               ),
-
             ],
           ),
           themeMode: dark ? ThemeMode.dark : ThemeMode.light,

@@ -6,7 +6,7 @@ import 'package:skapp/widgets/custom_loader.dart';
 import 'package:skapp/services/notification_service.dart';
 import 'package:skapp/pages/groups/group_service.dart';
 import 'package:skapp/pages/groups/group_provider.dart';
-
+import 'package:skapp/utils/app_colors.dart';
 class AddGroupMembersSheet extends StatefulWidget {
   final int groupId;
   final String groupName;
@@ -147,10 +147,11 @@ class _AddGroupMembersSheetState extends State<AddGroupMembersSheet> {
     if (isDisabled && isSelected) {
       provider.removeUserFromSelection(profileCode);
     }
-
+    final appColors = Theme.of(context).extension<AppColorScheme>()!;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 8.0),
       child: Card(
+        color: appColors.cardColor,
         elevation: 2,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: ListTile(
@@ -163,7 +164,7 @@ class _AddGroupMembersSheetState extends State<AddGroupMembersSheet> {
                     ? CachedNetworkImageProvider(user['profile_picture_url'])
                     : null,
                 child: user['profile_picture_url'] == null || user['profile_picture_url'].isEmpty || !(user['profile_picture_url'] as String).startsWith('http')
-                    ? const Icon(Icons.person)
+                    ? Icon(Icons.person, color: appColors.iconColor)
                     : null,
               ),
               if (isFriend)
@@ -173,17 +174,17 @@ class _AddGroupMembersSheetState extends State<AddGroupMembersSheet> {
                   child: Container(
                     padding: const EdgeInsets.all(2),
                     decoration: BoxDecoration(
-                      color: Colors.green,
+                      color: appColors.subtitleColor1,
                       shape: BoxShape.circle,
                       border: Border.all(
                         color: Theme.of(context).scaffoldBackgroundColor,
                         width: 2,
                       ),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.check,
                       size: 12,
-                      color: Colors.white,
+                      color: appColors.textColor,
                     ),
                   ),
                 ),
@@ -194,7 +195,7 @@ class _AddGroupMembersSheetState extends State<AddGroupMembersSheet> {
             style: GoogleFonts.cabin(
               fontSize: 16,
               fontWeight: FontWeight.w500,
-              color: isDisabled ? Colors.grey : null,
+              color: isDisabled ? appColors.textColor2 ?? Colors.grey : appColors.textColor,
             ),
           ),
           subtitle: Column(
@@ -204,7 +205,7 @@ class _AddGroupMembersSheetState extends State<AddGroupMembersSheet> {
                 'Profile Code: ${user['profile_code']}',
                 style: GoogleFonts.cabin(
                   fontSize: 12,
-                  color: Colors.grey[600],
+                  color: appColors.textColor2 ?? Colors.grey[600],
                 ),
               ),
               if (isExistingMember)
@@ -212,15 +213,15 @@ class _AddGroupMembersSheetState extends State<AddGroupMembersSheet> {
                   margin: const EdgeInsets.only(top: 4),
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
-                    color: Colors.purple.withOpacity(0.1),
+                    color: appColors.cardColor2?.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.purple.withOpacity(0.3)),
+                    border: Border.all(color: appColors.borderColor2 ?? Colors.deepPurpleAccent.withOpacity(0.3)),
                   ),
                   child: Text(
                     'Already a Member',
                     style: GoogleFonts.cabin(
                       fontSize: 12,
-                      color: Colors.purple[700],
+                      color: appColors.borderColor2 ?? Colors.deepPurpleAccent[100],
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -230,15 +231,15 @@ class _AddGroupMembersSheetState extends State<AddGroupMembersSheet> {
                   margin: const EdgeInsets.only(top: 4),
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
-                    color: Colors.orange.withOpacity(0.1),
+                    color: appColors.subtitleColor2?.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                    border: Border.all(color: appColors.subtitleColor2?.withOpacity(0.3) ?? Colors.orange.withOpacity(0.3)),
                   ),
                   child: Text(
                     'Invitation Pending',
                     style: GoogleFonts.cabin(
                       fontSize: 12,
-                      color: Colors.orange[700],
+                      color: appColors.subtitleColor2 ?? Colors.orange[700],
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -248,15 +249,15 @@ class _AddGroupMembersSheetState extends State<AddGroupMembersSheet> {
                   margin: const EdgeInsets.only(top: 4),
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
-                    color: Colors.green.withOpacity(0.1),
+                    color: appColors.subtitleColor1?.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.green.withOpacity(0.3)),
+                    border: Border.all(color: appColors.subtitleColor1?.withOpacity(0.3) ?? Colors.green.withOpacity(0.3)),
                   ),
                   child: Text(
                     'Friend',
                     style: GoogleFonts.cabin(
                       fontSize: 12,
-                      color: Colors.green[700],
+                      color: appColors.subtitleColor1 ?? Colors.green[700],
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -373,13 +374,18 @@ class _AddGroupMembersSheetState extends State<AddGroupMembersSheet> {
                         if (existingMembers.isNotEmpty) ...[
                           Padding(
                             padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 8.0),
-                            child: Text(
-                              'Existing Members',
-                              style: GoogleFonts.cabin(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.purple[700],
-                              ),
+                            child: Builder(
+                              builder: (context) {
+                                final appColors = Theme.of(context).extension<AppColorScheme>()!;
+                                return Text(
+                                  'Existing Members',
+                                  style: GoogleFonts.cabin(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: appColors.borderColor2 ?? Colors.deepPurpleAccent[100]!,
+                                  ),
+                                );
+                              },
                             ),
                           ),
                           ListView.builder(
@@ -392,13 +398,18 @@ class _AddGroupMembersSheetState extends State<AddGroupMembersSheet> {
                         if (pendingUsers.isNotEmpty) ...[
                           Padding(
                             padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 8.0),
-                            child: Text(
-                              'Pending Invitations',
-                              style: GoogleFonts.cabin(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.orange[700],
-                              ),
+                            child: Builder(
+                              builder: (context) {
+                                final appColors = Theme.of(context).extension<AppColorScheme>()!;
+                                return Text(
+                                  'Pending Invitations',
+                                  style: GoogleFonts.cabin(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: appColors.subtitleColor2 ?? Colors.orange[700]!,
+                                  ),
+                                );
+                              },
                             ),
                           ),
                           ListView.builder(
@@ -411,13 +422,18 @@ class _AddGroupMembersSheetState extends State<AddGroupMembersSheet> {
                         if (friends.isNotEmpty) ...[
                           Padding(
                             padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 8.0),
-                            child: Text(
-                              'Available Friends',
-                              style: GoogleFonts.cabin(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.green[700],
-                              ),
+                            child: Builder(
+                              builder: (context) {
+                                final appColors = Theme.of(context).extension<AppColorScheme>()!;
+                                return Text(
+                                  'Available Friends',
+                                  style: GoogleFonts.cabin(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: appColors.subtitleColor1 ?? Colors.green[700]!,
+                                  ),
+                                );
+                              },
                             ),
                           ),
                           ListView.builder(
@@ -430,13 +446,18 @@ class _AddGroupMembersSheetState extends State<AddGroupMembersSheet> {
                         if (otherUsers.isNotEmpty) ...[
                           Padding(
                             padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 8.0),
-                            child: Text(
-                              'Other Available Users',
-                              style: GoogleFonts.cabin(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.grey[700],
-                              ),
+                            child: Builder(
+                              builder: (context) {
+                                final appColors = Theme.of(context).extension<AppColorScheme>()!;
+                                return Text(
+                                  'Other Available Users',
+                                  style: GoogleFonts.cabin(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: appColors.textColor2 ?? Colors.grey[700]!,
+                                  ),
+                                );
+                              },
                             ),
                           ),
                           ListView.builder(
