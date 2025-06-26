@@ -195,7 +195,7 @@ class _AddGroupMembersSheetState extends State<AddGroupMembersSheet> {
             style: GoogleFonts.cabin(
               fontSize: 16,
               fontWeight: FontWeight.w500,
-              color: isDisabled ? appColors.textColor2 ?? Colors.grey : appColors.textColor,
+              color: isDisabled ? appColors.textColor2  : appColors.textColor,
             ),
           ),
           subtitle: Column(
@@ -205,7 +205,7 @@ class _AddGroupMembersSheetState extends State<AddGroupMembersSheet> {
                 'Profile Code: ${user['profile_code']}',
                 style: GoogleFonts.cabin(
                   fontSize: 12,
-                  color: appColors.textColor2 ?? Colors.grey[600],
+                  color: Colors.grey[600],
                 ),
               ),
               if (isExistingMember)
@@ -231,15 +231,15 @@ class _AddGroupMembersSheetState extends State<AddGroupMembersSheet> {
                   margin: const EdgeInsets.only(top: 4),
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
-                    color: appColors.subtitleColor2?.withOpacity(0.1),
+                    color: appColors.cardColor2?.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: appColors.subtitleColor2?.withOpacity(0.3) ?? Colors.orange.withOpacity(0.3)),
+                    border: Border.all(color: appColors.borderColor2 ?? Colors.deepPurpleAccent.withOpacity(0.3)),
                   ),
                   child: Text(
                     'Invitation Pending',
                     style: GoogleFonts.cabin(
                       fontSize: 12,
-                      color: appColors.subtitleColor2 ?? Colors.orange[700],
+                      color: appColors.borderColor2 ?? Colors.deepPurpleAccent[100],
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -249,15 +249,15 @@ class _AddGroupMembersSheetState extends State<AddGroupMembersSheet> {
                   margin: const EdgeInsets.only(top: 4),
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                   decoration: BoxDecoration(
-                    color: appColors.subtitleColor1?.withOpacity(0.1),
+                    color:  appColors.cardColor2?.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: appColors.subtitleColor1?.withOpacity(0.3) ?? Colors.green.withOpacity(0.3)),
+                    border: Border.all(color: appColors.borderColor2 ?? Colors.deepPurpleAccent.withOpacity(0.3)),
                   ),
                   child: Text(
                     'Friend',
                     style: GoogleFonts.cabin(
                       fontSize: 12,
-                      color: appColors.subtitleColor1 ?? Colors.green[700],
+                      color: appColors.borderColor2 ?? Colors.deepPurpleAccent[100],
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -382,7 +382,7 @@ class _AddGroupMembersSheetState extends State<AddGroupMembersSheet> {
                                   style: GoogleFonts.cabin(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
-                                    color: appColors.borderColor2 ?? Colors.deepPurpleAccent[100]!,
+                                    color: appColors.textColor ,
                                   ),
                                 );
                               },
@@ -406,7 +406,7 @@ class _AddGroupMembersSheetState extends State<AddGroupMembersSheet> {
                                   style: GoogleFonts.cabin(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
-                                    color: appColors.subtitleColor2 ?? Colors.orange[700]!,
+                                    color: appColors.textColor ,
                                   ),
                                 );
                               },
@@ -430,7 +430,7 @@ class _AddGroupMembersSheetState extends State<AddGroupMembersSheet> {
                                   style: GoogleFonts.cabin(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
-                                    color: appColors.subtitleColor1 ?? Colors.green[700]!,
+                                    color: appColors.textColor ,
                                   ),
                                 );
                               },
@@ -454,7 +454,7 @@ class _AddGroupMembersSheetState extends State<AddGroupMembersSheet> {
                                   style: GoogleFonts.cabin(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
-                                    color: appColors.textColor2 ?? Colors.grey[700]!,
+                                    color: appColors.textColor,
                                   ),
                                 );
                               },

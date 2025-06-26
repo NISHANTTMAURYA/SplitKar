@@ -13,6 +13,7 @@ const Color? KDeepPurple400 = Color(0xFF7E57C2); //deeppurple[400]
 const Color? KDeepPurpleAccent100 = Color(0xFFB388FF);
 const Color? ColorMoredarkerThanScaffold = Color(0xFF6A4795);
 const Color? backgroundColordarkmode = Color(0xFF2A203D);
+const Color? ColorNearToBackground = Color(0xFF654789);
 
 // const Color? KDeep
 // To add a new color:
@@ -41,6 +42,8 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
   final Color? textColor2;
   final Color? subtitleColor1;
   final Color? subtitleColor2;
+  final Color? subtitleColor3;
+
   final Color? iconColor2;
 
   const AppColorScheme({
@@ -62,6 +65,7 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
     this.textColor2,
     this.subtitleColor1,
     this.subtitleColor2,
+    this.subtitleColor3,
     this.iconColor2,
     this.cardColor3,
   });
@@ -87,6 +91,7 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
     Color? textColor2,
     Color? subtitleColor1,
     Color? subtitleColor2,
+    Color? subtitleColor3,
     Color? iconColor2,
     Color? cardColor3,
   }) {
@@ -109,6 +114,7 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
       textColor2: textColor2 ?? this.textColor2,
       subtitleColor1: subtitleColor1 ?? this.subtitleColor1,
       subtitleColor2: subtitleColor2 ?? this.subtitleColor2,
+      subtitleColor3: subtitleColor3 ?? this.subtitleColor3,
       iconColor2: iconColor2 ?? this.iconColor2,
       cardColor3: cardColor3 ?? this.cardColor3,
     );
@@ -140,6 +146,7 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
       textColor2: Color.lerp(textColor2, other.textColor2, t),
       subtitleColor1: Color.lerp(subtitleColor1, other.subtitleColor1, t),
       subtitleColor2: Color.lerp(subtitleColor2, other.subtitleColor2, t),
+      subtitleColor3: Color.lerp(subtitleColor3, other.subtitleColor3, t),
       iconColor2: Color.lerp(iconColor2, other.iconColor2, t),
       cardColor3: Color.lerp(cardColor3, other.cardColor3, t),
     );

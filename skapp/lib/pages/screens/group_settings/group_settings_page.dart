@@ -60,14 +60,9 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
     final appColors = Theme.of(context).extension<AppColorScheme>()!;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: appColors.subtitleColor1?.withOpacity(0.25),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isAdmin
-              ? appColors.borderColor2 ?? Colors.blue.withOpacity(0.5)
-              : appColors.borderColor3 ?? Colors.white.withOpacity(0.1),
-          width: 1,
-        ),
+
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -113,7 +108,7 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                       decoration: BoxDecoration(
                         color: appColors.borderColor2,
                         gradient: LinearGradient(
-                          colors: [backgroundColordarkmode!, appColors.borderColor2 ?? Colors.blue[600]!],
+                          colors: [appColors.borderColor2!.withOpacity(0.8), appColors.borderColor2 ?? Colors.blue[800]!],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
@@ -144,7 +139,7 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                             letterSpacing: 0.3,
-                            color: isAdmin ? appColors.borderColor2 : null,
+                            color:  appColors.textColor,
                           ),
                           overflow: TextOverflow.ellipsis,
                           maxLines: 1,
@@ -195,17 +190,13 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                   const SizedBox(height: 6),
                   Row(
                     children: [
-                      Icon(
-                        Icons.badge,
-                        size: 14,
-                        color: appColors.iconColor,
-                      ),
-                      const SizedBox(width: 4),
+
+
                       Text(
                         member['profile_code'] ?? 'No profile code',
                         style: TextStyle(
                           fontSize: 13,
-                          color: appColors.textColor2 ?? KDeepPurpleAccent100,
+                          color: appColors.subtitleColor2 ,
                           letterSpacing: 0.2,
                         ),
                       ),
@@ -357,7 +348,7 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                   ),
                   child: Icon(
                     Icons.flight_takeoff,
-                    color: appColor.iconColor2,
+                    color: Colors.white,
                     size: 24,
                   ),
                 ),
@@ -378,8 +369,8 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
             child: Column(
               children: [
                 _buildEnhancedTripDetailRow(Icons.location_on, 'Destination', tripDetails['destination'], appColor.iconColor2 ?? Colors.red),
-                _buildEnhancedTripDetailRow(Icons.calendar_today, 'Start Date', tripDetails['start_date'], appColor.subtitleColor1 ?? Colors.green),
-                _buildEnhancedTripDetailRow(Icons.event, 'End Date', tripDetails['end_date'], appColor.subtitleColor2 ?? Colors.orange),
+                _buildEnhancedTripDetailRow(Icons.calendar_today, 'Start Date', tripDetails['start_date'], appColor.iconColor2 ?? Colors.green),
+                _buildEnhancedTripDetailRow(Icons.event, 'End Date', tripDetails['end_date'], appColor.iconColor2 ?? Colors.orange),
                 _buildEnhancedTripDetailRow(Icons.info_outline, 'Status', tripDetails['trip_status'], appColor.iconColor2 ?? Colors.orange),
                 if (tripDetails['budget'] != null)
                   _buildEnhancedTripDetailRow(Icons.account_balance_wallet, 'Budget', '₹${tripDetails['budget']}', appColor.iconColor2 ?? Colors.purple),
@@ -393,31 +384,28 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
 
   Widget _buildEnhancedTripDetailRow(IconData icon, String label, String? value, Color iconColor) {
     if (value == null) return const SizedBox.shrink();
-
+    final appColor = Theme.of(context).extension<AppColorScheme>()!;
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: appColor.subtitleColor1?.withOpacity(0.25),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: iconColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, color: iconColor, size: 20),
+
+            child: Icon(icon, color: iconColor, size: 24),
           ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: Colors.grey[600])),
-                Text(value, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 16)),
+                Text(label, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16, color: appColor.subtitleColor2)),
+                Text(value, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14,)),
               ],
             ),
           ),
@@ -430,6 +418,7 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
     if (_groupDetails == null) return const SizedBox.shrink();
     final appColor = Theme.of(context).extension<AppColorScheme>()!;
     return Container(
+
       margin: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: appColor.cardColor,
@@ -466,7 +455,7 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                     color: Colors.white.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(Icons.group, color: appColor.iconColor, size: 24),
+                  child: Icon(Icons.group, color: Colors.white, size: 24),
                 ),
                 const SizedBox(width: 16),
                 Text(
@@ -488,7 +477,7 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.05),
+                    color: appColor.subtitleColor1?.withOpacity(0.25),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Column(
@@ -497,12 +486,12 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                       Row(
                         children: [
                           Icon(Icons.description, color: appColor.iconColor2, size: 20),
-                          const SizedBox(width: 8),
-                          Text('Description', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                          const SizedBox(width: 6),
+                          Text('Description', style: TextStyle(fontSize: 16, color: appColor.subtitleColor2,fontWeight: FontWeight.bold)),
                         ],
                       ),
                       const SizedBox(height: 12),
-                      Text(_groupDetails!['description'] ?? 'No description available'),
+                      Text(_groupDetails!['description'] ?? 'No description available',style: TextStyle(fontWeight: FontWeight.w500),),
                     ],
                   ),
                 ),
@@ -513,14 +502,14 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                       child: Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: appColor.subtitleColor1?.withOpacity(0.15),
+                          color: appColor.subtitleColor1?.withOpacity(0.25),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Column(
                           children: [
-                            Icon(Icons.person, color: appColor.subtitleColor1, size: 24),
-                            const SizedBox(height: 8),
-                            Text('Created by', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                            Icon(Icons.person, color: appColor.iconColor2, size: 24),
+                            const SizedBox(height: 4),
+                            Text('Created by', style: TextStyle(fontSize: 14, color: appColor.subtitleColor2,fontWeight: FontWeight.bold)),
                             Text(_groupDetails!['created_by']['username'], style: TextStyle(fontWeight: FontWeight.w500)),
                           ],
                         ),
@@ -531,14 +520,14 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                       child: Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: appColor.subtitleColor2?.withOpacity(0.15),
+                          color: appColor.subtitleColor1?.withOpacity(0.25),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Column(
                           children: [
-                            Icon(Icons.people, color: appColor.subtitleColor2, size: 24),
-                            const SizedBox(height: 8),
-                            Text('Members', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                            Icon(Icons.people, color: appColor.iconColor2, size: 24),
+                            const SizedBox(height: 4),
+                            Text('Members', style: TextStyle(fontSize: 14, color: appColor.subtitleColor2,fontWeight: FontWeight.bold)),
                             Text('${_groupDetails!['member_count']}', style: TextStyle(fontWeight: FontWeight.w500)),
                           ],
                         ),
@@ -550,7 +539,7 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: appColor.iconColor2?.withOpacity(0.08),
+                    color: appColor.subtitleColor1?.withOpacity(0.25),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
