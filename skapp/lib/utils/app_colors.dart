@@ -9,7 +9,7 @@ const Color kSecondaryColor = Colors.amber;
 const Color kAccentColor = Colors.green;
 const Color KPureWhite = Colors.white;
 const Color KPureBlack = Colors.black;
-const Color? KDeepPurple400 = Color(0xFF7E57C2);//deeppurple[400]
+const Color? KDeepPurple400 = Color(0xFF7E57C2); //deeppurple[400]
 const Color? KDeepPurpleAccent100 = Color(0xFFB388FF);
 const Color? ColorMoredarkerThanScaffold = Color(0xFF6A4795);
 const Color? backgroundColordarkmode = Color(0xFF2A203D);
@@ -19,9 +19,6 @@ const Color? backgroundColordarkmode = Color(0xFF2A203D);
 // 1. Add a new final Color field (e.g., secondary)
 // 2. Update the constructor, copyWith, and lerp methods
 // 3. Add the color in your ThemeData extensions in main.dart
-
-
-
 
 @immutable
 class AppColorScheme extends ThemeExtension<AppColorScheme> {
@@ -37,6 +34,7 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
   final Color? unselectedNavColor;
   final Color? inverseColor;
   final Color? cardColor2;
+  final Color? cardColor3;
   final Color? appBarColor;
   final Color? borderColor2;
   final Color? borderColor3;
@@ -65,13 +63,14 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
     this.subtitleColor1,
     this.subtitleColor2,
     this.iconColor2,
+    this.cardColor3,
   });
 
   @override
   AppColorScheme copyWith({
     Color? backgroundColor,
-    Color? trial, 
-    Color? secondary, 
+    Color? trial,
+    Color? secondary,
     Color? accent,
     Color? textColor,
     Color? iconColor,
@@ -89,9 +88,10 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
     Color? subtitleColor1,
     Color? subtitleColor2,
     Color? iconColor2,
+    Color? cardColor3,
   }) {
     return AppColorScheme(
-      backgroundColor: backgroundColor??this.backgroundColor,
+      backgroundColor: backgroundColor ?? this.backgroundColor,
       secondary: secondary ?? this.secondary,
       accent: accent ?? this.accent,
       textColor: textColor ?? this.textColor,
@@ -110,6 +110,7 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
       subtitleColor1: subtitleColor1 ?? this.subtitleColor1,
       subtitleColor2: subtitleColor2 ?? this.subtitleColor2,
       iconColor2: iconColor2 ?? this.iconColor2,
+      cardColor3: cardColor3 ?? this.cardColor3,
     );
   }
 
@@ -126,7 +127,11 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
       borderColor: Color.lerp(borderColor, other.borderColor, t),
       cardColor: Color.lerp(cardColor, other.cardColor, t),
       selectedNavColor: Color.lerp(selectedNavColor, other.selectedNavColor, t),
-      unselectedNavColor: Color.lerp(unselectedNavColor, other.unselectedNavColor, t),
+      unselectedNavColor: Color.lerp(
+        unselectedNavColor,
+        other.unselectedNavColor,
+        t,
+      ),
       inverseColor: Color.lerp(inverseColor, other.inverseColor, t),
       cardColor2: Color.lerp(cardColor2, other.cardColor2, t),
       appBarColor: Color.lerp(appBarColor, other.appBarColor, t),
@@ -136,10 +141,9 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
       subtitleColor1: Color.lerp(subtitleColor1, other.subtitleColor1, t),
       subtitleColor2: Color.lerp(subtitleColor2, other.subtitleColor2, t),
       iconColor2: Color.lerp(iconColor2, other.iconColor2, t),
+      cardColor3: Color.lerp(cardColor3, other.cardColor3, t),
     );
   }
-
-  
 
   // Generalized dynamic color getter
   Color getDynamicColor(BuildContext context, String colorKey) {
@@ -147,7 +151,7 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
     switch (colorKey) {
       case 'inversePrimary':
         return Theme.of(context).colorScheme.inversePrimary;
-      
+
       // Add more cases for other dynamic colors
       default:
         // Fallback to a neutral color or throw
@@ -164,12 +168,9 @@ class AppColorScheme extends ThemeExtension<AppColorScheme> {
 //   ),
 // ],
 
-
-
-
 // Helper
 // color: widget.selectedIndex == index
-//                                     ? (Theme.of(context).brightness == Brightness.light 
+//                                     ? (Theme.of(context).brightness == Brightness.light
 //                                         ? Theme.of(context).colorScheme.inversePrimary
 //                                         : appColors.selectedNavColor!)
 //                                     : appColors.unselectedNavColor,

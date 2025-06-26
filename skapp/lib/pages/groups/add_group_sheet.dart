@@ -140,9 +140,7 @@ class _AddFriendsSheetState extends State<AddFriendsSheet> {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 8.0),
       child: Card(
-        color:Theme.of(context).brightness == Brightness.light
-            ? null
-            : ColorMoredarkerThanScaffold,
+        color:appColor.cardColor3,
         elevation: 2,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: ListTile(

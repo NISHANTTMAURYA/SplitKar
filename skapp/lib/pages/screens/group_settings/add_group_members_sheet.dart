@@ -151,7 +151,7 @@ class _AddGroupMembersSheetState extends State<AddGroupMembersSheet> {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 8.0),
       child: Card(
-        color: appColors.cardColor,
+        color: appColors.cardColor3,
         elevation: 2,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: ListTile(

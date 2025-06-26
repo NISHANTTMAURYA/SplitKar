@@ -3,29 +3,27 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
-import 'package:flutter/widgets.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:skapp/components/auth_wrapper.dart';
-import 'package:skapp/pages/main_page.dart';
-import 'package:skapp/pages/screens/group_chat_screen.dart';
-import 'package:skapp/pages/screens/friend_chat_screen.dart';
-import 'package:skapp/pages/screens/group_chat_screen.dart';
-import 'package:skapp/pages/settings_profile/settings_page.dart';
-import 'package:logging/logging.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
+import 'package:logging/logging.dart';
 import 'package:provider/provider.dart';
-import 'package:skapp/widgets/custom_loader.dart';
-import 'package:skapp/widgets/offline_banner.dart';
-import 'package:skapp/services/notification_service.dart';
-import 'package:skapp/services/navigation_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:skapp/components/alerts/alert_service.dart';
+import 'package:skapp/components/auth_wrapper.dart';
 import 'package:skapp/pages/friends/friends_provider.dart';
 import 'package:skapp/pages/groups/group_provider.dart';
-import 'package:skapp/services/auth_service.dart';
-import 'package:skapp/utils/app_colors.dart';
+import 'package:skapp/pages/main_page.dart';
 import 'package:skapp/pages/notification_playground.dart';
+import 'package:skapp/pages/screens/friend_chat_screen.dart';
+import 'package:skapp/pages/screens/group_chat_screen.dart';
 import 'package:skapp/pages/settings_profile/settings_api.dart';
-import 'package:flutter_native_splash/flutter_native_splash.dart';
+import 'package:skapp/pages/settings_profile/settings_page.dart';
+import 'package:skapp/services/auth_service.dart';
+import 'package:skapp/services/navigation_service.dart';
+import 'package:skapp/services/notification_service.dart';
+import 'package:skapp/utils/app_colors.dart';
+import 'package:skapp/widgets/custom_loader.dart';
+import 'package:skapp/widgets/offline_banner.dart';
 
 class ProfileNotifier extends ChangeNotifier {
   final _logger = Logger('ProfileNotifier');
@@ -174,15 +172,16 @@ ValueNotifier<bool> get isThemeChanging => _isThemeChanging;
 
 // Function to get system theme
 bool getSystemTheme() {
-  final brightness = SchedulerBinding.instance.platformDispatcher.platformBrightness;
+  final brightness =
+      SchedulerBinding.instance.platformDispatcher.platformBrightness;
   return brightness == Brightness.dark;
 }
 
 // ParallelLoading function
 Future<void> parallelLoading(
-    Future<void> Function() operation,
-    Duration duration,
-    ) async {
+  Future<void> Function() operation,
+  Duration duration,
+) async {
   // Start the operation
   final operationFuture = operation();
 
@@ -301,7 +300,6 @@ Future<void> toggleAppThemeWithLoading() async {
   }
 }
 
-
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
 
@@ -311,18 +309,16 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   @override
-  void initState()  {
+  void initState() {
     // TODO: implement initState
     super.initState();
     initialization();
-
   }
+
   Future<void> initialization() async {
     await Future.delayed(Duration(seconds: 1));
     FlutterNativeSplash.remove();
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -332,8 +328,6 @@ class _MyAppState extends State<MyApp> {
       context,
       listen: false,
     );
-
-
 
     return ValueListenableBuilder(
       valueListenable: isDarkMode,
@@ -354,6 +348,7 @@ class _MyAppState extends State<MyApp> {
                 selectedNavColor: Colors.deepPurple,
                 unselectedNavColor: Colors.grey,
                 cardColor2: KDeepPurple400,
+                cardColor3: null,
                 borderColor2: Colors.deepPurpleAccent,
                 borderColor3: Colors.grey,
                 textColor2: Colors.grey,
@@ -369,7 +364,8 @@ class _MyAppState extends State<MyApp> {
             //2A203D
             //blue purple 1E1E2E
             colorScheme: ColorScheme.dark().copyWith(
-              inversePrimary: KDeepPurple400, // Custom inversePrimary for dark mode
+              inversePrimary:
+                  KDeepPurple400, // Custom inversePrimary for dark mode
             ),
             extensions: const [
               AppColorScheme(
@@ -380,6 +376,7 @@ class _MyAppState extends State<MyApp> {
                 selectedNavColor: KDeepPurpleAccent100,
                 unselectedNavColor: Color(0xFF2A203D),
                 cardColor2: ColorMoredarkerThanScaffold,
+                cardColor3: ColorMoredarkerThanScaffold,
                 borderColor2: KDeepPurpleAccent100,
                 borderColor3: Colors.grey,
                 textColor2: Colors.grey,
@@ -401,7 +398,9 @@ class _MyAppState extends State<MyApp> {
                   builder: (context, isChanging, _) {
                     if (!isChanging) return SizedBox.shrink();
                     return Container(
-                      color: isDarkMode.value ? Color(0xFF2A203D) : Colors.white,
+                      color: isDarkMode.value
+                          ? Color(0xFF2A203D)
+                          : Colors.white,
                       child: CustomLoader(),
                     );
                   },
