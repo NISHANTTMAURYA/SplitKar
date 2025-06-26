@@ -546,7 +546,16 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                     children: [
                       Icon(Icons.access_time, color: appColor.iconColor2, size: 20),
                       const SizedBox(width: 12),
-                      Text('Created: ${_groupDetails!['created_at']}'),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Created', style: TextStyle(fontSize: 14, color: appColor.subtitleColor2, fontWeight: FontWeight.bold)),
+                          Text(
+                            _formatDateTime(_groupDetails!['created_at']),
+                            style: TextStyle(fontWeight: FontWeight.w500),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
@@ -769,5 +778,47 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                     ),
                   ),
           );
+  }
+
+  String _formatDateTime(String dateTimeStr) {
+    final DateTime dateTime = DateTime.parse(dateTimeStr);
+    final DateTime now = DateTime.now();
+    final Duration difference = now.difference(dateTime);
+
+    // List of month names
+    final List<String> months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+
+    // Format time
+    String period = dateTime.hour >= 12 ? 'PM' : 'AM';
+    int hour = dateTime.hour > 12 ? dateTime.hour - 12 : dateTime.hour;
+    hour = hour == 0 ? 12 : hour; // Convert 0 to 12 for 12 AM
+    String time = '$hour:${dateTime.minute.toString().padLeft(2, '0')} $period';
+
+    // Format date with month name
+    String fullDate = '${months[dateTime.month - 1]} ${dateTime.day}, ${dateTime.year}';
+
+    // Add relative time
+    String relativeTime;
+    if (difference.inDays == 0) {
+      if (difference.inHours == 0) {
+        relativeTime = '${difference.inMinutes} minutes ago';
+      } else {
+        relativeTime = '${difference.inHours} hours ago';
+      }
+    } else if (difference.inDays == 1) {
+      relativeTime = 'yesterday';
+    } else if (difference.inDays < 7) {
+      relativeTime = '${difference.inDays} days ago';
+    } else if (difference.inDays < 30) {
+      int weeks = (difference.inDays / 7).floor();
+      relativeTime = '$weeks ${weeks == 1 ? 'week' : 'weeks'} ago';
+    } else {
+      relativeTime = fullDate;
+    }
+
+    return '$fullDate at $time\n($relativeTime)';
   }
 }

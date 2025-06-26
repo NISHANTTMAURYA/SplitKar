@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:skapp/components/alerts/alert_service.dart';
 import 'package:skapp/utils/app_colors.dart';
-
+import 'package:skapp/services/navigation_service.dart';
 class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
   final PageController? pageController;
@@ -149,15 +149,9 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       title: Center(
         child: GestureDetector(
           onTap: () {
-            if (pageController != null && pageController!.page! > 0) {
-              pageController!.previousPage(
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeInOut,
-              );
-            } else if (onBackPressed != null) {
-              onBackPressed!();
-            } else if (Navigator.of(context).canPop()) {
-              Navigator.of(context).pop();
+            final currentRoute = ModalRoute.of(context)?.settings.name;
+            if (currentRoute != '/settings') {
+              NavigationService().navigateToSettings();
             }
           },
           child: Container(
