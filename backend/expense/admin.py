@@ -39,7 +39,7 @@ class ExpenseShareInline(admin.TabularInline):
 
 @admin.register(Expense)
 class ExpenseAdmin(admin.ModelAdmin):
-    list_display = ('description', 'total_amount', 'currency', 'date', 'category', 'group', 'created_by', 'is_deleted')
+    list_display = ('expense_id','description', 'total_amount', 'currency', 'date', 'category', 'group', 'created_by', 'is_deleted')
     list_filter = ('is_deleted', 'currency', 'category', 'group', 'date', 'created_by')
     search_fields = ('description', 'notes', 'created_by__username', 'group__name')
     readonly_fields = ('expense_id', 'created_at', 'updated_at')

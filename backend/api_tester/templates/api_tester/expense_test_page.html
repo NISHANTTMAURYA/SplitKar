@@ -115,6 +115,17 @@
             </form>
             <div class="response-area" id="groupExpensesResponse"></div>
         </div>
+        <div class="api-section">
+            <h3>Delete Expense</h3>
+            <form id="deleteExpenseForm" class="mb-3">
+                <div class="mb-3">
+                    <label for="deleteExpenseId" class="form-label">Expense ID</label>
+                    <input type="text" class="form-control" id="deleteExpenseId" required>
+                </div>
+                <button type="submit" class="btn btn-danger">Delete Expense</button>
+            </form>
+            <div class="response-area" id="deleteExpenseResponse"></div>
+        </div>
     </div>
     <script>
         // Get CSRF token and JWT token from cookies
@@ -268,6 +279,23 @@
                 document.getElementById('groupExpensesResponse').textContent = JSON.stringify(data, null, 2);
             } catch (error) {
                 document.getElementById('groupExpensesResponse').textContent = 'Error: ' + error.message;
+            }
+        });
+
+        // Delete Expense API
+        document.getElementById('deleteExpenseForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const expenseId = document.getElementById('deleteExpenseId').value;
+            if (!expenseId) return;
+            try {
+                const response = await fetch(`/api/expenses/delete-expense/?expense_id=${expenseId}`, {
+                    method: 'DELETE',
+                    headers: getHeaders()
+                });
+                const data = await response.json();
+                document.getElementById('deleteExpenseResponse').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('deleteExpenseResponse').textContent = 'Error: ' + error.message;
             }
         });
     </script>

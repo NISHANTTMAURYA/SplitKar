@@ -266,3 +266,25 @@ def group_expenses(request):
     expenses = Expense.objects.filter(group=group).order_by('-date')
     serializer = ExpenseListSerializer(expenses, many=True, context={'user': request.user})
     return Response(serializer.data)
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_expense(request):
+    """
+    Delete an expense by its expense_id (soft delete).
+    Only the creator of the expense can delete it.
+    """
+    expense_id = request.GET.get('expense_id')
+    if not expense_id:
+        return Response({'error': 'expense_id parameter is required.'}, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        expense = Expense.objects.get(expense_id=expense_id)
+    except Expense.DoesNotExist:
+        return Response({'error': 'Expense not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+    if expense.created_by != request.user:
+        return Response({'error': 'You do not have permission to delete this expense.'}, status=status.HTTP_403_FORBIDDEN)
+
+    expense.is_deleted = True
+    expense.save(update_fields=['is_deleted'])
+    return Response({'message': 'Expense deleted successfully.'}, status=status.HTTP_200_OK)
