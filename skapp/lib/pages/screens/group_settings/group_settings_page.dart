@@ -75,13 +75,20 @@ class _ExpandableCardState extends State<ExpandableCard> with SingleTickerProvid
         decoration: BoxDecoration(
           color: Theme.of(context).extension<AppColorScheme>()!.cardColor,
           borderRadius: BorderRadius.circular(20),
-          boxShadow: const [
+          boxShadow: Theme.of(context).brightness == Brightness.light ? [
             BoxShadow(
-              color: Color(0x14000000), // Optimized opacity
+              color: KDeepPurpleAccent100!.withOpacity(0.6),
               blurRadius: 20,
-              offset: Offset(0, 8),
+              spreadRadius: 4,
+              offset: const Offset(0, 8),
             ),
-          ],
+            BoxShadow(
+              color: KDeepPurpleAccent100!.withOpacity(0.6),
+              blurRadius: 10,
+              spreadRadius: -2,
+              offset: const Offset(0, 4),
+            ),
+          ] : [],
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -768,10 +775,10 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
               child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.15),
+                  color: appColor.iconColor!.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: Colors.white.withOpacity(0.2),
+                    color: appColor.iconColor!.withOpacity(0.2),
                     width: 1,
                   ),
                 ),
@@ -813,16 +820,16 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.person_add,
-                            color: Colors.white,
+                            color: appColor.iconColor,
                             size: 20,
                           ),
                           const SizedBox(width: 8),
-                          const Text(
+                           Text(
                             'Add Members',
                             style: TextStyle(
-                              color: Colors.white,
+                              color: appColor.iconColor,
                               fontWeight: FontWeight.w600,
                               letterSpacing: 0.3,
                             ),
