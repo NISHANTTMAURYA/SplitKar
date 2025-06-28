@@ -12,7 +12,7 @@ import 'package:skapp/widgets/custom_loader.dart';
 import 'package:skapp/pages/friends/add_friends_sheet.dart';
 import 'package:skapp/pages/friends/friends_provider.dart';
 import 'package:skapp/components/alerts/alert_service.dart';
-import 'package:skapp/pages/screens/friend_chat_screen.dart';
+import 'package:skapp/pages/screens/friends_settings/friend_chat_screen.dart';
 import 'package:skapp/utils/app_colors.dart';
 class FreindsPage extends StatefulWidget {
   final GlobalKey<ScaffoldState> scaffoldKey;
