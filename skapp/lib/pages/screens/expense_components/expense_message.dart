@@ -33,12 +33,21 @@ class ExpenseMessage extends StatelessWidget {
     final yesterday = today.subtract(const Duration(days: 1));
     final messageDate = DateTime(timestamp.year, timestamp.month, timestamp.day);
 
+    String timeStr = '${timestamp.hour.toString().padLeft(2, '0')}:${timestamp.minute.toString().padLeft(2, '0')}';
+
     if (messageDate == today) {
-      return '${timestamp.hour.toString().padLeft(2, '0')}:${timestamp.minute.toString().padLeft(2, '0')}';
+      return timeStr;
     } else if (messageDate == yesterday) {
-      return 'Yesterday';
+      return 'Yesterday $timeStr';
+    } else if (now.difference(messageDate).inDays < 7) {
+      final days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+      return '${days[messageDate.weekday - 1]} $timeStr';
     } else {
-      return '${timestamp.day}/${timestamp.month}/${timestamp.year}';
+      final months = [
+        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      ];
+      return '${messageDate.day} ${months[messageDate.month - 1]} $timeStr';
     }
   }
 

@@ -48,4 +48,20 @@ class NavigationService {
       (route) => route.settings.name == '/main',
     );
   }
+
+  Future<dynamic> navigateToGroupChat({
+    required String chatName,
+    required int groupId,
+    String? chatImageUrl,
+  }) {
+    _logger.info('Navigating to group chat: $chatName, ID: $groupId');
+    return navigatorKey.currentState!.pushNamed(
+      '/group-chat',
+      arguments: {
+        'chatName': chatName,
+        'groupId': groupId,
+        'chatImageUrl': chatImageUrl,
+      },
+    );
+  }
 }

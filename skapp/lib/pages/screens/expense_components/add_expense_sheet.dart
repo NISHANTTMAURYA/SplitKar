@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:skapp/utils/app_colors.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:skapp/pages/screens/group_settings/bloc/group_expense_bloc.dart';
+import 'package:skapp/pages/screens/group_settings/bloc/group_expense_event.dart';
+import 'package:skapp/services/auth_service.dart';
 
 class AddExpenseSheet extends StatefulWidget {
   final int groupId;
@@ -46,6 +50,7 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
   String _splitMethod = 'equal'; // 'equal' or 'custom'
   final Map<String, TextEditingController> _customAmountControllers = {};
   bool _isProcessing = false;
+  final _authService = AuthService();
 
   @override
   void initState() {
@@ -138,6 +143,12 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
     );
   }
 
+  Future<int?> _getCurrentUserId() async {
+    final userId = await _authService.getUserId();
+    if (userId == null) return null;
+    return int.parse(userId);
+  }
+
   @override
   Widget build(BuildContext context) {
     final appColors = Theme.of(context).extension<AppColorScheme>()!;
@@ -217,8 +228,13 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
                           if (value == null || value.isEmpty) {
                             return 'Please enter an amount';
                           }
-                          if (double.tryParse(value) == null) {
-                            return 'Please enter a valid amount';
+                          try {
+                            final amount = double.parse(value);
+                            if (amount <= 0) {
+                              return 'Amount must be greater than 0';
+                            }
+                          } catch (e) {
+                            return 'Please enter a valid number';
                           }
                           return null;
                         },
@@ -292,10 +308,76 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
               child: ElevatedButton(
                 onPressed: _isProcessing
                     ? null
-                    : () {
+                    : () async {
                         if (_formKey.currentState?.validate() ?? false) {
-                          // TODO: Implement expense creation
-                          Navigator.pop(context, true);
+                          setState(() {
+                            _isProcessing = true;
+                          });
+
+                          try {
+                            // Get current user ID
+                            final currentUserId = await _getCurrentUserId();
+                            if (currentUserId == null) {
+                              throw 'Failed to get current user ID';
+                            }
+
+                            // Safely parse amount with null check
+                            final amount = double.tryParse(_amountController.text);
+                            if (amount == null) {
+                              throw 'Invalid amount format';
+                            }
+
+                            // Get selected user IDs and their splits
+                            final selectedMembers = widget.members
+                                .where((m) => _selectedMembers[m['profile_code']] ?? false)
+                                .toList();
+                            
+                            final List<int> userIds = selectedMembers
+                                .map<int>((m) => m['id'] as int)
+                                .toList();
+
+                            // Make sure current user is included in the split
+                            if (!userIds.contains(currentUserId)) {
+                              userIds.add(currentUserId);
+                            }
+
+                            List<Map<String, dynamic>>? splits;
+                            if (_splitMethod == 'custom') {
+                              splits = selectedMembers.map((m) {
+                                final splitAmount = double.tryParse(
+                                  _customAmountControllers[m['profile_code']]?.text ?? '0'
+                                ) ?? 0.0;
+                                final percentage = (splitAmount / amount * 100).toStringAsFixed(2);
+                                return {
+                                  'user_id': m['id'],
+                                  'percentage': percentage,
+                                };
+                              }).toList();
+                            }
+
+                            // Add expense using bloc
+                            context.read<GroupExpenseBloc>().add(
+                              AddGroupExpense(
+                                groupId: widget.groupId,
+                                description: _titleController.text.trim(),
+                                amount: amount,
+                                payerId: currentUserId, // Use current user as payer
+                                userIds: userIds,
+                                splitType: _splitMethod == 'custom' ? 'percentage' : 'equal',
+                                splits: splits,
+                              ),
+                            );
+
+                            Navigator.pop(context, true);
+                          } catch (e) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Failed to add expense: $e')),
+                            );
+                          } finally {
+                            setState(() {
+                              _isProcessing = false;
+                            });
+                          }
                         }
                       },
                 style: ElevatedButton.styleFrom(

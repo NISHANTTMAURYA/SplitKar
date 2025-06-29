@@ -22,7 +22,17 @@ class AddExpenseSerializer(serializers.Serializer):
     """Serializer for adding expenses with equal splitting"""
     
     description = serializers.CharField(max_length=200)
-    total_amount = serializers.DecimalField(max_digits=12, decimal_places=2)
+    total_amount = serializers.DecimalField(
+        max_digits=12, 
+        decimal_places=2,
+        min_value=Decimal('0.01'),
+        error_messages={
+            'min_value': 'Total amount must be greater than 0',
+            'invalid': 'Please enter a valid amount',
+            'required': 'Total amount is required',
+            'null': 'Total amount cannot be null'
+        }
+    )
     payer_id = serializers.IntegerField()
     user_ids = serializers.ListField(
         child=serializers.IntegerField(),
@@ -355,14 +365,19 @@ class BalanceSerializer(serializers.ModelSerializer):
 
 class ExpenseListSerializer(serializers.ModelSerializer):
     payer_id = serializers.SerializerMethodField()
+    payer_name = serializers.SerializerMethodField()
+    payer_profile_pic = serializers.SerializerMethodField()
     owed_breakdown = serializers.SerializerMethodField()
     you_owe = serializers.SerializerMethodField()
     group_name = serializers.SerializerMethodField()
     category = serializers.SerializerMethodField()
+    is_user_expense = serializers.SerializerMethodField()
 
     class Meta:
         model = Expense
-        fields = ['expense_id', 'description', 'total_amount', 'currency', 'date', 'group_name', 'payer_id', 'owed_breakdown', 'you_owe', 'category']
+        fields = ['expense_id', 'description', 'total_amount', 'currency', 'date', 
+                 'group_name', 'payer_id', 'payer_name', 'payer_profile_pic',
+                 'owed_breakdown', 'you_owe', 'category', 'is_user_expense']
 
     def get_group_name(self, obj):
         return obj.group.name if obj.group else None
@@ -371,6 +386,22 @@ class ExpenseListSerializer(serializers.ModelSerializer):
         payment = obj.payments.first()
         return payment.payer.id if payment else None
 
+    def get_payer_name(self, obj):
+        payment = obj.payments.first()
+        if not payment:
+            return None
+        payer = payment.payer
+        return payer.get_full_name() or payer.username
+
+    def get_payer_profile_pic(self, obj):
+        payment = obj.payments.first()
+        if not payment:
+            return ''
+        try:
+            return payment.payer.profile.profile_pic or ''
+        except:
+            return ''
+
     def get_owed_breakdown(self, obj):
         payments = obj.payments.all()
         if not payments:
@@ -378,9 +409,16 @@ class ExpenseListSerializer(serializers.ModelSerializer):
         payer = payments.first().payer
         breakdown = []
         for share in obj.shares.exclude(user=payer):
+            user = share.user
+            try:
+                profile_pic = user.profile.profile_pic or ''
+            except:
+                profile_pic = ''
             breakdown.append({
-                'user_id': share.user.id,
-                'amount_owed': str(share.amount_owed)
+                'user_id': user.id,
+                'name': user.get_full_name() or user.username,
+                'amount': str(share.amount_owed),
+                'profilePic': profile_pic
             })
         return breakdown
 
@@ -397,3 +435,10 @@ class ExpenseListSerializer(serializers.ModelSerializer):
                 'color': obj.category.color,
             }
         return None 
+
+    def get_is_user_expense(self, obj):
+        user = self.context.get('user')
+        if not user:
+            return False
+        payment = obj.payments.first()
+        return payment.payer.id == user.id if payment else False 

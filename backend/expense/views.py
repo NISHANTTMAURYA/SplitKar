@@ -243,7 +243,9 @@ def group_member_balances(request):
 
     balances = Balance.objects.filter(group=group).exclude(balance_amount=0)
     serializer = BalanceSerializer(balances, many=True)
-    return Response(serializer.data)
+    return Response({
+        'balances': serializer.data
+    })
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -265,7 +267,9 @@ def group_expenses(request):
 
     expenses = Expense.objects.filter(group=group).order_by('-date')
     serializer = ExpenseListSerializer(expenses, many=True, context={'user': request.user})
-    return Response(serializer.data)
+    return Response({
+        'expenses': serializer.data
+    })
 
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated])

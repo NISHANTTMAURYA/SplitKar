@@ -24,6 +24,9 @@ import 'package:skapp/services/notification_service.dart';
 import 'package:skapp/utils/app_colors.dart';
 import 'package:skapp/widgets/custom_loader.dart';
 import 'package:skapp/widgets/offline_banner.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:skapp/pages/screens/group_settings/bloc/group_expense_bloc.dart';
+import 'package:skapp/pages/screens/group_settings/group_expense_service.dart';
 
 class ProfileNotifier extends ChangeNotifier {
   final _logger = Logger('ProfileNotifier');
@@ -143,22 +146,33 @@ void main() async {
   final alertService = AlertService();
 
   runApp(
-    MultiProvider(
+    MultiBlocProvider(
       providers: [
-        ChangeNotifierProvider<ProfileNotifier>(
-          create: (_) => ProfileNotifier(),
+        BlocProvider<GroupExpenseBloc>(
+          create: (context) => GroupExpenseBloc(
+            GroupExpenseService(),
+          ),
         ),
-        ChangeNotifierProvider<NotificationService>.value(
-          value: notificationService,
-        ),
-        Provider<NavigationService>.value(value: navigationService),
-        ChangeNotifierProvider<AlertService>.value(value: alertService),
-        ChangeNotifierProvider<FriendsProvider>(
-          create: (_) => FriendsProvider(),
-        ),
-        ChangeNotifierProvider<GroupProvider>(create: (_) => GroupProvider()),
       ],
-      child: const MyApp(),
+      child: MultiProvider(
+        providers: [
+          ChangeNotifierProvider<ProfileNotifier>(
+            create: (_) => ProfileNotifier(),
+          ),
+          ChangeNotifierProvider<NotificationService>.value(
+            value: notificationService,
+          ),
+          Provider<NavigationService>.value(value: navigationService),
+          ChangeNotifierProvider<AlertService>.value(value: alertService),
+          ChangeNotifierProvider<FriendsProvider>(
+            create: (_) => FriendsProvider(),
+          ),
+          ChangeNotifierProvider<GroupProvider>(
+            create: (_) => GroupProvider()
+          ),
+        ],
+        child: const MyApp(),
+      ),
     ),
   );
 }
@@ -472,11 +486,14 @@ class _MyAppState extends State<MyApp> {
                 }
                 return MaterialPageRoute(
                   settings: settings,
-                  builder: (context) => GroupChatScreen(
-                    key: ValueKey('group_chat_${args['groupId']}'),
-                    chatName: args['chatName'] as String,
-                    chatImageUrl: args['chatImageUrl'] as String?,
-                    groupId: args['groupId'] as int,
+                  builder: (context) => BlocProvider(
+                    create: (context) => GroupExpenseBloc(GroupExpenseService()),
+                    child: GroupChatScreen(
+                      key: ValueKey('group_chat_${args['groupId']}'),
+                      chatName: args['chatName'] as String,
+                      chatImageUrl: args['chatImageUrl'] as String?,
+                      groupId: args['groupId'] as int,
+                    ),
                   ),
                 );
               case '/notification-playground':

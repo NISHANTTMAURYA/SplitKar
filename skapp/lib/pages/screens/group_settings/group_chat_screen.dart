@@ -9,6 +9,10 @@ import 'package:skapp/pages/screens/expense_components/expense_message.dart';
 import 'package:skapp/pages/screens/expense_components/date_separator.dart';
 import 'package:skapp/pages/screens/expense_components/add_expense_sheet.dart';
 import 'package:skapp/pages/screens/expense_components/expense_details_sheet.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:skapp/pages/screens/group_settings/bloc/group_expense_bloc.dart';
+import 'package:skapp/pages/screens/group_settings/bloc/group_expense_state.dart';
+import 'package:skapp/pages/screens/group_settings/bloc/group_expense_event.dart';
 
 class GroupChatScreen extends StatefulWidget {
   final String chatName;
@@ -38,67 +42,20 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   @override
   void initState() {
     super.initState();
-    _loadData();
+    // Load expenses when screen opens
+    context.read<GroupExpenseBloc>().add(
+      LoadGroupExpenses(widget.groupId),
+    );
   }
 
-  Future<void> _loadData() async {
-    // TODO: Load actual data from backend
-    await Future.delayed(const Duration(seconds: 1)); // Simulate network delay
-    
-    setState(() {
-      _members = [
-        {'username': 'You', 'profile_code': 'USER123', 'profile_pic': ''},
-        {'username': 'John', 'profile_code': 'JOHN456', 'profile_pic': ''},
-        {'username': 'Alice', 'profile_code': 'ALICE789', 'profile_pic': ''},
-      ];
-      
-      _expenses = [
-        {
-          'id': '1',
-          'title': 'Dinner at Restaurant',
-          'amount': 1500.0,
-          'paid_by': 'You',
-          'paid_by_profile_pic': '',
-          'timestamp': DateTime.now().subtract(const Duration(hours: 2)),
-          'is_user_expense': true,
-          'split_with': [
-            {'name': 'John', 'amount': 500.0, 'profilePic': ''},
-            {'name': 'Alice', 'amount': 500.0, 'profilePic': ''},
-            {'name': 'You', 'amount': 500.0, 'profilePic': ''},
-          ],
-        },
-        {
-          'id': '2',
-          'title': 'Movie Tickets',
-          'amount': 900.0,
-          'paid_by': 'John',
-          'paid_by_profile_pic': '',
-          'timestamp': DateTime.now().subtract(const Duration(days: 1)),
-          'is_user_expense': false,
-          'split_with': [
-            {'name': 'John', 'amount': 300.0, 'profilePic': ''},
-            {'name': 'Alice', 'amount': 300.0, 'profilePic': ''},
-            {'name': 'You', 'amount': 300.0, 'profilePic': ''},
-          ],
-        },
-        {
-          'id': '3',
-          'title': 'Groceries',
-          'amount': 2400.0,
-          'paid_by': 'Alice',
-          'paid_by_profile_pic': '',
-          'timestamp': DateTime.now().subtract(const Duration(days: 2)),
-          'is_user_expense': false,
-          'split_with': [
-            {'name': 'John', 'amount': 800.0, 'profilePic': ''},
-            {'name': 'Alice', 'amount': 800.0, 'profilePic': ''},
-            {'name': 'You', 'amount': 800.0, 'profilePic': ''},
-          ],
-        },
-      ];
-      
-      _isLoading = false;
-    });
+  void _scrollToBottom() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
   }
 
   @override
@@ -123,76 +80,81 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
           onPressed: () => Navigator.of(context).pop(),
           ),
         titleSpacing: 0.0,
-          title: GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => GroupSettingsPage(groupId: widget.groupId),
-                ),
-              );
-            },
-          child: Row(
-              children: [
-                Padding(
-                padding: EdgeInsets.only(right: MobileUtils.getScreenWidth(context) * 0.02),
-                  child: CircleAvatar(
-                    radius: avatarSize / 2,
-                    backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-                    child: ClipOval(
-                      child: (widget.chatImageUrl != null &&
-                              widget.chatImageUrl!.isNotEmpty &&
-                              widget.chatImageUrl!.startsWith('http'))
-                          ? CachedNetworkImage(
-                              imageUrl: widget.chatImageUrl!,
-                              placeholder: (context, url) => CustomLoader(
-                                size: avatarSize * 0.6,
-                                isButtonLoader: true,
-                              ),
-                              errorWidget: (context, url, error) => Icon(
-                                Icons.groups_2_outlined,
-                                size: avatarSize * 0.6,
-                                color: appColors.iconColor2,
-                              ),
-                              width: avatarSize,
-                              height: avatarSize,
-                              fit: BoxFit.cover,
-                            )
-                          : Icon(
-                              Icons.groups_2_outlined,
-                              size: avatarSize * 0.6,
-                              color: appColors.iconColor2,
-                            ),
+          title: BlocBuilder<GroupExpenseBloc, GroupExpenseState>(
+            builder: (context, state) {
+              final memberCount = state is GroupExpensesLoaded ? state.members.length : 0;
+              return GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => GroupSettingsPage(groupId: widget.groupId),
                     ),
-                  ),
-                ),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  );
+                },
+                child: Row(
                   children: [
-                    Text(
-                    widget.chatName,
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
-                      style: GoogleFonts.cabin(
-                        color: appColors.inverseColor,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                    Padding(
+                      padding: EdgeInsets.only(right: MobileUtils.getScreenWidth(context) * 0.02),
+                      child: CircleAvatar(
+                        radius: avatarSize / 2,
+                        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+                        child: ClipOval(
+                          child: (widget.chatImageUrl != null &&
+                                  widget.chatImageUrl!.isNotEmpty &&
+                                  widget.chatImageUrl!.startsWith('http'))
+                              ? CachedNetworkImage(
+                                  imageUrl: widget.chatImageUrl!,
+                                  placeholder: (context, url) => CustomLoader(
+                                    size: avatarSize * 0.6,
+                                    isButtonLoader: true,
+                                  ),
+                                  errorWidget: (context, url, error) => Icon(
+                                    Icons.groups_2_outlined,
+                                    size: avatarSize * 0.6,
+                                    color: appColors.iconColor2,
+                                  ),
+                                  width: avatarSize,
+                                  height: avatarSize,
+                                  fit: BoxFit.cover,
+                                )
+                              : Icon(
+                                  Icons.groups_2_outlined,
+                                  size: avatarSize * 0.6,
+                                  color: appColors.iconColor2,
+                                ),
+                        ),
                       ),
                     ),
-                    Text(
-                      '${_members.length} members',
-                      style: GoogleFonts.cabin(
-                        color: appColors.inverseColor?.withOpacity(0.7),
-                        fontSize: 12,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.chatName,
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                            style: GoogleFonts.cabin(
+                              color: appColors.inverseColor,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            '$memberCount members',
+                            style: GoogleFonts.cabin(
+                              color: appColors.inverseColor?.withOpacity(0.7),
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
-              ),
-            ],
+              );
+            },
           ),
-        ),
         actions: [
           IconButton(
             icon: Icon(
@@ -561,12 +523,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     );
   }
 
-  Widget _buildExpensesList() {
-    if (_isLoading) {
-      return const Center(child: CustomLoader());
-    }
-
-    if (_expenses.isEmpty) {
+  Widget _buildExpensesList(List<Map<String, dynamic>> expenses) {
+    if (expenses.isEmpty) {
       return Center(
         child: Text(
           'No expenses yet',
@@ -577,99 +535,62 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
       );
     }
 
+    // Sort expenses by date first (oldest to newest)
+    expenses.sort((a, b) {
+      final dateA = DateTime.parse(a['date']);
+      final dateB = DateTime.parse(b['date']);
+      return dateA.compareTo(dateB);
+    });
+
     // Group expenses by date
     final groupedExpenses = <DateTime, List<Map<String, dynamic>>>{};
-    for (var expense in _expenses) {
-      final date = DateTime(
-        expense['timestamp'].year,
-        expense['timestamp'].month,
-        expense['timestamp'].day,
-      );
-      groupedExpenses.putIfAbsent(date, () => []).add(expense);
+    for (var expense in expenses) {
+      final date = DateTime.parse(expense['date']);
+      final dayDate = DateTime(date.year, date.month, date.day);
+      groupedExpenses.putIfAbsent(dayDate, () => []).add(expense);
     }
 
-    // Sort dates in descending order
+    // Sort dates in ascending order (oldest first)
     final sortedDates = groupedExpenses.keys.toList()
-      ..sort((a, b) => b.compareTo(a));
+      ..sort((a, b) => a.compareTo(b));
+
+    // Sort expenses within each day by time (oldest first)
+    for (var date in sortedDates) {
+      groupedExpenses[date]!.sort((a, b) {
+        final timeA = DateTime.parse(a['date']);
+        final timeB = DateTime.parse(b['date']);
+        return timeA.compareTo(timeB);
+      });
+    }
 
     return ListView.builder(
       controller: _scrollController,
-      padding: const EdgeInsets.only(bottom: 80), // Space for FAB
+      padding: const EdgeInsets.only(bottom: 80),
+      reverse: false, // Keep false since we're sorting oldest to newest
       itemCount: sortedDates.length,
       itemBuilder: (context, index) {
         final date = sortedDates[index];
-        final expenses = groupedExpenses[date]!;
+        final dayExpenses = groupedExpenses[date]!;
 
         return Column(
           children: [
             DateSeparator(date: date),
-            ...expenses.map((expense) => ExpenseMessage(
-              title: expense['title'],
-              amount: expense['amount'],
-              paidBy: expense['paid_by'],
-              paidByProfilePic: expense['paid_by_profile_pic'],
-              splitWith: List<Map<String, dynamic>>.from(expense['split_with']),
-              timestamp: expense['timestamp'],
-              isUserExpense: expense['is_user_expense'],
-              onTap: () {
-                ExpenseDetailsSheet.show(
-                  context,
-                  expense,
-                  onEdit: () {
-                    // TODO: Implement edit functionality
-                    // For now, we'll just show the add expense sheet with pre-filled data
-                    AddExpenseSheet.show(
-                      context,
-                      widget.groupId,
-                      _members,
-                    ).then((shouldRefresh) {
-                      if (shouldRefresh ?? false) {
-                        _loadData();
-                      }
-                    });
-                  },
-                  onDelete: () {
-                    // TODO: Implement delete functionality
-                    _loadData();
-                  },
-                );
-              },
-              onLongPress: () {
-                // Show a quick action menu
-                showModalBottomSheet(
-                  context: context,
-                  builder: (context) => Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      ListTile(
-                        leading: const Icon(Icons.edit),
-                        title: const Text('Edit Expense'),
-                        onTap: () {
-                          Navigator.pop(context);
-                          AddExpenseSheet.show(
-                            context,
-                            widget.groupId,
-                            _members,
-                          ).then((shouldRefresh) {
-                            if (shouldRefresh ?? false) {
-                              _loadData();
-                            }
-                          });
-                        },
-                      ),
-                      ListTile(
-                        leading: const Icon(Icons.delete, color: Colors.red),
-                        title: const Text('Delete Expense', style: TextStyle(color: Colors.red)),
-                        onTap: () {
-                          Navigator.pop(context);
-                          // TODO: Implement delete functionality
-                          _loadData();
-                        },
-                      ),
-                    ],
-                  ),
-                );
-              },
+            ...dayExpenses.map((expense) => ExpenseMessage(
+              title: expense['description'] ?? 'Untitled Expense',
+              amount: expense['total_amount'] != null 
+                ? double.parse(expense['total_amount'].toString())
+                : 0.0,
+              paidBy: expense['payer_name'] ?? 'Unknown',
+              paidByProfilePic: expense['payer_profile_pic'] ?? '',
+              splitWith: (expense['owed_breakdown'] as List<dynamic>?)?.map((breakdown) => {
+                'name': breakdown['name'] ?? 'Unknown',
+                'amount': breakdown['amount'] ?? '0',
+                'profilePic': breakdown['profilePic'] ?? '',
+              }).toList() ?? [],
+              timestamp: DateTime.parse(expense['date']),
+              isUserExpense: expense['is_user_expense'] ?? false,
+              onTap: () => _showExpenseDetails(expense),
+              onLongPress: () => _showQuickActions(expense),
             )),
           ],
         );
@@ -677,46 +598,150 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final appColors = Theme.of(context).extension<AppColorScheme>()!;
-    
-    return Scaffold(
-      appBar: _buildAppBar(context),
-      body: Column(
-        children: [
-          _buildSearchBar(),
-          _buildExpenseSummaryCard(),
-          Expanded(
-            child: _buildExpensesList(),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
+  void _showExpenseDetails(Map<String, dynamic> expense) {
+    final state = context.read<GroupExpenseBloc>().state;
+    if (state is GroupExpensesLoaded) {
+      ExpenseDetailsSheet.show(
+        context,
+        expense,
+        onEdit: () {
           AddExpenseSheet.show(
             context,
             widget.groupId,
-            _members,
+            state.members,
           ).then((shouldRefresh) {
             if (shouldRefresh ?? false) {
-              _loadData();
+              context.read<GroupExpenseBloc>().add(
+                LoadGroupExpenses(widget.groupId),
+              );
             }
           });
         },
-        backgroundColor: appColors.cardColor2,
-        label: Row(
+        onDelete: () {
+          // TODO: Implement delete functionality
+          context.read<GroupExpenseBloc>().add(
+            LoadGroupExpenses(widget.groupId),
+          );
+        },
+      );
+    }
+  }
+
+  void _showQuickActions(Map<String, dynamic> expense) {
+    final state = context.read<GroupExpenseBloc>().state;
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: const Icon(Icons.edit),
+            title: const Text('Edit Expense'),
+            onTap: () {
+              Navigator.pop(context);
+              if (state is GroupExpensesLoaded) {
+                AddExpenseSheet.show(
+                  context,
+                  widget.groupId,
+                  state.members,
+                ).then((shouldRefresh) {
+                  if (shouldRefresh ?? false) {
+                    context.read<GroupExpenseBloc>().add(
+                      LoadGroupExpenses(widget.groupId),
+                    );
+                  }
+                });
+              }
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.delete, color: Colors.red),
+            title: const Text('Delete Expense', style: TextStyle(color: Colors.red)),
+            onTap: () {
+              Navigator.pop(context);
+              // TODO: Implement delete functionality
+              context.read<GroupExpenseBloc>().add(
+                LoadGroupExpenses(widget.groupId),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocListener<GroupExpenseBloc, GroupExpenseState>(
+      listener: (context, state) {
+        if (state is GroupExpenseError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(state.message)),
+          );
+        } else if (state is GroupExpensesLoaded) {
+          // Scroll to bottom when expenses are loaded
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _scrollToBottom();
+          });
+        }
+      },
+      child: Scaffold(
+        appBar: _buildAppBar(context),
+        body: Column(
           children: [
-            Icon(Icons.add, color: appColors.inverseColor),
-            const SizedBox(width: 8),
-            Text(
-              'Add Expense',
-              style: GoogleFonts.cabin(
-                color: appColors.inverseColor,
-                fontWeight: FontWeight.w600,
+            _buildSearchBar(),
+            _buildExpenseSummaryCard(),
+            Expanded(
+              child: BlocBuilder<GroupExpenseBloc, GroupExpenseState>(
+                builder: (context, state) {
+                  if (state is GroupExpenseLoading) {
+                    return const Center(child: CustomLoader());
+                  } else if (state is GroupExpensesLoaded) {
+                    return _buildExpensesList(state.expenses);
+                  } else if (state is GroupExpenseError) {
+                    return Center(child: Text(state.message));
+                  }
+                  return const SizedBox.shrink();
+                },
               ),
             ),
           ],
+        ),
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: () {
+            final state = context.read<GroupExpenseBloc>().state;
+            if (state is GroupExpensesLoaded) {
+              AddExpenseSheet.show(
+                context,
+                widget.groupId,
+                state.members,
+              ).then((shouldRefresh) {
+                if (shouldRefresh ?? false) {
+                  context.read<GroupExpenseBloc>().add(
+                    LoadGroupExpenses(widget.groupId),
+                  );
+                  // Scroll to bottom after adding new expense
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    _scrollToBottom();
+                  });
+                }
+              });
+            }
+          },
+          backgroundColor: Theme.of(context).extension<AppColorScheme>()!.cardColor2,
+          label: Row(
+            children: [
+              Icon(Icons.add, color: Theme.of(context).extension<AppColorScheme>()!.inverseColor),
+              const SizedBox(width: 8),
+              Text(
+                'Add Expense',
+                style: GoogleFonts.cabin(
+                  color: Theme.of(context).extension<AppColorScheme>()!.inverseColor,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
