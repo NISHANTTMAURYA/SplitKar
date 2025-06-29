@@ -43,6 +43,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   @override
   void initState() {
     super.initState();
+    _isLoading = true;  // Set initial loading state
     // Load expenses when screen opens
     context.read<GroupExpenseBloc>().add(
       LoadGroupExpenses(widget.groupId),
@@ -50,17 +51,16 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   }
 
   void _scrollToBottom() {
-    if (!mounted) return;
-    if (_scrollController.hasClients) {
-      final maxScroll = _scrollController.position.maxScrollExtent;
-      if (maxScroll > 0) {
-        _scrollController.animateTo(
-          maxScroll,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      }
-    }
+    // if (!mounted) return;
+    // WidgetsBinding.instance.addPostFrameCallback((_) {
+    //   if (_scrollController.hasClients) {
+    //     _scrollController.animateTo(
+    //       _scrollController.position.maxScrollExtent,
+    //       duration: const Duration(milliseconds: 300),
+    //       curve: Curves.easeOut,
+    //     );
+    //   }
+    // });
   }
 
   @override
@@ -199,12 +199,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         int totalSettlements = 0;
         
         if (state is GroupExpensesLoaded) {
-          for (var expense in state.expenses) {
-            totalSpent += double.parse(expense['total_amount'].toString());
-          }
-          totalSettlements = state.balances.where((b) => 
-            double.parse(b['balance_amount'].toString()).abs() > 0.01
-          ).length;
+          totalSpent = state.summary.totalSpent;
+          totalSettlements = state.summary.totalSettlements;
         }
         
         return Container(
@@ -317,112 +313,22 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
           );
         }
 
-        // Calculate total spent
-        double totalSpent = 0;
-        for (var expense in state.expenses) {
-          totalSpent += double.parse(expense['total_amount'].toString());
-        }
-
-        // Process balances
-        final List<Map<String, dynamic>> balanceDetails = [];
-        final Map<int, Map<String, dynamic>> userBalances = {};
-
-        // Initialize user balances
-        for (var member in state.members) {
-          userBalances[member['id']] = {
-            'user': member['username'],
-            'netBalance': 0.0,
-            'owes': <Map<String, dynamic>>[],
-            'isOwed': <Map<String, dynamic>>[],
-          };
-        }
-
-        // Process each balance
-        for (var balance in state.balances) {
-          final user1 = balance['user1'];
-          final user2 = balance['user2'];
-          final amount = double.parse(balance['balance_amount'].toString());
-
-          if (amount > 0) {
-            userBalances[user1['id']]?['netBalance'] = (userBalances[user1['id']]?['netBalance'] ?? 0.0) - amount;
-            userBalances[user2['id']]?['netBalance'] = (userBalances[user2['id']]?['netBalance'] ?? 0.0) + amount;
-            
-            userBalances[user1['id']]?['owes'].add({
-              'to': user2['username'],
-              'amount': amount,
-            });
-            userBalances[user2['id']]?['isOwed'].add({
-              'from': user1['username'],
-              'amount': amount,
-            });
-          } else if (amount < 0) {
-            final absAmount = amount.abs();
-            userBalances[user2['id']]?['netBalance'] = (userBalances[user2['id']]?['netBalance'] ?? 0.0) - absAmount;
-            userBalances[user1['id']]?['netBalance'] = (userBalances[user1['id']]?['netBalance'] ?? 0.0) + absAmount;
-            
-            userBalances[user2['id']]?['owes'].add({
-              'to': user1['username'],
-              'amount': absAmount,
-            });
-            userBalances[user1['id']]?['isOwed'].add({
-              'from': user2['username'],
-              'amount': absAmount,
-            });
-          }
-        }
-
-        balanceDetails.addAll(userBalances.values);
-        balanceDetails.sort((a, b) => (b['netBalance'] as double).compareTo(a['netBalance'] as double));
-
         return Container(
-          key: const ValueKey('expanded_summary'),
-          width: double.infinity,
-          constraints: BoxConstraints(
-            maxHeight: maxHeight,
+          constraints: BoxConstraints(maxHeight: maxHeight),
+          decoration: BoxDecoration(
+            color: appColors.cardColor2?.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: appColors.borderColor2?.withOpacity(0.1) ?? Colors.transparent,
+            ),
           ),
           child: SingleChildScrollView(
-            physics: const ClampingScrollPhysics(),
             padding: EdgeInsets.all(isSmallScreen ? 12 : 16),
             child: Column(
-              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Divider(),
-                const SizedBox(height: 8),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: appColors.cardColor2?.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: appColors.borderColor2?.withOpacity(0.2) ?? Colors.transparent,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.account_balance_wallet,
-                        color: appColors.iconColor,
-                        size: 20 * textScaleFactor,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          'Total Spent: ₹${totalSpent.toStringAsFixed(2)}',
-                          style: GoogleFonts.cabin(
-                            fontSize: 16 * textScaleFactor,
-                            fontWeight: FontWeight.w600,
-                            color: appColors.textColor,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
                 Text(
-                  'Net Balances',
+                  'Total Spent',
                   style: GoogleFonts.cabin(
                     fontSize: 16 * textScaleFactor,
                     fontWeight: FontWeight.w600,
@@ -430,10 +336,28 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                ...balanceDetails.map((user) => _buildBalanceItem(
-                  name: user['user'] as String,
-                  amount: user['netBalance'] as double,
-                  isPositive: (user['netBalance'] as double) >= 0,
+                Text(
+                  '₹${state.summary.totalSpent.toStringAsFixed(2)}',
+                  style: GoogleFonts.cabin(
+                    fontSize: 24 * textScaleFactor,
+                    fontWeight: FontWeight.bold,
+                    color: appColors.textColor,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  'Balance Summary',
+                  style: GoogleFonts.cabin(
+                    fontSize: 16 * textScaleFactor,
+                    fontWeight: FontWeight.w600,
+                    color: appColors.textColor,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ...state.summary.balances.map((userBalance) => _buildBalanceItem(
+                  name: userBalance.username,
+                  amount: userBalance.netBalance,
+                  isPositive: userBalance.netBalance >= 0,
                   appColors: appColors,
                 )),
                 const SizedBox(height: 16),
@@ -446,28 +370,16 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                ...balanceDetails.expand((user) {
+                ...state.summary.balances.expand((userBalance) {
                   final List<Widget> settlements = [];
                   
-                  for (final owes in (user['owes'] as List)) {
+                  // Only show "owes" relationships to avoid duplicates
+                  for (final owes in userBalance.owes) {
                     settlements.add(
                       _buildSettlementItem(
-                        from: user['user'] as String,
+                        from: userBalance.username,
                         to: owes['to'] as String,
                         amount: owes['amount'] as double,
-                        appColors: appColors,
-                        textScaleFactor: textScaleFactor,
-                        isSmallScreen: isSmallScreen,
-                      ),
-                    );
-                  }
-                  
-                  for (final owed in (user['isOwed'] as List)) {
-                    settlements.add(
-                      _buildSettlementItem(
-                        from: owed['from'] as String,
-                        to: user['user'] as String,
-                        amount: owed['amount'] as double,
                         appColors: appColors,
                         textScaleFactor: textScaleFactor,
                         isSmallScreen: isSmallScreen,
@@ -629,8 +541,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     );
   }
 
-  Widget _buildExpensesList(List<Map<String, dynamic>> expenses) {
-    if (expenses.isEmpty) {
+  Widget _buildExpensesList(List<GroupedExpenses> groupedExpenses) {
+    if (groupedExpenses.isEmpty) {
       return const SliverToBoxAdapter(
         child: Padding(
           padding: EdgeInsets.all(16.0),
@@ -647,43 +559,11 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
       );
     }
 
-    // Sort expenses by date first (oldest to newest)
-    expenses.sort((a, b) {
-      final dateA = DateTime.parse(a['date']);
-      final dateB = DateTime.parse(b['date']);
-      return dateA.compareTo(dateB);
-    });
-
-    // Group expenses by date
-    final groupedExpenses = <DateTime, List<Map<String, dynamic>>>{};
-    for (var expense in expenses) {
-      final date = DateTime.parse(expense['date']);
-      final dayDate = DateTime(date.year, date.month, date.day);
-      if (!groupedExpenses.containsKey(dayDate)) {
-        groupedExpenses[dayDate] = [];
-      }
-      groupedExpenses[dayDate]!.add(expense);
-    }
-
-    // Sort dates in ascending order (oldest first)
-    final sortedDates = groupedExpenses.keys.toList()
-      ..sort((a, b) => a.compareTo(b));
-
-    // Sort expenses within each day by time (oldest first)
-    for (var date in sortedDates) {
-      groupedExpenses[date]!.sort((a, b) {
-        final timeA = DateTime.parse(a['date']);
-        final timeB = DateTime.parse(b['date']);
-        return timeA.compareTo(timeB);
-      });
-    }
-
     // Convert the grouped expenses into a list of widgets
     final List<Widget> children = [];
-    for (var date in sortedDates) {
-      final dayExpenses = groupedExpenses[date]!;
-      children.add(DateSeparator(date: date));
-      children.addAll(dayExpenses.map((expense) => Padding(
+    for (var group in groupedExpenses) {
+      children.add(DateSeparator(date: group.date));
+      children.addAll(group.expenses.map((expense) => Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8.0),
         child: ExpenseMessage(
           title: expense['description'] ?? 'Untitled Expense',
@@ -697,7 +577,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
             'amount': breakdown['amount'] ?? '0',
             'profilePic': breakdown['profilePic'] ?? '',
           }).toList() ?? [],
-          timestamp: DateTime.parse(expense['date']),
+          timestamp: DateTime.parse(expense['date']).toLocal(),
           isUserExpense: expense['is_user_expense'] ?? false,
           onTap: () => _showExpenseDetails(expense),
           onLongPress: () => _showQuickActions(expense),
@@ -794,12 +674,9 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
             SnackBar(content: Text(state.message)),
           );
         } else if (state is GroupExpensesLoaded) {
-          if (!_isLoading) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              _scrollToBottom();
-            });
-            _isLoading = false;
-          }
+          // Scroll to bottom both when first loaded and when new expense is added
+          // _scrollToBottom();
+          _isLoading = false;
         }
       },
       child: Scaffold(
@@ -818,7 +695,6 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                       physics: const AlwaysScrollableScrollPhysics(),
                       slivers: [
                         SliverPersistentHeader(
-                          // pinned: true,
                           floating: true,
                           delegate: _SummaryHeaderDelegate(
                             child: _buildSummaryHeader(state),
@@ -834,9 +710,9 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                           SliverToBoxAdapter(
                             child: _buildExpandedSummaryContent(state),
                           ),
-                        _buildExpensesList(state.expenses),
+                        _buildExpensesList(state.groupedExpenses),
                         const SliverPadding(
-                          padding: EdgeInsets.only(bottom: 80),
+                          padding: EdgeInsets.only(bottom: 100),
                         ),
                       ],
                     );
@@ -861,40 +737,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
             ),
           ],
         ),
-        floatingActionButton: BlocBuilder<GroupExpenseBloc, GroupExpenseState>(
-          builder: (context, state) {
-            if (state is! GroupExpensesLoaded) return const SizedBox.shrink();
-            return FloatingActionButton.extended(
-              onPressed: () {
-                AddExpenseSheet.show(
-                  context,
-                  widget.groupId,
-                  state.members,
-                ).then((shouldRefresh) {
-                  if (shouldRefresh ?? false) {
-                    context.read<GroupExpenseBloc>().add(
-                      LoadGroupExpenses(widget.groupId),
-                    );
-                  }
-                });
-              },
-              backgroundColor: Theme.of(context).extension<AppColorScheme>()!.cardColor2,
-              label: Row(
-                children: [
-                  Icon(Icons.add, color: Theme.of(context).extension<AppColorScheme>()!.inverseColor),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Add Expense',
-                    style: GoogleFonts.cabin(
-                      color: Theme.of(context).extension<AppColorScheme>()!.inverseColor,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        ),
+        floatingActionButton: _buildFloatingActionButton(),
       ),
     );
   }
@@ -904,16 +747,6 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     final mediaQuery = MediaQuery.of(context);
     final isSmallScreen = mediaQuery.size.width < 360;
     final textScaleFactor = mediaQuery.textScaleFactor.clamp(0.8, 1.2);
-
-    double totalSpent = 0;
-    int totalSettlements = 0;
-    
-    for (var expense in state.expenses) {
-      totalSpent += double.parse(expense['total_amount'].toString());
-    }
-    totalSettlements = state.balances.where((b) => 
-      double.parse(b['balance_amount'].toString()).abs() > 0.01
-    ).length;
 
     final borderRadius = BorderRadius.vertical(
       top: const Radius.circular(20),
@@ -976,7 +809,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                             ),
                           ),
                           Text(
-                            '₹${totalSpent.toStringAsFixed(2)} total spent • $totalSettlements pending settlements',
+                            '₹${state.summary.totalSpent.toStringAsFixed(2)} total spent • ${state.summary.totalSettlements} pending settlements',
                             style: GoogleFonts.cabin(
                               fontSize: 14 * textScaleFactor,
                               color: appColors.inverseColor?.withOpacity(0.8),
@@ -1009,63 +842,6 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     final mediaQuery = MediaQuery.of(context);
     final isSmallScreen = mediaQuery.size.width < 360;
     final textScaleFactor = mediaQuery.textScaleFactor.clamp(0.8, 1.2);
-
-    // Calculate total spent
-    double totalSpent = 0;
-    for (var expense in state.expenses) {
-      totalSpent += double.parse(expense['total_amount'].toString());
-    }
-
-    // Process balances
-    final List<Map<String, dynamic>> balanceDetails = [];
-    final Map<int, Map<String, dynamic>> userBalances = {};
-
-    // Initialize user balances
-    for (var member in state.members) {
-      userBalances[member['id']] = {
-        'user': member['username'],
-        'netBalance': 0.0,
-        'owes': <Map<String, dynamic>>[],
-        'isOwed': <Map<String, dynamic>>[],
-      };
-    }
-
-    // Process each balance
-    for (var balance in state.balances) {
-      final user1 = balance['user1'];
-      final user2 = balance['user2'];
-      final amount = double.parse(balance['balance_amount'].toString());
-
-      if (amount > 0) {
-        userBalances[user1['id']]?['netBalance'] = (userBalances[user1['id']]?['netBalance'] ?? 0.0) - amount;
-        userBalances[user2['id']]?['netBalance'] = (userBalances[user2['id']]?['netBalance'] ?? 0.0) + amount;
-        
-        userBalances[user1['id']]?['owes'].add({
-          'to': user2['username'],
-          'amount': amount,
-        });
-        userBalances[user2['id']]?['isOwed'].add({
-          'from': user1['username'],
-          'amount': amount,
-        });
-      } else if (amount < 0) {
-        final absAmount = amount.abs();
-        userBalances[user2['id']]?['netBalance'] = (userBalances[user2['id']]?['netBalance'] ?? 0.0) - absAmount;
-        userBalances[user1['id']]?['netBalance'] = (userBalances[user1['id']]?['netBalance'] ?? 0.0) + absAmount;
-        
-        userBalances[user2['id']]?['owes'].add({
-          'to': user1['username'],
-          'amount': absAmount,
-        });
-        userBalances[user1['id']]?['isOwed'].add({
-          'from': user2['username'],
-          'amount': absAmount,
-        });
-      }
-    }
-
-    balanceDetails.addAll(userBalances.values);
-    balanceDetails.sort((a, b) => (b['netBalance'] as double).compareTo(a['netBalance'] as double));
 
     return Container(
       color: Colors.transparent,
@@ -1115,7 +891,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            'Total Spent: ₹${totalSpent.toStringAsFixed(2)}',
+                            'Total Spent: ₹${state.summary.totalSpent.toStringAsFixed(2)}',
                             style: GoogleFonts.cabin(
                               fontSize: 16 * textScaleFactor,
                               fontWeight: FontWeight.w600,
@@ -1136,10 +912,10 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  ...balanceDetails.map((user) => _buildBalanceItem(
-                    name: user['user'] as String,
-                    amount: user['netBalance'] as double,
-                    isPositive: (user['netBalance'] as double) >= 0,
+                  ...state.summary.balances.map((userBalance) => _buildBalanceItem(
+                    name: userBalance.username,
+                    amount: userBalance.netBalance,
+                    isPositive: userBalance.netBalance >= 0,
                     appColors: appColors,
                   )),
                   const SizedBox(height: 16),
@@ -1152,28 +928,16 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  ...balanceDetails.expand((user) {
+                  ...state.summary.balances.expand((userBalance) {
                     final List<Widget> settlements = [];
                     
-                    for (final owes in (user['owes'] as List)) {
+                    // Only show "owes" relationships to avoid duplicates
+                    for (final owes in userBalance.owes) {
                       settlements.add(
                         _buildSettlementItem(
-                          from: user['user'] as String,
+                          from: userBalance.username,
                           to: owes['to'] as String,
                           amount: owes['amount'] as double,
-                          appColors: appColors,
-                          textScaleFactor: textScaleFactor,
-                          isSmallScreen: isSmallScreen,
-                        ),
-                      );
-                    }
-                    
-                    for (final owed in (user['isOwed'] as List)) {
-                      settlements.add(
-                        _buildSettlementItem(
-                          from: owed['from'] as String,
-                          to: user['user'] as String,
-                          amount: owed['amount'] as double,
                           appColors: appColors,
                           textScaleFactor: textScaleFactor,
                           isSmallScreen: isSmallScreen,
@@ -1189,6 +953,43 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildFloatingActionButton() {
+    return BlocBuilder<GroupExpenseBloc, GroupExpenseState>(
+      builder: (context, state) {
+        if (state is! GroupExpensesLoaded) return const SizedBox.shrink();
+        return FloatingActionButton.extended(
+          onPressed: () {
+            AddExpenseSheet.show(
+              context,
+              widget.groupId,
+              state.members,
+            ).then((shouldRefresh) {
+              if (shouldRefresh ?? false) {
+                context.read<GroupExpenseBloc>().add(
+                  LoadGroupExpenses(widget.groupId),
+                );
+              }
+            });
+          },
+          backgroundColor: Theme.of(context).extension<AppColorScheme>()!.cardColor2,
+          label: Row(
+            children: [
+              Icon(Icons.add, color: Theme.of(context).extension<AppColorScheme>()!.inverseColor),
+              const SizedBox(width: 8),
+              Text(
+                'Add Expense',
+                style: GoogleFonts.cabin(
+                  color: Theme.of(context).extension<AppColorScheme>()!.inverseColor,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

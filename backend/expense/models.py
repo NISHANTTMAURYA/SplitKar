@@ -15,6 +15,12 @@ class TimeStampedModel(models.Model):
     class Meta:
         abstract = True
 
+    def save(self, *args, **kwargs):
+        # Ensure timezone awareness for created_at if it's naive
+        if hasattr(self, 'created_at') and self.created_at and timezone.is_naive(self.created_at):
+            self.created_at = timezone.make_aware(self.created_at, timezone.get_current_timezone())
+        super().save(*args, **kwargs)
+
 class ExpenseCategory(TimeStampedModel):
     """Predefined expense categories"""
     name = models.CharField(max_length=50, unique=True)

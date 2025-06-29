@@ -39,12 +39,14 @@ class ExpenseDetailsSheet extends StatelessWidget {
   }
 
   String _formatTimestamp(DateTime timestamp) {
+    // Convert UTC timestamp to local time
+    final localTime = timestamp.toLocal();
     final months = [
       'January', 'February', 'March', 'April', 'May', 'June',
       'July', 'August', 'September', 'October', 'November', 'December'
     ];
-    return '${timestamp.day} ${months[timestamp.month - 1]} ${timestamp.year} at '
-           '${timestamp.hour.toString().padLeft(2, '0')}:${timestamp.minute.toString().padLeft(2, '0')}';
+    return '${localTime.day} ${months[localTime.month - 1]} ${localTime.year} at '
+           '${localTime.hour.toString().padLeft(2, '0')}:${localTime.minute.toString().padLeft(2, '0')}';
   }
 
   @override
@@ -53,6 +55,9 @@ class ExpenseDetailsSheet extends StatelessWidget {
     final mediaQuery = MediaQuery.of(context);
     final isSmallScreen = mediaQuery.size.width < 360;
     final textScaleFactor = mediaQuery.textScaleFactor.clamp(0.8, 1.2);
+
+    // Parse the date string to DateTime
+    final timestamp = DateTime.parse(expense['date'] ?? DateTime.now().toIso8601String()).toLocal();
 
     return Container(
       decoration: BoxDecoration(
@@ -148,7 +153,7 @@ class ExpenseDetailsSheet extends StatelessWidget {
                       child: Column(
                         children: [
                           Text(
-                            '₹${expense['amount']}',
+                            '₹${expense['total_amount']}',
                             style: GoogleFonts.cabin(
                               fontSize: 32 * textScaleFactor,
                               fontWeight: FontWeight.bold,
@@ -157,7 +162,7 @@ class ExpenseDetailsSheet extends StatelessWidget {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            expense['title'],
+                            expense['description'] ?? 'Untitled Expense',
                             style: GoogleFonts.cabin(
                               fontSize: 16 * textScaleFactor,
                               color: appColors.textColor2,
@@ -192,14 +197,14 @@ class ExpenseDetailsSheet extends StatelessWidget {
                           CircleAvatar(
                             radius: 20,
                             backgroundColor: appColors.cardColor2?.withOpacity(0.1),
-                            backgroundImage: expense['paid_by_profile_pic'] != null &&
-                                          expense['paid_by_profile_pic'].isNotEmpty
-                                ? CachedNetworkImageProvider(expense['paid_by_profile_pic'])
+                            backgroundImage: expense['payer_profile_pic'] != null &&
+                                          expense['payer_profile_pic'].isNotEmpty
+                                ? CachedNetworkImageProvider(expense['payer_profile_pic'])
                                 : null,
-                            child: expense['paid_by_profile_pic'] == null ||
-                                   expense['paid_by_profile_pic'].isEmpty
+                            child: expense['payer_profile_pic'] == null ||
+                                   expense['payer_profile_pic'].isEmpty
                                 ? Text(
-                                    expense['paid_by'][0].toUpperCase(),
+                                    (expense['payer_name'] ?? 'U')[0].toUpperCase(),
                                     style: TextStyle(
                                       color: appColors.textColor,
                                       fontSize: 18 * textScaleFactor,
@@ -212,7 +217,7 @@ class ExpenseDetailsSheet extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                expense['paid_by'],
+                                expense['payer_name'] ?? 'Unknown',
                                 style: GoogleFonts.cabin(
                                   fontSize: 16 * textScaleFactor,
                                   fontWeight: FontWeight.w500,
@@ -220,7 +225,7 @@ class ExpenseDetailsSheet extends StatelessWidget {
                                 ),
                               ),
                               Text(
-                                _formatTimestamp(expense['timestamp']),
+                                _formatTimestamp(timestamp),
                                 style: GoogleFonts.cabin(
                                   fontSize: 12 * textScaleFactor,
                                   color: appColors.textColor2,
@@ -242,7 +247,7 @@ class ExpenseDetailsSheet extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    ...expense['split_with'].map<Widget>((person) => Container(
+                    ...(expense['owed_breakdown'] as List<dynamic>? ?? []).map<Widget>((person) => Container(
                       margin: const EdgeInsets.only(bottom: 8),
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
@@ -258,13 +263,13 @@ class ExpenseDetailsSheet extends StatelessWidget {
                             radius: 16,
                             backgroundColor: appColors.cardColor2?.withOpacity(0.1),
                             backgroundImage: person['profilePic'] != null &&
-                                          person['profilePic'].isNotEmpty
+                                          person['profilePic'].toString().isNotEmpty
                                 ? CachedNetworkImageProvider(person['profilePic'])
                                 : null,
                             child: person['profilePic'] == null ||
-                                   person['profilePic'].isEmpty
+                                   person['profilePic'].toString().isEmpty
                                 ? Text(
-                                    person['name'][0].toUpperCase(),
+                                    (person['name'] ?? 'U')[0].toUpperCase(),
                                     style: TextStyle(
                                       color: appColors.textColor,
                                       fontSize: 14 * textScaleFactor,
@@ -275,7 +280,7 @@ class ExpenseDetailsSheet extends StatelessWidget {
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
-                              person['name'],
+                              person['name'] ?? 'Unknown',
                               style: GoogleFonts.cabin(
                                 fontSize: 14 * textScaleFactor,
                                 color: appColors.textColor,

@@ -5,6 +5,7 @@ import 'package:skapp/utils/app_colors.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:skapp/pages/screens/group_settings/bloc/group_expense_bloc.dart';
 import 'package:skapp/pages/screens/group_settings/bloc/group_expense_event.dart';
+import 'package:skapp/pages/screens/group_settings/bloc/group_expense_state.dart';
 import 'package:skapp/services/auth_service.dart';
 
 class AddExpenseSheet extends StatefulWidget {
@@ -361,14 +362,32 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
                                 groupId: widget.groupId,
                                 description: _titleController.text.trim(),
                                 amount: amount,
-                                payerId: currentUserId, // Use current user as payer
+                                payerId: currentUserId,
                                 userIds: userIds,
                                 splitType: _splitMethod == 'custom' ? 'percentage' : 'equal',
                                 splits: splits,
                               ),
                             );
 
-                            Navigator.pop(context, true);
+                            // Listen for state changes before popping
+                            bool hasError = false;
+                            await for (final state in context.read<GroupExpenseBloc>().stream) {
+                              if (state is GroupExpenseError) {
+                                hasError = true;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Failed to add expense: ${state.message}')),
+                                );
+                                break;
+                              }
+                              if (state is GroupExpensesLoaded) {
+                                // Successfully added and loaded new expenses
+                                break;
+                              }
+                            }
+
+                            if (!hasError && mounted) {
+                              Navigator.pop(context, true);
+                            }
                           } catch (e) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(content: Text('Failed to add expense: $e')),

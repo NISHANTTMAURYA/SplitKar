@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from decimal import Decimal
+from django.utils import timezone
 from .models import Expense, ExpensePayment, ExpenseShare, ExpenseCategory, UserTotalBalance, Balance
 from connections.models import Group, Friendship
 from django.db.models import Sum
@@ -372,6 +373,7 @@ class ExpenseListSerializer(serializers.ModelSerializer):
     group_name = serializers.SerializerMethodField()
     category = serializers.SerializerMethodField()
     is_user_expense = serializers.SerializerMethodField()
+    date = serializers.SerializerMethodField()
 
     class Meta:
         model = Expense
@@ -442,3 +444,12 @@ class ExpenseListSerializer(serializers.ModelSerializer):
             return False
         payment = obj.payments.first()
         return payment.payer.id == user.id if payment else False 
+
+    def get_date(self, obj):
+        """Return date in ISO format with proper timezone handling"""
+        if obj.date:
+            # Convert to timezone-aware datetime if it's naive
+            if timezone.is_naive(obj.date):
+                obj.date = timezone.make_aware(obj.date, timezone.get_current_timezone())
+            return obj.date.isoformat()
+        return None 

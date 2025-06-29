@@ -11,14 +11,30 @@ class DateSeparator extends StatelessWidget {
   });
 
   String _formatDate() {
+    // Convert UTC date to local time
+    final localDate = date.toLocal();
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final yesterday = today.subtract(const Duration(days: 1));
-    final messageDate = DateTime(date.year, date.month, date.day);
+    final messageDate = DateTime(localDate.year, localDate.month, localDate.day);
 
-    if (messageDate == today) {
+    // Debug logging
+    print('DateSeparator - Input date: $date');
+    print('DateSeparator - Local date: $localDate');
+    print('DateSeparator - Message date: $messageDate');
+    print('DateSeparator - Today: $today');
+    print('DateSeparator - Yesterday: $yesterday');
+
+    // Compare dates by their components to avoid timezone issues
+    if (messageDate.year == today.year && 
+        messageDate.month == today.month && 
+        messageDate.day == today.day) {
+      print('DateSeparator - Returning: Today');
       return 'Today';
-    } else if (messageDate == yesterday) {
+    } else if (messageDate.year == yesterday.year && 
+               messageDate.month == yesterday.month && 
+               messageDate.day == yesterday.day) {
+      print('DateSeparator - Returning: Yesterday');
       return 'Yesterday';
     } else {
       // Format: "Monday, 12 March" or "12 March 2023" for older dates
@@ -28,10 +44,14 @@ class DateSeparator extends StatelessWidget {
       ];
       final days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
-      if (date.year == now.year && now.difference(date).inDays < 7) {
-        return '${days[date.weekday - 1]}, ${date.day} ${months[date.month - 1]}';
+      if (localDate.year == now.year && now.difference(localDate).inDays < 7) {
+        final result = '${days[localDate.weekday - 1]}, ${localDate.day} ${months[localDate.month - 1]}';
+        print('DateSeparator - Returning: $result');
+        return result;
       } else {
-        return '${date.day} ${months[date.month - 1]} ${date.year}';
+        final result = '${localDate.day} ${months[localDate.month - 1]} ${localDate.year}';
+        print('DateSeparator - Returning: $result');
+        return result;
       }
     }
   }

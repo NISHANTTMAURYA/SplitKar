@@ -28,16 +28,23 @@ class ExpenseMessage extends StatelessWidget {
   });
 
   String _formatTimestamp(DateTime timestamp) {
+    // Convert UTC timestamp to local time
+    final localTime = timestamp.toLocal();
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final yesterday = today.subtract(const Duration(days: 1));
-    final messageDate = DateTime(timestamp.year, timestamp.month, timestamp.day);
+    final messageDate = DateTime(localTime.year, localTime.month, localTime.day);
 
-    String timeStr = '${timestamp.hour.toString().padLeft(2, '0')}:${timestamp.minute.toString().padLeft(2, '0')}';
+    String timeStr = '${localTime.hour.toString().padLeft(2, '0')}:${localTime.minute.toString().padLeft(2, '0')}';
 
-    if (messageDate == today) {
+    // Compare dates by their components to avoid timezone issues
+    if (messageDate.year == today.year && 
+        messageDate.month == today.month && 
+        messageDate.day == today.day) {
       return timeStr;
-    } else if (messageDate == yesterday) {
+    } else if (messageDate.year == yesterday.year && 
+               messageDate.month == yesterday.month && 
+               messageDate.day == yesterday.day) {
       return 'Yesterday $timeStr';
     } else if (now.difference(messageDate).inDays < 7) {
       final days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
