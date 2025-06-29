@@ -543,19 +543,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
 
   Widget _buildExpensesList(List<GroupedExpenses> groupedExpenses) {
     if (groupedExpenses.isEmpty) {
-      return const SliverToBoxAdapter(
-        child: Padding(
-          padding: EdgeInsets.all(16.0),
-          child: Center(
-            child: Text(
-              'No expenses yet',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-        ),
+      return SliverToBoxAdapter(
+        child: _NoExpensesView(),
       );
     }
 
@@ -990,6 +979,60 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
           ),
         );
       },
+    );
+  }
+}
+
+class _NoExpensesView extends StatelessWidget {
+  const _NoExpensesView();
+
+  static Widget expensesImage(BuildContext context, {double? opacity}) {
+    final double height = MediaQuery.of(context).size.height;
+    final double width = MediaQuery.of(context).size.width;
+    return Center(
+      child: Opacity(
+        opacity: opacity ?? 1.0,
+        child: Image.asset(
+          'assets/images/freinds.png',
+          width: width * 0.9,
+          height: height * 0.4,
+        ),
+      ),
+    );
+  }
+
+  static Widget expensesText(BuildContext context) {
+    final double height = MediaQuery.of(context).size.height;
+    final double width = MediaQuery.of(context).size.width;
+    final double baseSize = width < height ? width : height;
+    return Center(
+      child: Text(
+        'Start splitting expenses with your group!',
+        style: GoogleFonts.cabin(
+          fontSize: baseSize * 0.035,
+          color: Theme.of(context).extension<AppColorScheme>()?.textColor,
+        ),
+        textAlign: TextAlign.center,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final double height = MediaQuery.of(context).size.height;
+    final double width = MediaQuery.of(context).size.width;
+    
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: height * 0.05),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _NoExpensesView.expensesImage(context),
+          SizedBox(height: width * 0.05),
+          _NoExpensesView.expensesText(context),
+          SizedBox(height: width * 0.05),
+        ],
+      ),
     );
   }
 }
