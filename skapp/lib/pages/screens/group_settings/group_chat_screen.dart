@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/rendering.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:skapp/widgets/custom_loader.dart';
 import 'package:skapp/components/mobile.dart';
@@ -49,12 +50,16 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   }
 
   void _scrollToBottom() {
+    if (!mounted) return;
     if (_scrollController.hasClients) {
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-      );
+      final maxScroll = _scrollController.position.maxScrollExtent;
+      if (maxScroll > 0) {
+        _scrollController.animateTo(
+          maxScroll,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
     }
   }
 
@@ -188,96 +193,110 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     final isSmallScreen = mediaQuery.size.width < 360;
     final textScaleFactor = mediaQuery.textScaleFactor.clamp(0.8, 1.2);
     
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-      margin: EdgeInsets.all(isSmallScreen ? 12 : 16),
-      decoration: BoxDecoration(
-        color: appColors.cardColor,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: appColors.shadowColor?.withOpacity(0.1) ?? Colors.transparent,
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: () {
-                setState(() {
-                  _isExpenseSummaryExpanded = !_isExpenseSummaryExpanded;
-                });
-              },
+    return BlocBuilder<GroupExpenseBloc, GroupExpenseState>(
+      builder: (context, state) {
+        double totalSpent = 0;
+        int totalSettlements = 0;
+        
+        if (state is GroupExpensesLoaded) {
+          for (var expense in state.expenses) {
+            totalSpent += double.parse(expense['total_amount'].toString());
+          }
+          totalSettlements = state.balances.where((b) => 
+            double.parse(b['balance_amount'].toString()).abs() > 0.01
+          ).length;
+        }
+        
+        return Container(
+          width: double.infinity,
+          color: Theme.of(context).scaffoldBackgroundColor,
+          child: Container(
+            margin: EdgeInsets.all(isSmallScreen ? 12 : 16),
+            decoration: BoxDecoration(
+              color: appColors.cardColor,
               borderRadius: BorderRadius.circular(20),
-              child: Padding(
-                padding: EdgeInsets.all(isSmallScreen ? 12 : 16),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: appColors.cardColor2?.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        Icons.account_balance_wallet,
-                        color: appColors.iconColor,
-                        size: 24 * textScaleFactor,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+              boxShadow: [
+                BoxShadow(
+                  color: appColors.shadowColor?.withOpacity(0.1) ?? Colors.transparent,
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () {
+                      setState(() {
+                        _isExpenseSummaryExpanded = !_isExpenseSummaryExpanded;
+                      });
+                    },
+                    borderRadius: BorderRadius.circular(20),
+                    child: Padding(
+                      padding: EdgeInsets.all(isSmallScreen ? 12 : 16),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.max,
                         children: [
-                          Text(
-                            'Group Balance',
-                            style: GoogleFonts.cabin(
-                              fontSize: 16 * textScaleFactor,
-                              fontWeight: FontWeight.w600,
-                              color: appColors.textColor,
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: appColors.cardColor2?.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              Icons.account_balance_wallet,
+                              color: appColors.iconColor,
+                              size: 24 * textScaleFactor,
                             ),
                           ),
-                          Text(
-                            '₹1,234.56 total spent',
-                            style: GoogleFonts.cabin(
-                              fontSize: 14 * textScaleFactor,
-                              color: appColors.textColor2,
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'Group Balance',
+                                  style: GoogleFonts.cabin(
+                                    fontSize: 16 * textScaleFactor,
+                                    fontWeight: FontWeight.w600,
+                                    color: appColors.textColor,
+                                  ),
+                                ),
+                                Text(
+                                  '₹${totalSpent.toStringAsFixed(2)} total spent • $totalSettlements pending settlements',
+                                  style: GoogleFonts.cabin(
+                                    fontSize: 14 * textScaleFactor,
+                                    color: appColors.textColor2,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          AnimatedRotation(
+                            turns: _isExpenseSummaryExpanded ? 0.5 : 0,
+                            duration: const Duration(milliseconds: 300),
+                            child: Icon(
+                              Icons.keyboard_arrow_down,
+                              color: appColors.iconColor,
+                              size: 24 * textScaleFactor,
                             ),
                           ),
                         ],
                       ),
                     ),
-                    AnimatedRotation(
-                      turns: _isExpenseSummaryExpanded ? 0.5 : 0,
-                      duration: const Duration(milliseconds: 300),
-                      child: Icon(
-                        Icons.keyboard_arrow_down,
-                        color: appColors.iconColor,
-                        size: 24 * textScaleFactor,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
+                if (_isExpenseSummaryExpanded)
+                  _buildExpandedSummary(),
+              ],
             ),
           ),
-          AnimatedCrossFade(
-            firstChild: const SizedBox(height: 0),
-            secondChild: _buildExpandedSummary(),
-            crossFadeState: _isExpenseSummaryExpanded
-                ? CrossFadeState.showSecond
-                : CrossFadeState.showFirst,
-            duration: const Duration(milliseconds: 300),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -286,96 +305,183 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     final mediaQuery = MediaQuery.of(context);
     final isSmallScreen = mediaQuery.size.width < 360;
     final textScaleFactor = mediaQuery.textScaleFactor.clamp(0.8, 1.2);
-    
-    // TODO: This will be dynamic from backend
-    final balanceDetails = [
-      {
-        'user': 'You',
-        'netBalance': 500.0,
-        'owes': [],
-        'isOwed': [
-          {'from': 'John', 'amount': 300.0},
-          {'from': 'Alice', 'amount': 200.0},
-        ],
-      },
-      {
-        'user': 'John',
-        'netBalance': -300.0,
-        'owes': [
-          {'to': 'You', 'amount': 300.0},
-        ],
-        'isOwed': [],
-      },
-      {
-        'user': 'Alice',
-        'netBalance': -200.0,
-        'owes': [
-          {'to': 'You', 'amount': 200.0},
-        ],
-        'isOwed': [],
-      },
-    ];
+    final maxHeight = mediaQuery.size.height * 0.6;
 
-    return Container(
-      padding: EdgeInsets.all(isSmallScreen ? 12 : 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Divider(),
-          const SizedBox(height: 8),
-          // Net balances
-          ...balanceDetails.map((user) => _buildBalanceItem(
-            name: user['user'] as String,
-            amount: user['netBalance'] as double,
-            isPositive: (user['netBalance'] as double) >= 0,
-            appColors: appColors,
-          )),
-          const SizedBox(height: 16),
-          // Detailed settlements
-          Text(
-            'Settlement Details',
-            style: GoogleFonts.cabin(
-              fontSize: 16 * textScaleFactor,
-              fontWeight: FontWeight.w600,
-              color: appColors.textColor,
+    return BlocBuilder<GroupExpenseBloc, GroupExpenseState>(
+      builder: (context, state) {
+        if (state is! GroupExpensesLoaded) {
+          return const SizedBox(
+            key: ValueKey('loading'),
+            height: 100,
+            child: Center(child: CustomLoader()),
+          );
+        }
+
+        // Calculate total spent
+        double totalSpent = 0;
+        for (var expense in state.expenses) {
+          totalSpent += double.parse(expense['total_amount'].toString());
+        }
+
+        // Process balances
+        final List<Map<String, dynamic>> balanceDetails = [];
+        final Map<int, Map<String, dynamic>> userBalances = {};
+
+        // Initialize user balances
+        for (var member in state.members) {
+          userBalances[member['id']] = {
+            'user': member['username'],
+            'netBalance': 0.0,
+            'owes': <Map<String, dynamic>>[],
+            'isOwed': <Map<String, dynamic>>[],
+          };
+        }
+
+        // Process each balance
+        for (var balance in state.balances) {
+          final user1 = balance['user1'];
+          final user2 = balance['user2'];
+          final amount = double.parse(balance['balance_amount'].toString());
+
+          if (amount > 0) {
+            userBalances[user1['id']]?['netBalance'] = (userBalances[user1['id']]?['netBalance'] ?? 0.0) - amount;
+            userBalances[user2['id']]?['netBalance'] = (userBalances[user2['id']]?['netBalance'] ?? 0.0) + amount;
+            
+            userBalances[user1['id']]?['owes'].add({
+              'to': user2['username'],
+              'amount': amount,
+            });
+            userBalances[user2['id']]?['isOwed'].add({
+              'from': user1['username'],
+              'amount': amount,
+            });
+          } else if (amount < 0) {
+            final absAmount = amount.abs();
+            userBalances[user2['id']]?['netBalance'] = (userBalances[user2['id']]?['netBalance'] ?? 0.0) - absAmount;
+            userBalances[user1['id']]?['netBalance'] = (userBalances[user1['id']]?['netBalance'] ?? 0.0) + absAmount;
+            
+            userBalances[user2['id']]?['owes'].add({
+              'to': user1['username'],
+              'amount': absAmount,
+            });
+            userBalances[user1['id']]?['isOwed'].add({
+              'from': user2['username'],
+              'amount': absAmount,
+            });
+          }
+        }
+
+        balanceDetails.addAll(userBalances.values);
+        balanceDetails.sort((a, b) => (b['netBalance'] as double).compareTo(a['netBalance'] as double));
+
+        return Container(
+          key: const ValueKey('expanded_summary'),
+          width: double.infinity,
+          constraints: BoxConstraints(
+            maxHeight: maxHeight,
+          ),
+          child: SingleChildScrollView(
+            physics: const ClampingScrollPhysics(),
+            padding: EdgeInsets.all(isSmallScreen ? 12 : 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Divider(),
+                const SizedBox(height: 8),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: appColors.cardColor2?.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: appColors.borderColor2?.withOpacity(0.2) ?? Colors.transparent,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.account_balance_wallet,
+                        color: appColors.iconColor,
+                        size: 20 * textScaleFactor,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Total Spent: ₹${totalSpent.toStringAsFixed(2)}',
+                          style: GoogleFonts.cabin(
+                            fontSize: 16 * textScaleFactor,
+                            fontWeight: FontWeight.w600,
+                            color: appColors.textColor,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Net Balances',
+                  style: GoogleFonts.cabin(
+                    fontSize: 16 * textScaleFactor,
+                    fontWeight: FontWeight.w600,
+                    color: appColors.textColor,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ...balanceDetails.map((user) => _buildBalanceItem(
+                  name: user['user'] as String,
+                  amount: user['netBalance'] as double,
+                  isPositive: (user['netBalance'] as double) >= 0,
+                  appColors: appColors,
+                )),
+                const SizedBox(height: 16),
+                Text(
+                  'Settlement Details',
+                  style: GoogleFonts.cabin(
+                    fontSize: 16 * textScaleFactor,
+                    fontWeight: FontWeight.w600,
+                    color: appColors.textColor,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                ...balanceDetails.expand((user) {
+                  final List<Widget> settlements = [];
+                  
+                  for (final owes in (user['owes'] as List)) {
+                    settlements.add(
+                      _buildSettlementItem(
+                        from: user['user'] as String,
+                        to: owes['to'] as String,
+                        amount: owes['amount'] as double,
+                        appColors: appColors,
+                        textScaleFactor: textScaleFactor,
+                        isSmallScreen: isSmallScreen,
+                      ),
+                    );
+                  }
+                  
+                  for (final owed in (user['isOwed'] as List)) {
+                    settlements.add(
+                      _buildSettlementItem(
+                        from: owed['from'] as String,
+                        to: user['user'] as String,
+                        amount: owed['amount'] as double,
+                        appColors: appColors,
+                        textScaleFactor: textScaleFactor,
+                        isSmallScreen: isSmallScreen,
+                      ),
+                    );
+                  }
+                  
+                  return settlements;
+                }).toList(),
+              ],
             ),
           ),
-          const SizedBox(height: 8),
-          ...balanceDetails.expand((user) {
-            final List<Widget> settlements = [];
-            
-            // Add "owes to" settlements
-            for (final owes in (user['owes'] as List)) {
-              settlements.add(
-                _buildSettlementItem(
-                  from: user['user'] as String,
-                  to: owes['to'] as String,
-                  amount: owes['amount'] as double,
-                  appColors: appColors,
-                  textScaleFactor: textScaleFactor,
-                  isSmallScreen: isSmallScreen,
-                ),
-              );
-            }
-            
-            // Add "is owed by" settlements
-            for (final owed in (user['isOwed'] as List)) {
-              settlements.add(
-                _buildSettlementItem(
-                  from: owed['from'] as String,
-                  to: user['user'] as String,
-                  amount: owed['amount'] as double,
-                  appColors: appColors,
-                  textScaleFactor: textScaleFactor,
-                  isSmallScreen: isSmallScreen,
-                ),
-              );
-            }
-            
-            return settlements;
-          }).toList(),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -391,29 +497,29 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         children: [
           CircleAvatar(
             radius: 16,
-            backgroundColor: (isPositive ? appColors.accent : appColors.borderColor3)?.withOpacity(0.1),
+            backgroundColor: (isPositive ? Colors.green : Colors.red).withOpacity(0.2),
             child: Icon(
               isPositive ? Icons.arrow_upward : Icons.arrow_downward,
-              color: isPositive ? appColors.accent : appColors.borderColor3,
+              color: isPositive ? Colors.green : Colors.red,
               size: 16,
-                  ),
-                ),
+            ),
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               name,
               style: GoogleFonts.cabin(
                 fontSize: 14,
-                color: appColors.textColor,
+                color: appColors.inverseColor,
+              ),
             ),
           ),
-          ),
           Text(
-            '${isPositive ? '+' : ''}₹${amount.abs()}',
+            '${isPositive ? '+' : ''}₹${amount.abs().toStringAsFixed(2)}',
             style: GoogleFonts.cabin(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: isPositive ? appColors.accent : appColors.borderColor3,
+              color: isPositive ? Colors.green : Colors.red,
             ),
           ),
         ],
@@ -433,10 +539,10 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
       margin: const EdgeInsets.only(bottom: 8),
       padding: EdgeInsets.all(isSmallScreen ? 8 : 12),
       decoration: BoxDecoration(
-        color: appColors.cardColor2?.withOpacity(0.05),
+        color: appColors.cardColor?.withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: appColors.borderColor2?.withOpacity(0.1) ?? Colors.transparent,
+          color: appColors.cardColor?.withOpacity(0.2) ?? Colors.transparent,
         ),
       ),
       child: Row(
@@ -444,7 +550,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
           Icon(
             Icons.arrow_forward,
             size: 20 * textScaleFactor,
-            color: appColors.iconColor?.withOpacity(0.7),
+            color: appColors.inverseColor?.withOpacity(0.7),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -452,7 +558,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
               text: TextSpan(
                 style: GoogleFonts.cabin(
                   fontSize: 14 * textScaleFactor,
-                  color: appColors.textColor,
+                  color: appColors.inverseColor,
                 ),
                 children: [
                   TextSpan(
@@ -469,11 +575,11 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
             ),
           ),
           Text(
-            '₹$amount',
+            '₹${amount.toStringAsFixed(2)}',
             style: GoogleFonts.cabin(
               fontSize: 14 * textScaleFactor,
               fontWeight: FontWeight.w600,
-              color: appColors.textColor,
+              color: appColors.inverseColor,
             ),
           ),
         ],
@@ -525,11 +631,17 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
 
   Widget _buildExpensesList(List<Map<String, dynamic>> expenses) {
     if (expenses.isEmpty) {
-      return Center(
-        child: Text(
-          'No expenses yet',
-          style: GoogleFonts.cabin(
-            color: Theme.of(context).extension<AppColorScheme>()!.textColor,
+      return const SliverToBoxAdapter(
+        child: Padding(
+          padding: EdgeInsets.all(16.0),
+          child: Center(
+            child: Text(
+              'No expenses yet',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ),
         ),
       );
@@ -547,7 +659,10 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     for (var expense in expenses) {
       final date = DateTime.parse(expense['date']);
       final dayDate = DateTime(date.year, date.month, date.day);
-      groupedExpenses.putIfAbsent(dayDate, () => []).add(expense);
+      if (!groupedExpenses.containsKey(dayDate)) {
+        groupedExpenses[dayDate] = [];
+      }
+      groupedExpenses[dayDate]!.add(expense);
     }
 
     // Sort dates in ascending order (oldest first)
@@ -563,38 +678,38 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
       });
     }
 
-    return ListView.builder(
-      controller: _scrollController,
-      padding: const EdgeInsets.only(bottom: 80),
-      reverse: false, // Keep false since we're sorting oldest to newest
-      itemCount: sortedDates.length,
-      itemBuilder: (context, index) {
-        final date = sortedDates[index];
-        final dayExpenses = groupedExpenses[date]!;
+    // Convert the grouped expenses into a list of widgets
+    final List<Widget> children = [];
+    for (var date in sortedDates) {
+      final dayExpenses = groupedExpenses[date]!;
+      children.add(DateSeparator(date: date));
+      children.addAll(dayExpenses.map((expense) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+        child: ExpenseMessage(
+          title: expense['description'] ?? 'Untitled Expense',
+          amount: expense['total_amount'] != null 
+            ? double.parse(expense['total_amount'].toString())
+            : 0.0,
+          paidBy: expense['payer_name'] ?? 'Unknown',
+          paidByProfilePic: expense['payer_profile_pic'] ?? '',
+          splitWith: (expense['owed_breakdown'] as List<dynamic>?)?.map((breakdown) => {
+            'name': breakdown['name'] ?? 'Unknown',
+            'amount': breakdown['amount'] ?? '0',
+            'profilePic': breakdown['profilePic'] ?? '',
+          }).toList() ?? [],
+          timestamp: DateTime.parse(expense['date']),
+          isUserExpense: expense['is_user_expense'] ?? false,
+          onTap: () => _showExpenseDetails(expense),
+          onLongPress: () => _showQuickActions(expense),
+        ),
+      )));
+    }
 
-        return Column(
-          children: [
-            DateSeparator(date: date),
-            ...dayExpenses.map((expense) => ExpenseMessage(
-              title: expense['description'] ?? 'Untitled Expense',
-              amount: expense['total_amount'] != null 
-                ? double.parse(expense['total_amount'].toString())
-                : 0.0,
-              paidBy: expense['payer_name'] ?? 'Unknown',
-              paidByProfilePic: expense['payer_profile_pic'] ?? '',
-              splitWith: (expense['owed_breakdown'] as List<dynamic>?)?.map((breakdown) => {
-                'name': breakdown['name'] ?? 'Unknown',
-                'amount': breakdown['amount'] ?? '0',
-                'profilePic': breakdown['profilePic'] ?? '',
-              }).toList() ?? [],
-              timestamp: DateTime.parse(expense['date']),
-              isUserExpense: expense['is_user_expense'] ?? false,
-              onTap: () => _showExpenseDetails(expense),
-              onLongPress: () => _showQuickActions(expense),
-            )),
-          ],
-        );
-      },
+    return SliverList(
+      delegate: SliverChildBuilderDelegate(
+        (context, index) => children[index],
+        childCount: children.length,
+      ),
     );
   }
 
@@ -679,10 +794,12 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
             SnackBar(content: Text(state.message)),
           );
         } else if (state is GroupExpensesLoaded) {
-          // Scroll to bottom when expenses are loaded
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            _scrollToBottom();
-          });
+          if (!_isLoading) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _scrollToBottom();
+            });
+            _isLoading = false;
+          }
         }
       },
       child: Scaffold(
@@ -690,16 +807,53 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         body: Column(
           children: [
             _buildSearchBar(),
-            _buildExpenseSummaryCard(),
             Expanded(
               child: BlocBuilder<GroupExpenseBloc, GroupExpenseState>(
                 builder: (context, state) {
                   if (state is GroupExpenseLoading) {
                     return const Center(child: CustomLoader());
                   } else if (state is GroupExpensesLoaded) {
-                    return _buildExpensesList(state.expenses);
+                    return CustomScrollView(
+                      controller: _scrollController,
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      slivers: [
+                        SliverPersistentHeader(
+                          // pinned: true,
+                          floating: true,
+                          delegate: _SummaryHeaderDelegate(
+                            child: _buildSummaryHeader(state),
+                            isExpanded: _isExpenseSummaryExpanded,
+                            onToggle: (value) {
+                              setState(() {
+                                _isExpenseSummaryExpanded = value;
+                              });
+                            },
+                          ),
+                        ),
+                        if (_isExpenseSummaryExpanded)
+                          SliverToBoxAdapter(
+                            child: _buildExpandedSummaryContent(state),
+                          ),
+                        _buildExpensesList(state.expenses),
+                        const SliverPadding(
+                          padding: EdgeInsets.only(bottom: 80),
+                        ),
+                      ],
+                    );
                   } else if (state is GroupExpenseError) {
-                    return Center(child: Text(state.message));
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Text(
+                          state.message,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    );
                   }
                   return const SizedBox.shrink();
                 },
@@ -707,43 +861,366 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
             ),
           ],
         ),
-        floatingActionButton: FloatingActionButton.extended(
-          onPressed: () {
-            final state = context.read<GroupExpenseBloc>().state;
-            if (state is GroupExpensesLoaded) {
-              AddExpenseSheet.show(
-                context,
-                widget.groupId,
-                state.members,
-              ).then((shouldRefresh) {
-                if (shouldRefresh ?? false) {
-                  context.read<GroupExpenseBloc>().add(
-                    LoadGroupExpenses(widget.groupId),
-                  );
-                  // Scroll to bottom after adding new expense
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    _scrollToBottom();
-                  });
-                }
-              });
-            }
+        floatingActionButton: BlocBuilder<GroupExpenseBloc, GroupExpenseState>(
+          builder: (context, state) {
+            if (state is! GroupExpensesLoaded) return const SizedBox.shrink();
+            return FloatingActionButton.extended(
+              onPressed: () {
+                AddExpenseSheet.show(
+                  context,
+                  widget.groupId,
+                  state.members,
+                ).then((shouldRefresh) {
+                  if (shouldRefresh ?? false) {
+                    context.read<GroupExpenseBloc>().add(
+                      LoadGroupExpenses(widget.groupId),
+                    );
+                  }
+                });
+              },
+              backgroundColor: Theme.of(context).extension<AppColorScheme>()!.cardColor2,
+              label: Row(
+                children: [
+                  Icon(Icons.add, color: Theme.of(context).extension<AppColorScheme>()!.inverseColor),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Add Expense',
+                    style: GoogleFonts.cabin(
+                      color: Theme.of(context).extension<AppColorScheme>()!.inverseColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            );
           },
-          backgroundColor: Theme.of(context).extension<AppColorScheme>()!.cardColor2,
-          label: Row(
-            children: [
-              Icon(Icons.add, color: Theme.of(context).extension<AppColorScheme>()!.inverseColor),
-              const SizedBox(width: 8),
-              Text(
-                'Add Expense',
-                style: GoogleFonts.cabin(
-                  color: Theme.of(context).extension<AppColorScheme>()!.inverseColor,
-                  fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSummaryHeader(GroupExpensesLoaded state) {
+    final appColors = Theme.of(context).extension<AppColorScheme>()!;
+    final mediaQuery = MediaQuery.of(context);
+    final isSmallScreen = mediaQuery.size.width < 360;
+    final textScaleFactor = mediaQuery.textScaleFactor.clamp(0.8, 1.2);
+
+    double totalSpent = 0;
+    int totalSettlements = 0;
+    
+    for (var expense in state.expenses) {
+      totalSpent += double.parse(expense['total_amount'].toString());
+    }
+    totalSettlements = state.balances.where((b) => 
+      double.parse(b['balance_amount'].toString()).abs() > 0.01
+    ).length;
+
+    final borderRadius = BorderRadius.vertical(
+      top: const Radius.circular(20),
+      bottom: Radius.circular(_isExpenseSummaryExpanded ? 0 : 20),
+    );
+
+    return Container(
+      color: Colors.transparent,
+      padding: EdgeInsets.symmetric(
+        horizontal: isSmallScreen ? 12 : 16,
+        vertical: isSmallScreen ? 4 : 8,
+      ),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+        height: 84,
+        decoration: BoxDecoration(
+          color: appColors.cardColor2,
+          borderRadius: borderRadius,
+        ),
+        child: ClipRRect(
+          borderRadius: borderRadius,
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                setState(() {
+                  _isExpenseSummaryExpanded = !_isExpenseSummaryExpanded;
+                });
+              },
+              child: Padding(
+                padding: EdgeInsets.all(isSmallScreen ? 12 : 16),
+                child: Row(
+                  mainAxisSize: MainAxisSize.max,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: appColors.cardColor?.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        Icons.account_balance_wallet,
+                        color: appColors.inverseColor,
+                        size: 24 * textScaleFactor,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Group Balance',
+                            style: GoogleFonts.cabin(
+                              fontSize: 16 * textScaleFactor,
+                              fontWeight: FontWeight.w600,
+                              color: appColors.inverseColor,
+                            ),
+                          ),
+                          Text(
+                            '₹${totalSpent.toStringAsFixed(2)} total spent • $totalSettlements pending settlements',
+                            style: GoogleFonts.cabin(
+                              fontSize: 14 * textScaleFactor,
+                              color: appColors.inverseColor?.withOpacity(0.8),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    AnimatedRotation(
+                      turns: _isExpenseSummaryExpanded ? 0.5 : 0,
+                      duration: const Duration(milliseconds: 300),
+                      child: Icon(
+                        Icons.keyboard_arrow_down,
+                        color: appColors.inverseColor,
+                        size: 24 * textScaleFactor,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
+            ),
           ),
         ),
       ),
     );
+  }
+
+  Widget _buildExpandedSummaryContent(GroupExpensesLoaded state) {
+    final appColors = Theme.of(context).extension<AppColorScheme>()!;
+    final mediaQuery = MediaQuery.of(context);
+    final isSmallScreen = mediaQuery.size.width < 360;
+    final textScaleFactor = mediaQuery.textScaleFactor.clamp(0.8, 1.2);
+
+    // Calculate total spent
+    double totalSpent = 0;
+    for (var expense in state.expenses) {
+      totalSpent += double.parse(expense['total_amount'].toString());
+    }
+
+    // Process balances
+    final List<Map<String, dynamic>> balanceDetails = [];
+    final Map<int, Map<String, dynamic>> userBalances = {};
+
+    // Initialize user balances
+    for (var member in state.members) {
+      userBalances[member['id']] = {
+        'user': member['username'],
+        'netBalance': 0.0,
+        'owes': <Map<String, dynamic>>[],
+        'isOwed': <Map<String, dynamic>>[],
+      };
+    }
+
+    // Process each balance
+    for (var balance in state.balances) {
+      final user1 = balance['user1'];
+      final user2 = balance['user2'];
+      final amount = double.parse(balance['balance_amount'].toString());
+
+      if (amount > 0) {
+        userBalances[user1['id']]?['netBalance'] = (userBalances[user1['id']]?['netBalance'] ?? 0.0) - amount;
+        userBalances[user2['id']]?['netBalance'] = (userBalances[user2['id']]?['netBalance'] ?? 0.0) + amount;
+        
+        userBalances[user1['id']]?['owes'].add({
+          'to': user2['username'],
+          'amount': amount,
+        });
+        userBalances[user2['id']]?['isOwed'].add({
+          'from': user1['username'],
+          'amount': amount,
+        });
+      } else if (amount < 0) {
+        final absAmount = amount.abs();
+        userBalances[user2['id']]?['netBalance'] = (userBalances[user2['id']]?['netBalance'] ?? 0.0) - absAmount;
+        userBalances[user1['id']]?['netBalance'] = (userBalances[user1['id']]?['netBalance'] ?? 0.0) + absAmount;
+        
+        userBalances[user2['id']]?['owes'].add({
+          'to': user1['username'],
+          'amount': absAmount,
+        });
+        userBalances[user1['id']]?['isOwed'].add({
+          'from': user2['username'],
+          'amount': absAmount,
+        });
+      }
+    }
+
+    balanceDetails.addAll(userBalances.values);
+    balanceDetails.sort((a, b) => (b['netBalance'] as double).compareTo(a['netBalance'] as double));
+
+    return Container(
+      color: Colors.transparent,
+      padding: EdgeInsets.symmetric(
+        horizontal: isSmallScreen ? 12 : 16,
+      ),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+        decoration: BoxDecoration(
+          color: appColors.cardColor2,
+          borderRadius: const BorderRadius.vertical(
+            bottom: Radius.circular(20),
+          ),
+        ),
+        child: ClipRRect(
+          borderRadius: const BorderRadius.vertical(
+            bottom: Radius.circular(20),
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: Padding(
+              padding: EdgeInsets.all(isSmallScreen ? 12 : 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Divider(color: Colors.white24),
+                  const SizedBox(height: 8),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: appColors.cardColor?.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: appColors.cardColor?.withOpacity(0.2) ?? Colors.transparent,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.account_balance_wallet,
+                          color: appColors.inverseColor,
+                          size: 20 * textScaleFactor,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'Total Spent: ₹${totalSpent.toStringAsFixed(2)}',
+                            style: GoogleFonts.cabin(
+                              fontSize: 16 * textScaleFactor,
+                              fontWeight: FontWeight.w600,
+                              color: appColors.inverseColor,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Net Balances',
+                    style: GoogleFonts.cabin(
+                      fontSize: 16 * textScaleFactor,
+                      fontWeight: FontWeight.w600,
+                      color: appColors.inverseColor,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  ...balanceDetails.map((user) => _buildBalanceItem(
+                    name: user['user'] as String,
+                    amount: user['netBalance'] as double,
+                    isPositive: (user['netBalance'] as double) >= 0,
+                    appColors: appColors,
+                  )),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Settlement Details',
+                    style: GoogleFonts.cabin(
+                      fontSize: 16 * textScaleFactor,
+                      fontWeight: FontWeight.w600,
+                      color: appColors.inverseColor,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  ...balanceDetails.expand((user) {
+                    final List<Widget> settlements = [];
+                    
+                    for (final owes in (user['owes'] as List)) {
+                      settlements.add(
+                        _buildSettlementItem(
+                          from: user['user'] as String,
+                          to: owes['to'] as String,
+                          amount: owes['amount'] as double,
+                          appColors: appColors,
+                          textScaleFactor: textScaleFactor,
+                          isSmallScreen: isSmallScreen,
+                        ),
+                      );
+                    }
+                    
+                    for (final owed in (user['isOwed'] as List)) {
+                      settlements.add(
+                        _buildSettlementItem(
+                          from: owed['from'] as String,
+                          to: user['user'] as String,
+                          amount: owed['amount'] as double,
+                          appColors: appColors,
+                          textScaleFactor: textScaleFactor,
+                          isSmallScreen: isSmallScreen,
+                        ),
+                      );
+                    }
+                    
+                    return settlements;
+                  }).toList(),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SummaryHeaderDelegate extends SliverPersistentHeaderDelegate {
+  final Widget child;
+  final bool isExpanded;
+  final ValueChanged<bool> onToggle;
+
+  _SummaryHeaderDelegate({
+    required this.child,
+    required this.isExpanded,
+    required this.onToggle,
+  });
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return SizedBox(
+      height: maxExtent,
+      child: child,
+    );
+  }
+
+  @override
+  double get maxExtent => 100.0; // Reduced from 120 to ensure proper layout
+
+  @override
+  double get minExtent => 100.0; // Must match maxExtent for pinned header
+
+  @override
+  bool shouldRebuild(covariant _SummaryHeaderDelegate oldDelegate) {
+    return oldDelegate.isExpanded != isExpanded || 
+           oldDelegate.child != child;
   }
 }
