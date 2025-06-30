@@ -453,3 +453,49 @@ class ExpenseListSerializer(serializers.ModelSerializer):
                 obj.date = timezone.make_aware(obj.date, timezone.get_current_timezone())
             return obj.date.isoformat()
         return None 
+
+
+class EditExpenseSerializer(serializers.Serializer):
+    expense_id = serializers.UUIDField(required=True)
+    description = serializers.CharField(max_length=200)
+    total_amount = serializers.DecimalField(
+        max_digits=12, 
+        decimal_places=2,
+        min_value=Decimal('0.01')
+    )
+    
+    def validate(self, attrs):
+        try:
+            expense = Expense.objects.get(
+                expense_id=attrs['expense_id'],
+                is_deleted=False
+            )
+            attrs['expense'] = expense
+        except Expense.DoesNotExist:
+            raise serializers.ValidationError("Expense not found")
+        return attrs
+
+    def update(self, instance):
+        from django.db import transaction
+        
+        with transaction.atomic():
+            # Update basic expense details
+            instance.description = self.validated_data['description']
+            instance.total_amount = self.validated_data['total_amount']
+            instance.save()
+
+            # Update the payment
+            payment = instance.payments.first()
+            payment.amount_paid = self.validated_data['total_amount']
+            payment.save()
+
+            # Update shares based on existing split type
+            split_amount = self.validated_data['total_amount'] / instance.shares.count()
+            for share in instance.shares.all():
+                if instance.split_type == 'equal':
+                    share.amount_owed = split_amount
+                else:  # percentage split
+                    share.amount_owed = (self.validated_data['total_amount'] * share.percentage / 100).quantize(Decimal('0.01'))
+                share.save()
+
+            return instance 

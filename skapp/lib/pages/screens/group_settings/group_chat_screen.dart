@@ -568,7 +568,10 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
           }).toList() ?? [],
           timestamp: DateTime.parse(expense['date']).toLocal(),
           isUserExpense: expense['is_user_expense'] ?? false,
-          onTap: () => _showExpenseDetails(expense),
+          onTap: () {
+            print('DEBUG: Expense data being passed to onTap: $expense');
+            _showExpenseDetails(expense);
+          },
           onLongPress: () => _showQuickActions(expense),
         ),
       )));
@@ -585,21 +588,31 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   void _showExpenseDetails(Map<String, dynamic> expense) {
     final state = context.read<GroupExpenseBloc>().state;
     if (state is GroupExpensesLoaded) {
+      print('DEBUG: Expense data being passed to details sheet: $expense');
       ExpenseDetailsSheet.show(
         context,
         expense,
-        onEdit: () {
-          AddExpenseSheet.show(
+        onEdit: () async {
+          // No need to pop here as it's handled in ExpenseDetailsSheet now
+          
+          if (!mounted) return;
+          
+          print('DEBUG: Expense data being passed to edit sheet: $expense');
+          // Show the edit sheet using the current context
+          final result = await AddExpenseSheet.show(
             context,
             widget.groupId,
             state.members,
-          ).then((shouldRefresh) {
-            if (shouldRefresh ?? false) {
-              context.read<GroupExpenseBloc>().add(
-                LoadGroupExpenses(widget.groupId),
-              );
-            }
-          });
+            existingExpense: expense,
+          );
+          
+          if (result ?? false) {
+            if (!mounted) return;
+            // Refresh the expenses list
+            context.read<GroupExpenseBloc>().add(
+              LoadGroupExpenses(widget.groupId),
+            );
+          }
         },
         onDelete: () {
           // TODO: Implement delete functionality

@@ -14,6 +14,7 @@ class GroupExpenseBloc extends Bloc<GroupExpenseEvent, GroupExpenseState> {
     on<LoadGroupExpenses>(_onLoadGroupExpenses);
     on<LoadGroupBalances>(_onLoadGroupBalances);
     on<AddGroupExpense>(_onAddGroupExpense);
+    on<EditGroupExpense>(_onEditGroupExpense);
   }
 
   List<GroupedExpenses> _processExpenses(List<dynamic> rawExpenses) {
@@ -197,6 +198,7 @@ class GroupExpenseBloc extends Bloc<GroupExpenseEvent, GroupExpenseState> {
             'description': 'Invalid Expense',
           };
         }
+        dev.log('Processing expense: $e');
         return e;
       }).toList() ?? [];
 
@@ -277,6 +279,26 @@ class GroupExpenseBloc extends Bloc<GroupExpenseEvent, GroupExpenseState> {
         splits: event.splits,
       );
       
+      add(LoadGroupExpenses(event.groupId));
+    } catch (e) {
+      emit(GroupExpenseError(e.toString()));
+    }
+  }
+
+  Future<void> _onEditGroupExpense(
+    EditGroupExpense event,
+    Emitter<GroupExpenseState> emit,
+  ) async {
+    try {
+      emit(GroupExpenseLoading());
+      await _service.editGroupExpense(
+        expenseId: event.expenseId,
+        groupId: event.groupId,
+        description: event.description,
+        amount: event.amount,
+      );
+      
+      // Reload expenses to get the updated state
       add(LoadGroupExpenses(event.groupId));
     } catch (e) {
       emit(GroupExpenseError(e.toString()));

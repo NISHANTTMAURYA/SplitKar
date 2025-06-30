@@ -37,6 +37,7 @@ class GroupExpenseService {
         if (!responseData.containsKey('expenses')) {
           throw 'Invalid response format: missing expenses key';
         }
+        _logger.info('Got expenses response: $responseData');
         return responseData;
       } else if (response.statusCode == 401) {
         final refreshSuccess = await _authService.handleTokenRefresh();
@@ -158,6 +159,71 @@ class GroupExpenseService {
       }
     } catch (e) {
       _logger.severe('Error adding group expense: $e');
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> editGroupExpense({
+    required String expenseId,
+    required int groupId,
+    required String description,
+    required double amount,
+  }) async {
+    try {
+      String? token = await _authService.getToken();
+      if (token == null) throw 'Session expired. Please log in again.';
+
+      // Validate inputs
+      if (description.trim().isEmpty) {
+        throw 'Description cannot be empty';
+      }
+      if (amount <= 0) {
+        throw 'Amount must be greater than 0';
+      }
+
+      final body = {
+        'expense_id': expenseId,
+        'description': description.trim(),
+        'total_amount': amount.toStringAsFixed(2),
+      };
+
+      _logger.info('Sending edit expense request with body: $body');
+
+      final response = await client.put(
+        Uri.parse('${baseUrl}/expenses/edit/'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(body),
+      );
+
+      _logger.info('Edit expense response status: ${response.statusCode}');
+      _logger.info('Edit expense response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body) as Map<String, dynamic>?;
+        if (responseData == null) {
+          throw 'Invalid response from server';
+        }
+        return responseData;
+      } else if (response.statusCode == 401) {
+        final refreshSuccess = await _authService.handleTokenRefresh();
+        if (refreshSuccess) {
+          return editGroupExpense(
+            expenseId: expenseId,
+            groupId: groupId,
+            description: description,
+            amount: amount,
+          );
+        }
+        throw 'Session expired. Please log in again.';
+      } else {
+        final error = _parseErrorResponse(response);
+        throw error;
+      }
+    } catch (e) {
+      _logger.severe('Error editing group expense: $e');
       rethrow;
     }
   }

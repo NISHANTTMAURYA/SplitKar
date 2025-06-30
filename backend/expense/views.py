@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from django.contrib.auth.models import User
 from decimal import Decimal
 from .models import Expense, ExpensePayment, ExpenseShare, ExpenseCategory, UserTotalBalance, Balance
-from .serializers import AddExpenseSerializer, UserSerializer, AddFriendExpenseSerializer, UserTotalBalanceSerializer, ExpenseListSerializer, BalanceSerializer
+from .serializers import AddExpenseSerializer, UserSerializer, AddFriendExpenseSerializer, UserTotalBalanceSerializer, ExpenseListSerializer, BalanceSerializer, EditExpenseSerializer
 from connections.models import Group
 from django.db import models
 
@@ -292,3 +292,64 @@ def delete_expense(request):
     expense.is_deleted = True
     expense.save(update_fields=['is_deleted'])
     return Response({'message': 'Expense deleted successfully.'}, status=status.HTTP_200_OK)
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def edit_expense(request):
+    """
+    Edit an existing expense's details and splits
+    """
+    serializer = EditExpenseSerializer(data=request.data)
+    
+    if serializer.is_valid():
+        try:
+            expense = serializer.validated_data['expense']
+            
+            # Check if user has permission to edit
+            if expense.created_by != request.user:
+                return Response(
+                    {'error': 'You do not have permission to edit this expense'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+
+            # Update the expense
+            updated_expense = serializer.update(expense)
+            
+            # Prepare response data
+            response_data = {
+                'message': 'Expense updated successfully',
+                'expense': {
+                    'expense_id': updated_expense.expense_id,
+                    'description': updated_expense.description,
+                    'total_amount': str(updated_expense.total_amount),
+                    'split_type': updated_expense.split_type,
+                    'shares': [
+                        {
+                            'user_id': share.user.id,
+                            'username': share.user.username,
+                            'amount_owed': str(share.amount_owed),
+                            'percentage': str(share.percentage) if share.percentage else None
+                        }
+                        for share in updated_expense.shares.all()
+                    ]
+                }
+            }
+            
+            return Response(response_data, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            return Response(
+                {
+                    'error': 'Failed to update expense',
+                    'detail': str(e)
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    else:
+        return Response(
+            {
+                'error': 'Invalid data',
+                'detail': serializer.errors
+            },
+            status=status.HTTP_400_BAD_REQUEST
+        )

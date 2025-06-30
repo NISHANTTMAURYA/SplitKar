@@ -21,17 +21,23 @@ class ExpenseDetailsSheet extends StatelessWidget {
     VoidCallback? onEdit,
     VoidCallback? onDelete,
   }) {
+    print('DEBUG: Expense data in details sheet: $expense');
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => DraggableScrollableSheet(
+      useRootNavigator: true,
+      builder: (BuildContext sheetContext) => DraggableScrollableSheet(
         initialChildSize: 0.7,
         minChildSize: 0.5,
         maxChildSize: 0.95,
         builder: (_, controller) => ExpenseDetailsSheet(
           expense: expense,
-          onEdit: onEdit,
+          onEdit: onEdit != null ? () {
+            print('DEBUG: Expense data before edit: $expense');
+            // Navigator.of(sheetContext).pop();
+            onEdit();
+          } : null,
           onDelete: onDelete,
         ),
       ),

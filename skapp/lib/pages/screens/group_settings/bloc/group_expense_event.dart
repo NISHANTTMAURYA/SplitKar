@@ -44,3 +44,20 @@ class AddGroupExpense extends GroupExpenseEvent {
   @override
   List<Object?> get props => [groupId, description, amount, payerId, userIds, splitType, splits];
 }
+
+class EditGroupExpense extends GroupExpenseEvent {
+  final String expenseId;
+  final int groupId;
+  final String description;
+  final double amount;
+
+  EditGroupExpense({
+    required this.expenseId,
+    required this.groupId,
+    required this.description,
+    required this.amount,
+  });
+
+  @override
+  List<Object?> get props => [expenseId, groupId, description, amount];
+}

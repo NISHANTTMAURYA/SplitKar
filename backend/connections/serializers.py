@@ -6,6 +6,9 @@ from django.utils.translation import gettext_lazy as _
 from .models import FriendRequest, Profile, Group, GroupInvitation, Friendship
 from expense.models import Balance
 from django.db import models
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class FriendRequestByCodeSerializer(serializers.Serializer):
@@ -453,14 +456,22 @@ class GroupMemberSerializer(serializers.ModelSerializer):
 
     def get_profile_code(self, obj):
         try:
+            if not hasattr(obj, 'profile'):
+                logger.warning(f'User {obj.id} ({obj.username}) has no profile')
+                return None
             return obj.profile.profile_code
-        except Profile.DoesNotExist:
+        except Exception as e:
+            logger.error(f'Error getting profile code for user {obj.id}: {str(e)}')
             return None
 
     def get_profile_picture_url(self, obj):
         try:
+            if not hasattr(obj, 'profile'):
+                logger.warning(f'User {obj.id} ({obj.username}) has no profile')
+                return None
             return obj.profile.profile_picture_url
-        except Profile.DoesNotExist:
+        except Exception as e:
+            logger.error(f'Error getting profile picture URL for user {obj.id}: {str(e)}')
             return None
 
 class GroupDetailsSerializer(serializers.ModelSerializer):
@@ -493,64 +504,96 @@ class GroupDetailsSerializer(serializers.ModelSerializer):
         ]
 
     def get_created_by(self, obj):
-        return {
-            'id': obj.created_by.id,
-            'username': obj.created_by.username,
-            'profile_code': obj.created_by.profile.profile_code,
-            'profile_picture_url': obj.created_by.profile.profile_picture_url,
-        }
-
-    def get_members(self, obj):
-        return GroupMemberSerializer(obj.members.all(), many=True).data
-
-    def get_member_count(self, obj):
-        return obj.member_count
-
-    def get_is_admin(self, obj):
-        request = self.context.get('request')
-        if not request:
-            return False
-        return request.user == obj.created_by
-
-    def get_admins(self, obj):
-        # For now, only the creator is an admin
-        return [
-            {
+        try:
+            return {
                 'id': obj.created_by.id,
                 'username': obj.created_by.username,
-                'profile_code': obj.created_by.profile.profile_code,
-                'profile_picture_url': obj.created_by.profile.profile_picture_url,
+                'profile_code': obj.created_by.profile.profile_code if hasattr(obj.created_by, 'profile') else None,
+                'profile_picture_url': obj.created_by.profile.profile_picture_url if hasattr(obj.created_by, 'profile') else None,
             }
-        ]
+        except Exception as e:
+            # Log the error but return a valid response
+            logger.error(f'Error getting creator details for group {obj.id}: {str(e)}')
+            return {
+                'id': obj.created_by.id,
+                'username': obj.created_by.username,
+                'profile_code': None,
+                'profile_picture_url': None,
+            }
+
+    def get_members(self, obj):
+        try:
+            return GroupMemberSerializer(obj.members.all(), many=True).data
+        except Exception as e:
+            logger.error(f'Error getting members for group {obj.id}: {str(e)}')
+            return []
+
+    def get_member_count(self, obj):
+        try:
+            return obj.member_count
+        except Exception as e:
+            logger.error(f'Error getting member count for group {obj.id}: {str(e)}')
+            return 0
+
+    def get_is_admin(self, obj):
+        try:
+            request = self.context.get('request')
+            if not request:
+                return False
+            return request.user == obj.created_by
+        except Exception as e:
+            logger.error(f'Error checking admin status for group {obj.id}: {str(e)}')
+            return False
+
+    def get_admins(self, obj):
+        try:
+            # For now, only the creator is an admin
+            return [{
+                'id': obj.created_by.id,
+                'username': obj.created_by.username,
+                'profile_code': obj.created_by.profile.profile_code if hasattr(obj.created_by, 'profile') else None,
+                'profile_picture_url': obj.created_by.profile.profile_picture_url if hasattr(obj.created_by, 'profile') else None,
+            }]
+        except Exception as e:
+            logger.error(f'Error getting admins for group {obj.id}: {str(e)}')
+            return []
 
     def get_trip_details(self, obj):
-        if obj.group_type != 'trip':
+        try:
+            if obj.group_type != 'trip':
+                return None
+            
+            return {
+                'destination': obj.destination,
+                'start_date': obj.start_date.strftime('%Y-%m-%d') if obj.start_date else None,
+                'end_date': obj.end_date.strftime('%Y-%m-%d') if obj.end_date else None,
+                'trip_status': obj.trip_status,
+                'budget': float(obj.budget) if obj.budget else None,
+            }
+        except Exception as e:
+            logger.error(f'Error getting trip details for group {obj.id}: {str(e)}')
             return None
-        
-        return {
-            'destination': obj.destination,
-            'start_date': obj.start_date.strftime('%Y-%m-%d') if obj.start_date else None,
-            'end_date': obj.end_date.strftime('%Y-%m-%d') if obj.end_date else None,
-            'trip_status': obj.trip_status,
-            'budget': float(obj.budget) if obj.budget else None,
-        }
 
     def get_sent_invitations(self, obj):
-        # Get pending invitations sent by the group
-        invitations = GroupInvitation.objects.filter(
-            group=obj,
-            status='pending'
-        ).select_related('invited_user', 'invited_user__profile')
-        
-        return [
-            {
-                'invitation_id': invitation.id,
-                'invited_user_username': invitation.invited_user.username,
-                'invited_user_profile_code': invitation.invited_user.profile.profile_code,
-                'created_at': invitation.created_at.strftime("%Y-%m-%d %H:%M:%S"),
-            }
-            for invitation in invitations
-        ]
+        try:
+            # Get pending invitations sent by the group
+            invitations = GroupInvitation.objects.filter(
+                group=obj,
+                status='pending'
+            ).select_related('invited_user', 'invited_user__profile')
+            
+            return [
+                {
+                    'invitation_id': invitation.id,
+                    'invited_user_username': invitation.invited_user.username,
+                    'invited_user_profile_code': invitation.invited_user.profile.profile_code if hasattr(invitation.invited_user, 'profile') else None,
+                    'created_at': invitation.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+                }
+                for invitation in invitations
+            ]
+        except Exception as e:
+            logger.error(f'Error getting sent invitations for group {obj.id}: {str(e)}')
+            return []
 
     def get_received_invitations(self, obj):
         # This will always be empty since a group doesn't receive invitations

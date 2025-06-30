@@ -15,29 +15,34 @@ enum SplitMethod { equal, percentage }
 class AddExpenseSheet extends StatefulWidget {
   final int groupId;
   final List<Map<String, dynamic>> members;
+  final Map<String, dynamic>? existingExpense;
 
   const AddExpenseSheet({
     super.key,
     required this.groupId,
     required this.members,
+    this.existingExpense,
   });
 
   static Future<bool?> show(
     BuildContext context,
     int groupId,
     List<Map<String, dynamic>> members,
+    {Map<String, dynamic>? existingExpense}
   ) {
     return showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => DraggableScrollableSheet(
+      useRootNavigator: true,
+      builder: (BuildContext sheetContext) => DraggableScrollableSheet(
         initialChildSize: 0.9,
         minChildSize: 0.5,
         maxChildSize: 0.9,
         builder: (_, controller) => AddExpenseSheet(
           groupId: groupId,
           members: members,
+          existingExpense: existingExpense,
         ),
       ),
     );
@@ -57,16 +62,54 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
   bool _isProcessing = false;
   final _authService = AuthService();
   final _scrollController = ScrollController();
-  // Add a field to track the last error for percentage overflow
   String? _percentageError;
 
   @override
   void initState() {
     super.initState();
+    print('DEBUG: Existing expense data in AddExpenseSheet: ${widget.existingExpense}');
     // Initialize selected members map
     for (var member in widget.members) {
       _selectedMembers[member['profile_code']] = true;
       _percentageControllers[member['profile_code']] = TextEditingController();
+    }
+
+    // Pre-fill data if editing an existing expense
+    if (widget.existingExpense != null) {
+      print('DEBUG: Pre-filling expense data: ${widget.existingExpense}');
+      _titleController.text = widget.existingExpense!['description'] ?? '';
+      _amountController.text = (widget.existingExpense!['total_amount'] ?? '0').toString();
+      
+      // Set split method
+      _splitMethod = widget.existingExpense!['split_type'] == 'percentage' 
+          ? SplitMethod.percentage 
+          : SplitMethod.equal;
+
+      // Set selected members and their percentages
+      final owedBreakdown = widget.existingExpense!['owed_breakdown'] as List<dynamic>?;
+      if (owedBreakdown != null) {
+        for (var member in widget.members) {
+          final profileCode = member['profile_code'];
+          final breakdown = owedBreakdown.firstWhere(
+            (b) => b['user_id'] == member['id'],
+            orElse: () => null,
+          );
+          _selectedMembers[profileCode] = breakdown != null;
+
+          if (_splitMethod == SplitMethod.percentage && breakdown != null) {
+            final splits = widget.existingExpense!['splits'] as List<dynamic>?;
+            if (splits != null) {
+              final split = splits.firstWhere(
+                (s) => s['user_id'] == member['id'],
+                orElse: () => null,
+              );
+              if (split != null) {
+                _percentageControllers[profileCode]?.text = split['percentage'].toString();
+              }
+            }
+          }
+        }
+      }
     }
   }
 
@@ -198,6 +241,7 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
   Widget build(BuildContext context) {
     final appColors = Theme.of(context).extension<AppColorScheme>()!;
     final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
+    final isEditMode = widget.existingExpense != null;
 
     return Container(
       decoration: BoxDecoration(
@@ -224,7 +268,7 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Text(
-                  'Add New Expense',
+                  isEditMode ? 'Edit Expense' : 'Add New Expense',
                   style: GoogleFonts.cabin(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -288,56 +332,58 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
                           },
                         ),
                         const SizedBox(height: 24),
-                        // Split method selector
-                        Text(
-                          'Split Method',
-                          style: GoogleFonts.cabin(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: appColors.textColor,
+                        // Split method selector - only show in create mode
+                        if (!isEditMode) ...[
+                          Text(
+                            'Split Method',
+                            style: GoogleFonts.cabin(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: appColors.textColor,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: RadioListTile<SplitMethod>(
-                                title: Text(
-                                  'Equal',
-                                  style: GoogleFonts.cabin(color: appColors.textColor),
-                                ),
-                                value: SplitMethod.equal,
-                                groupValue: _splitMethod,
-                                onChanged: (value) {
-                                  setState(() {
-                                    _splitMethod = value!;
-                                  });
-                                },
-                              ),
-                            ),
-                            Expanded(
-                              child: RadioListTile<SplitMethod>(
-                                title: Text(
-                                  'Percentage Split',
-                                  style: GoogleFonts.cabin(
-                                    color: appColors.textColor,
-                                    fontSize: 15, // Slightly smaller to fit one line
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: RadioListTile<SplitMethod>(
+                                  title: Text(
+                                    'Equal',
+                                    style: GoogleFonts.cabin(color: appColors.textColor),
                                   ),
-                                  overflow: TextOverflow.ellipsis,
-                                  maxLines: 1,
+                                  value: SplitMethod.equal,
+                                  groupValue: _splitMethod,
+                                  onChanged: (value) {
+                                    setState(() {
+                                      _splitMethod = value!;
+                                    });
+                                  },
                                 ),
-                                value: SplitMethod.percentage,
-                                groupValue: _splitMethod,
-                                onChanged: (value) {
-                                  setState(() {
-                                    _splitMethod = value!;
-                                  });
-                                },
                               ),
-                            ),
-                          ],
-                        ),
-                        if (_splitMethod == SplitMethod.percentage) ...[
+                              Expanded(
+                                child: RadioListTile<SplitMethod>(
+                                  title: Text(
+                                    'Percentage Split',
+                                    style: GoogleFonts.cabin(
+                                      color: appColors.textColor,
+                                      fontSize: 15,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 1,
+                                  ),
+                                  value: SplitMethod.percentage,
+                                  groupValue: _splitMethod,
+                                  onChanged: (value) {
+                                    setState(() {
+                                      _splitMethod = value!;
+                                    });
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                        if (!isEditMode && _splitMethod == SplitMethod.percentage) ...[
                           const SizedBox(height: 8),
                           Row(
                             children: [
@@ -389,17 +435,19 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
                             ),
                           const SizedBox(height: 8),
                         ],
-                        // Members list
-                        Text(
-                          'Split With',
-                          style: GoogleFonts.cabin(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: appColors.textColor,
+                        // Members list - only show in create mode
+                        if (!isEditMode) ...[
+                          Text(
+                            'Split With',
+                            style: GoogleFonts.cabin(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: appColors.textColor,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        ...widget.members.map((member) => _buildMemberTile(member)),
+                          const SizedBox(height: 8),
+                          ...widget.members.map((member) => _buildMemberTile(member)),
+                        ],
                       ],
                     ),
                   ),
@@ -413,7 +461,7 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
                       ? null
                       : () async {
                           if (_formKey.currentState?.validate() ?? false) {
-                            if (_splitMethod == SplitMethod.percentage) {
+                            if (!isEditMode && _splitMethod == SplitMethod.percentage) {
                               if (_getTotalPercentage() != 100) {
                                 NotificationService().showAppNotification(
                                   context,
@@ -443,57 +491,65 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
                             });
 
                             try {
-                              // Get current user ID
                               final currentUserId = await _getCurrentUserId();
                               if (currentUserId == null) {
                                 throw 'Failed to get current user ID';
                               }
 
-                              // Safely parse amount with null check
                               final amount = double.tryParse(_amountController.text);
                               if (amount == null) {
                                 throw 'Invalid amount format';
                               }
 
-                              // Get selected user IDs and their splits
-                              final selectedMembers = widget.members
-                                  .where((m) => _selectedMembers[m['profile_code']] ?? false)
-                                  .toList();
-                              
-                              final List<int> userIds = selectedMembers
-                                  .map<int>((m) => m['id'] as int)
-                                  .toList();
+                              if (isEditMode) {
+                                // Edit existing expense
+                                context.read<GroupExpenseBloc>().add(
+                                  EditGroupExpense(
+                                    expenseId: widget.existingExpense!['expense_id'].toString(),
+                                    groupId: widget.groupId,
+                                    description: _titleController.text.trim(),
+                                    amount: amount,
+                                  ),
+                                );
+                              } else {
+                                // Add new expense
+                                final selectedMembers = widget.members
+                                    .where((m) => _selectedMembers[m['profile_code']] ?? false)
+                                    .toList();
+                                
+                                final List<int> userIds = selectedMembers
+                                    .map<int>((m) => m['id'] as int)
+                                    .toList();
 
-                              // Make sure current user is included in the split
-                              if (!userIds.contains(currentUserId)) {
-                                userIds.add(currentUserId);
+                                if (!userIds.contains(currentUserId)) {
+                                  userIds.add(currentUserId);
+                                }
+
+                                List<Map<String, dynamic>>? splits;
+                                if (_splitMethod == SplitMethod.percentage) {
+                                  splits = selectedMembers.map((m) {
+                                    final percentage = int.tryParse(
+                                      _percentageControllers[m['profile_code']]?.text ?? '0'
+                                    ) ?? 0;
+                                    return {
+                                      'user_id': m['id'],
+                                      'percentage': percentage,
+                                    };
+                                  }).toList();
+                                }
+
+                                context.read<GroupExpenseBloc>().add(
+                                  AddGroupExpense(
+                                    groupId: widget.groupId,
+                                    description: _titleController.text.trim(),
+                                    amount: amount,
+                                    payerId: currentUserId,
+                                    userIds: userIds,
+                                    splitType: _splitMethod,
+                                    splits: splits,
+                                  ),
+                                );
                               }
-
-                              List<Map<String, dynamic>>? splits;
-                              if (_splitMethod == SplitMethod.percentage) {
-                                splits = selectedMembers.map((m) {
-                                  final percentage = int.tryParse(
-                                    _percentageControllers[m['profile_code']]?.text ?? '0'
-                                  ) ?? 0;
-                                  return {
-                                    'user_id': m['id'],
-                                    'percentage': percentage,
-                                  };
-                                }).toList();
-                              }
-
-                              // Add expense using bloc
-                              context.read<GroupExpenseBloc>().add(
-                                AddGroupExpense(
-                                  groupId: widget.groupId,
-                                  description: _titleController.text.trim(),
-                                  amount: amount,
-                                  payerId: currentUserId,
-                                  userIds: userIds,
-                                  splitType: _splitMethod,
-                                  splits: splits,
-                                ),
-                              );
 
                               // Listen for state changes before popping
                               bool hasError = false;
@@ -512,7 +568,7 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
                                   if (mounted) {
                                     NotificationService().showAppNotification(
                                       context,
-                                      message: 'Expense added successfully!',
+                                      message: isEditMode ? 'Expense updated successfully!' : 'Expense added successfully!',
                                       icon: Icons.check_circle,
                                     );
                                     Navigator.pop(context, true);
@@ -523,7 +579,7 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
                             } catch (e) {
                               NotificationService().showAppNotification(
                                 context,
-                                message: 'Failed to add expense: $e',
+                                message: 'Failed to ${isEditMode ? 'update' : 'add'} expense: $e',
                                 icon: Icons.error,
                               );
                             } finally {
@@ -543,7 +599,7 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
                   child: _isProcessing
                       ? const CircularProgressIndicator()
                       : Text(
-                          'Add Expense',
+                          isEditMode ? 'Save Changes' : 'Add Expense',
                           style: GoogleFonts.cabin(
                             color: Colors.white,
                             fontSize: 16,
