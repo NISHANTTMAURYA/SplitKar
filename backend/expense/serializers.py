@@ -374,12 +374,14 @@ class ExpenseListSerializer(serializers.ModelSerializer):
     category = serializers.SerializerMethodField()
     is_user_expense = serializers.SerializerMethodField()
     date = serializers.SerializerMethodField()
+    created_by = serializers.SerializerMethodField()
+    group_admin_id = serializers.SerializerMethodField()
 
     class Meta:
         model = Expense
         fields = ['expense_id', 'description', 'total_amount', 'currency', 'date', 
                  'group_name', 'payer_id', 'payer_name', 'payer_profile_pic',
-                 'owed_breakdown', 'you_owe', 'category', 'is_user_expense']
+                 'owed_breakdown', 'you_owe', 'category', 'is_user_expense', 'created_by', 'group_admin_id']
 
     def get_group_name(self, obj):
         return obj.group.name if obj.group else None
@@ -453,6 +455,14 @@ class ExpenseListSerializer(serializers.ModelSerializer):
                 obj.date = timezone.make_aware(obj.date, timezone.get_current_timezone())
             return obj.date.isoformat()
         return None 
+
+    def get_created_by(self, obj):
+        return obj.created_by.id if obj.created_by else None
+
+    def get_group_admin_id(self, obj):
+        if obj.group and obj.group.created_by:
+            return obj.group.created_by.id
+        return None
 
 
 class EditExpenseSerializer(serializers.Serializer):

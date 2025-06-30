@@ -276,7 +276,7 @@ def group_expenses(request):
 def delete_expense(request):
     """
     Delete an expense by its expense_id (soft delete).
-    Only the creator of the expense can delete it.
+    Only the creator of the expense or the group admin (group.created_by) can delete it.
     """
     expense_id = request.GET.get('expense_id')
     if not expense_id:
@@ -286,7 +286,13 @@ def delete_expense(request):
     except Expense.DoesNotExist:
         return Response({'error': 'Expense not found.'}, status=status.HTTP_404_NOT_FOUND)
 
-    if expense.created_by != request.user:
+    user = request.user
+    is_creator = expense.created_by == user
+    is_group_admin = False
+    if expense.group is not None:
+        is_group_admin = expense.group.created_by == user
+
+    if not (is_creator or is_group_admin):
         return Response({'error': 'You do not have permission to delete this expense.'}, status=status.HTTP_403_FORBIDDEN)
 
     expense.is_deleted = True

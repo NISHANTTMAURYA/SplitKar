@@ -43,11 +43,9 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   @override
   void initState() {
     super.initState();
-    _isLoading = true;  // Set initial loading state
+    _isLoading = true; // Set initial loading state
     // Load expenses when screen opens
-    context.read<GroupExpenseBloc>().add(
-      LoadGroupExpenses(widget.groupId),
-    );
+    context.read<GroupExpenseBloc>().add(LoadGroupExpenses(widget.groupId));
   }
 
   void _scrollToBottom() {
@@ -75,91 +73,101 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     final appColors = Theme.of(context).extension<AppColorScheme>()!;
 
     return PreferredSize(
-      preferredSize: Size.fromHeight(MobileUtils.getScreenHeight(context) * 0.08),
-        child: AppBar(
+      preferredSize: Size.fromHeight(
+        MobileUtils.getScreenHeight(context) * 0.08,
+      ),
+      child: AppBar(
         automaticallyImplyLeading: false,
         toolbarHeight: MobileUtils.getScreenHeight(context) * 0.08,
-          backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: appColors.inverseColor),
           onPressed: () => Navigator.of(context).pop(),
-          ),
+        ),
         titleSpacing: 0.0,
-          title: BlocBuilder<GroupExpenseBloc, GroupExpenseState>(
-            builder: (context, state) {
-              final memberCount = state is GroupExpensesLoaded ? state.members.length : 0;
-              return GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => GroupSettingsPage(groupId: widget.groupId),
+        title: BlocBuilder<GroupExpenseBloc, GroupExpenseState>(
+          builder: (context, state) {
+            final memberCount = state is GroupExpensesLoaded
+                ? state.members.length
+                : 0;
+            return GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        GroupSettingsPage(groupId: widget.groupId),
+                  ),
+                );
+              },
+              child: Row(
+                children: [
+                  Padding(
+                    padding: EdgeInsets.only(
+                      right: MobileUtils.getScreenWidth(context) * 0.02,
                     ),
-                  );
-                },
-                child: Row(
-                  children: [
-                    Padding(
-                      padding: EdgeInsets.only(right: MobileUtils.getScreenWidth(context) * 0.02),
-                      child: CircleAvatar(
-                        radius: avatarSize / 2,
-                        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-                        child: ClipOval(
-                          child: (widget.chatImageUrl != null &&
-                                  widget.chatImageUrl!.isNotEmpty &&
-                                  widget.chatImageUrl!.startsWith('http'))
-                              ? CachedNetworkImage(
-                                  imageUrl: widget.chatImageUrl!,
-                                  placeholder: (context, url) => CustomLoader(
-                                    size: avatarSize * 0.6,
-                                    isButtonLoader: true,
-                                  ),
-                                  errorWidget: (context, url, error) => Icon(
-                                    Icons.groups_2_outlined,
-                                    size: avatarSize * 0.6,
-                                    color: appColors.iconColor2,
-                                  ),
-                                  width: avatarSize,
-                                  height: avatarSize,
-                                  fit: BoxFit.cover,
-                                )
-                              : Icon(
+                    child: CircleAvatar(
+                      radius: avatarSize / 2,
+                      backgroundColor: Theme.of(
+                        context,
+                      ).colorScheme.inversePrimary,
+                      child: ClipOval(
+                        child:
+                            (widget.chatImageUrl != null &&
+                                widget.chatImageUrl!.isNotEmpty &&
+                                widget.chatImageUrl!.startsWith('http'))
+                            ? CachedNetworkImage(
+                                imageUrl: widget.chatImageUrl!,
+                                placeholder: (context, url) => CustomLoader(
+                                  size: avatarSize * 0.6,
+                                  isButtonLoader: true,
+                                ),
+                                errorWidget: (context, url, error) => Icon(
                                   Icons.groups_2_outlined,
                                   size: avatarSize * 0.6,
                                   color: appColors.iconColor2,
                                 ),
+                                width: avatarSize,
+                                height: avatarSize,
+                                fit: BoxFit.cover,
+                              )
+                            : Icon(
+                                Icons.groups_2_outlined,
+                                size: avatarSize * 0.6,
+                                color: appColors.iconColor2,
+                              ),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.chatName,
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                          style: GoogleFonts.cabin(
+                            color: appColors.inverseColor,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                    ),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            widget.chatName,
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 1,
-                            style: GoogleFonts.cabin(
-                              color: appColors.inverseColor,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
+                        Text(
+                          '$memberCount members',
+                          style: GoogleFonts.cabin(
+                            color: appColors.inverseColor?.withOpacity(0.7),
+                            fontSize: 12,
                           ),
-                          Text(
-                            '$memberCount members',
-                            style: GoogleFonts.cabin(
-                              color: appColors.inverseColor?.withOpacity(0.7),
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-              );
-            },
-          ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
         actions: [
           IconButton(
             icon: Icon(
@@ -192,17 +200,17 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     final mediaQuery = MediaQuery.of(context);
     final isSmallScreen = mediaQuery.size.width < 360;
     final textScaleFactor = mediaQuery.textScaleFactor.clamp(0.8, 1.2);
-    
+
     return BlocBuilder<GroupExpenseBloc, GroupExpenseState>(
       builder: (context, state) {
         double totalSpent = 0;
         int totalSettlements = 0;
-        
+
         if (state is GroupExpensesLoaded) {
           totalSpent = state.summary.totalSpent;
           totalSettlements = state.summary.totalSettlements;
         }
-        
+
         return Container(
           width: double.infinity,
           color: Theme.of(context).scaffoldBackgroundColor,
@@ -213,7 +221,9 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
-                  color: appColors.shadowColor?.withOpacity(0.1) ?? Colors.transparent,
+                  color:
+                      appColors.shadowColor?.withOpacity(0.1) ??
+                      Colors.transparent,
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -286,8 +296,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                     ),
                   ),
                 ),
-                if (_isExpenseSummaryExpanded)
-                  _buildExpandedSummary(),
+                if (_isExpenseSummaryExpanded) _buildExpandedSummary(),
               ],
             ),
           ),
@@ -319,7 +328,9 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
             color: appColors.cardColor2?.withOpacity(0.05),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: appColors.borderColor2?.withOpacity(0.1) ?? Colors.transparent,
+              color:
+                  appColors.borderColor2?.withOpacity(0.1) ??
+                  Colors.transparent,
             ),
           ),
           child: SingleChildScrollView(
@@ -354,12 +365,14 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                ...state.summary.balances.map((userBalance) => _buildBalanceItem(
-                  name: userBalance.username,
-                  amount: userBalance.netBalance,
-                  isPositive: userBalance.netBalance >= 0,
-                  appColors: appColors,
-                )),
+                ...state.summary.balances.map(
+                  (userBalance) => _buildBalanceItem(
+                    name: userBalance.username,
+                    amount: userBalance.netBalance,
+                    isPositive: userBalance.netBalance >= 0,
+                    appColors: appColors,
+                  ),
+                ),
                 const SizedBox(height: 16),
                 Text(
                   'Settlement Details',
@@ -372,7 +385,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                 const SizedBox(height: 8),
                 ...state.summary.balances.expand((userBalance) {
                   final List<Widget> settlements = [];
-                  
+
                   // Only show "owes" relationships to avoid duplicates
                   for (final owes in userBalance.owes) {
                     settlements.add(
@@ -386,7 +399,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                       ),
                     );
                   }
-                  
+
                   return settlements;
                 }).toList(),
               ],
@@ -409,7 +422,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         children: [
           CircleAvatar(
             radius: 16,
-            backgroundColor: (isPositive ? Colors.green : Colors.red).withOpacity(0.2),
+            backgroundColor: (isPositive ? Colors.green : Colors.red)
+                .withOpacity(0.2),
             child: Icon(
               isPositive ? Icons.arrow_upward : Icons.arrow_downward,
               color: isPositive ? Colors.green : Colors.red,
@@ -501,7 +515,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
 
   Widget _buildSearchBar() {
     final appColors = Theme.of(context).extension<AppColorScheme>()!;
-    
+
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       height: _isSearchVisible ? 60 : 0,
@@ -522,7 +536,9 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(
-                      color: appColors.borderColor?.withOpacity(0.2) ?? Colors.transparent,
+                      color:
+                          appColors.borderColor?.withOpacity(0.2) ??
+                          Colors.transparent,
                     ),
                   ),
                   focusedBorder: OutlineInputBorder(
@@ -543,38 +559,45 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
 
   Widget _buildExpensesList(List<GroupedExpenses> groupedExpenses) {
     if (groupedExpenses.isEmpty) {
-      return SliverToBoxAdapter(
-        child: _NoExpensesView(),
-      );
+      return SliverToBoxAdapter(child: _NoExpensesView());
     }
 
     // Convert the grouped expenses into a list of widgets
     final List<Widget> children = [];
     for (var group in groupedExpenses) {
       children.add(DateSeparator(date: group.date));
-      children.addAll(group.expenses.map((expense) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8.0),
-        child: ExpenseMessage(
-          title: expense['description'] ?? 'Untitled Expense',
-          amount: expense['total_amount'] != null 
-            ? double.parse(expense['total_amount'].toString())
-            : 0.0,
-          paidBy: expense['payer_name'] ?? 'Unknown',
-          paidByProfilePic: expense['payer_profile_pic'] ?? '',
-          splitWith: (expense['owed_breakdown'] as List<dynamic>?)?.map((breakdown) => {
-            'name': breakdown['name'] ?? 'Unknown',
-            'amount': breakdown['amount'] ?? '0',
-            'profilePic': breakdown['profilePic'] ?? '',
-          }).toList() ?? [],
-          timestamp: DateTime.parse(expense['date']).toLocal(),
-          isUserExpense: expense['is_user_expense'] ?? false,
-          onTap: () {
-            print('DEBUG: Expense data being passed to onTap: $expense');
-            _showExpenseDetails(expense);
-          },
-          onLongPress: () => _showQuickActions(expense),
+      children.addAll(
+        group.expenses.map(
+          (expense) => Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: ExpenseMessage(
+              title: expense['description'] ?? 'Untitled Expense',
+              amount: expense['total_amount'] != null
+                  ? double.parse(expense['total_amount'].toString())
+                  : 0.0,
+              paidBy: expense['payer_name'] ?? 'Unknown',
+              paidByProfilePic: expense['payer_profile_pic'] ?? '',
+              splitWith:
+                  (expense['owed_breakdown'] as List<dynamic>?)
+                      ?.map(
+                        (breakdown) => {
+                          'name': breakdown['name'] ?? 'Unknown',
+                          'amount': breakdown['amount'] ?? '0',
+                          'profilePic': breakdown['profilePic'] ?? '',
+                        },
+                      )
+                      .toList() ??
+                  [],
+              timestamp: DateTime.parse(expense['date']).toLocal(),
+              isUserExpense: expense['is_user_expense'] ?? false,
+              onTap: () {
+                print('DEBUG: Expense data being passed to onTap: $expense');
+                _showExpenseDetails(expense);
+              },
+            ),
+          ),
         ),
-      )));
+      );
     }
 
     return SliverList(
@@ -592,11 +615,12 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
       ExpenseDetailsSheet.show(
         context,
         expense,
+        groupId: widget.groupId, // <-- Pass groupId here
         onEdit: () async {
           // No need to pop here as it's handled in ExpenseDetailsSheet now
-          
+
           if (!mounted) return;
-          
+
           print('DEBUG: Expense data being passed to edit sheet: $expense');
           // Show the edit sheet using the current context
           final result = await AddExpenseSheet.show(
@@ -605,7 +629,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
             state.members,
             existingExpense: expense,
           );
-          
+
           if (result ?? false) {
             if (!mounted) return;
             // Refresh the expenses list
@@ -614,57 +638,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
             );
           }
         },
-        onDelete: () {
-          // TODO: Implement delete functionality
-          context.read<GroupExpenseBloc>().add(
-            LoadGroupExpenses(widget.groupId),
-          );
-        },
       );
     }
-  }
-
-  void _showQuickActions(Map<String, dynamic> expense) {
-    final state = context.read<GroupExpenseBloc>().state;
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ListTile(
-            leading: const Icon(Icons.edit),
-            title: const Text('Edit Expense'),
-            onTap: () {
-              Navigator.pop(context);
-              if (state is GroupExpensesLoaded) {
-                AddExpenseSheet.show(
-                  context,
-                  widget.groupId,
-                  state.members,
-                ).then((shouldRefresh) {
-                  if (shouldRefresh ?? false) {
-                    context.read<GroupExpenseBloc>().add(
-                      LoadGroupExpenses(widget.groupId),
-                    );
-                  }
-                });
-              }
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.delete, color: Colors.red),
-            title: const Text('Delete Expense', style: TextStyle(color: Colors.red)),
-            onTap: () {
-              Navigator.pop(context);
-              // TODO: Implement delete functionality
-              context.read<GroupExpenseBloc>().add(
-                LoadGroupExpenses(widget.groupId),
-              );
-            },
-          ),
-        ],
-      ),
-    );
   }
 
   @override
@@ -672,9 +647,9 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     return BlocListener<GroupExpenseBloc, GroupExpenseState>(
       listener: (context, state) {
         if (state is GroupExpenseError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message)),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(state.message)));
         } else if (state is GroupExpensesLoaded) {
           // Scroll to bottom both when first loaded and when new expense is added
           // _scrollToBottom();
@@ -847,9 +822,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
 
     return Container(
       color: Colors.transparent,
-      padding: EdgeInsets.symmetric(
-        horizontal: isSmallScreen ? 12 : 16,
-      ),
+      padding: EdgeInsets.symmetric(horizontal: isSmallScreen ? 12 : 16),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
@@ -880,7 +853,9 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                       color: appColors.cardColor?.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: appColors.cardColor?.withOpacity(0.2) ?? Colors.transparent,
+                        color:
+                            appColors.cardColor?.withOpacity(0.2) ??
+                            Colors.transparent,
                       ),
                     ),
                     child: Row(
@@ -914,12 +889,14 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  ...state.summary.balances.map((userBalance) => _buildBalanceItem(
-                    name: userBalance.username,
-                    amount: userBalance.netBalance,
-                    isPositive: userBalance.netBalance >= 0,
-                    appColors: appColors,
-                  )),
+                  ...state.summary.balances.map(
+                    (userBalance) => _buildBalanceItem(
+                      name: userBalance.username,
+                      amount: userBalance.netBalance,
+                      isPositive: userBalance.netBalance >= 0,
+                      appColors: appColors,
+                    ),
+                  ),
                   const SizedBox(height: 16),
                   Text(
                     'Settlement Details',
@@ -932,7 +909,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                   const SizedBox(height: 8),
                   ...state.summary.balances.expand((userBalance) {
                     final List<Widget> settlements = [];
-                    
+
                     // Only show "owes" relationships to avoid duplicates
                     for (final owes in userBalance.owes) {
                       settlements.add(
@@ -946,7 +923,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                         ),
                       );
                     }
-                    
+
                     return settlements;
                   }).toList(),
                 ],
@@ -964,11 +941,9 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         if (state is! GroupExpensesLoaded) return const SizedBox.shrink();
         return FloatingActionButton.extended(
           onPressed: () {
-            AddExpenseSheet.show(
-              context,
-              widget.groupId,
-              state.members,
-            ).then((shouldRefresh) {
+            AddExpenseSheet.show(context, widget.groupId, state.members).then((
+              shouldRefresh,
+            ) {
               if (shouldRefresh ?? false) {
                 context.read<GroupExpenseBloc>().add(
                   LoadGroupExpenses(widget.groupId),
@@ -976,15 +951,24 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
               }
             });
           },
-          backgroundColor: Theme.of(context).extension<AppColorScheme>()!.cardColor2,
+          backgroundColor: Theme.of(
+            context,
+          ).extension<AppColorScheme>()!.cardColor2,
           label: Row(
             children: [
-              Icon(Icons.add, color: Theme.of(context).extension<AppColorScheme>()!.inverseColor),
+              Icon(
+                Icons.add,
+                color: Theme.of(
+                  context,
+                ).extension<AppColorScheme>()!.inverseColor,
+              ),
               const SizedBox(width: 8),
               Text(
                 'Add Expense',
                 style: GoogleFonts.cabin(
-                  color: Theme.of(context).extension<AppColorScheme>()!.inverseColor,
+                  color: Theme.of(
+                    context,
+                  ).extension<AppColorScheme>()!.inverseColor,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -1034,7 +1018,7 @@ class _NoExpensesView extends StatelessWidget {
   Widget build(BuildContext context) {
     final double height = MediaQuery.of(context).size.height;
     final double width = MediaQuery.of(context).size.width;
-    
+
     return Padding(
       padding: EdgeInsets.symmetric(vertical: height * 0.05),
       child: Column(
@@ -1062,11 +1046,12 @@ class _SummaryHeaderDelegate extends SliverPersistentHeaderDelegate {
   });
 
   @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return SizedBox(
-      height: maxExtent,
-      child: child,
-    );
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return SizedBox(height: maxExtent, child: child);
   }
 
   @override
@@ -1077,7 +1062,6 @@ class _SummaryHeaderDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   bool shouldRebuild(covariant _SummaryHeaderDelegate oldDelegate) {
-    return oldDelegate.isExpanded != isExpanded || 
-           oldDelegate.child != child;
+    return oldDelegate.isExpanded != isExpanded || oldDelegate.child != child;
   }
 }

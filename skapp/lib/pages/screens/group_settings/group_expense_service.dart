@@ -8,7 +8,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 class GroupExpenseService {
   static final _logger = Logger('GroupExpenseService');
   static const String _expensesCacheKeyPrefix = 'cached_group_expenses_';
-  static const String _expensesCacheExpiryKeyPrefix = 'group_expenses_cache_expiry_';
+  static const String _expensesCacheExpiryKeyPrefix =
+      'group_expenses_cache_expiry_';
   static const Duration _cacheValidity = Duration(minutes: 5);
 
   var client = http.Client();
@@ -224,6 +225,43 @@ class GroupExpenseService {
       }
     } catch (e) {
       _logger.severe('Error editing group expense: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> deleteGroupExpense({required String expenseId}) async {
+    print(
+      '[SERVICE DEBUG] deleteGroupExpense called with expenseId=$expenseId',
+    );
+    try {
+      String? token = await _authService.getToken();
+      if (token == null) throw 'Session expired. Please log in again.';
+
+      final response = await client.delete(
+        Uri.parse('${baseUrl}/expenses/delete-expense/?expense_id=$expenseId'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+      print(
+        '[SERVICE DEBUG] API response status: ${response.statusCode}, body: ${response.body}',
+      );
+
+      if (response.statusCode == 200) {
+        return;
+      } else if (response.statusCode == 401) {
+        final refreshSuccess = await _authService.handleTokenRefresh();
+        if (refreshSuccess) {
+          return deleteGroupExpense(expenseId: expenseId);
+        }
+        throw 'Session expired. Please log in again.';
+      } else {
+        final error = _parseErrorResponse(response);
+        throw error;
+      }
+    } catch (e) {
+      _logger.severe('Error deleting group expense: $e');
       rethrow;
     }
   }

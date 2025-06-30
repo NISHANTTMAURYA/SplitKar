@@ -15,11 +15,12 @@ class GroupExpenseBloc extends Bloc<GroupExpenseEvent, GroupExpenseState> {
     on<LoadGroupBalances>(_onLoadGroupBalances);
     on<AddGroupExpense>(_onAddGroupExpense);
     on<EditGroupExpense>(_onEditGroupExpense);
+    on<DeleteGroupExpense>(_onDeleteGroupExpense);
   }
 
   List<GroupedExpenses> _processExpenses(List<dynamic> rawExpenses) {
     dev.log('Processing expenses: $rawExpenses');
-    
+
     final expenses = rawExpenses.map((e) {
       if (e is! Map<String, dynamic>) {
         dev.log('Invalid expense format: $e');
@@ -45,9 +46,11 @@ class GroupExpenseBloc extends Bloc<GroupExpenseEvent, GroupExpenseState> {
       final utcDate = DateTime.parse(expense['date'] as String);
       final localDate = utcDate.toLocal();
       final dayDate = DateTime(localDate.year, localDate.month, localDate.day);
-      
-      dev.log('Expense: ${expense['description']} - UTC: $utcDate, Local: $localDate, DayDate: $dayDate');
-      
+
+      dev.log(
+        'Expense: ${expense['description']} - UTC: $utcDate, Local: $localDate, DayDate: $dayDate',
+      );
+
       if (!groupedExpenses.containsKey(dayDate)) {
         groupedExpenses[dayDate] = [];
       }
@@ -55,8 +58,9 @@ class GroupExpenseBloc extends Bloc<GroupExpenseEvent, GroupExpenseState> {
     }
 
     // Sort dates in descending order (newest first)
-    final sortedDates = groupedExpenses.keys.toList()..sort((a, b) => b.compareTo(a));
-    
+    final sortedDates = groupedExpenses.keys.toList()
+      ..sort((a, b) => b.compareTo(a));
+
     dev.log('Grouped dates: $sortedDates');
 
     // Sort expenses within each day by time (newest first)
@@ -68,16 +72,21 @@ class GroupExpenseBloc extends Bloc<GroupExpenseEvent, GroupExpenseState> {
       });
     }
 
-    return sortedDates.map((date) => GroupedExpenses(
-      date: date,
-      expenses: groupedExpenses[date]!,
-    )).toList();
+    return sortedDates
+        .map(
+          (date) =>
+              GroupedExpenses(date: date, expenses: groupedExpenses[date]!),
+        )
+        .toList();
   }
 
-  List<UserBalance> _processBalances(List<dynamic> members, List<dynamic> balances) {
+  List<UserBalance> _processBalances(
+    List<dynamic> members,
+    List<dynamic> balances,
+  ) {
     dev.log('Processing balances with members: $members');
     dev.log('Processing balances with balances: $balances');
-    
+
     final Map<int, UserBalance> userBalances = {};
 
     // Initialize user balances
@@ -86,7 +95,7 @@ class GroupExpenseBloc extends Bloc<GroupExpenseEvent, GroupExpenseState> {
         dev.log('Invalid member format: $member');
         continue;
       }
-      
+
       final id = member['id'];
       if (id == null) {
         dev.log('Member missing ID: $member');
@@ -110,7 +119,8 @@ class GroupExpenseBloc extends Bloc<GroupExpenseEvent, GroupExpenseState> {
 
       final user1 = balance['user1'] as Map<String, dynamic>?;
       final user2 = balance['user2'] as Map<String, dynamic>?;
-      final amount = double.tryParse(balance['balance_amount']?.toString() ?? '0') ?? 0.0;
+      final amount =
+          double.tryParse(balance['balance_amount']?.toString() ?? '0') ?? 0.0;
 
       if (user1 == null || user2 == null) {
         dev.log('Invalid user data in balance: $balance');
@@ -125,7 +135,10 @@ class GroupExpenseBloc extends Bloc<GroupExpenseEvent, GroupExpenseState> {
           userBalances[user1['id']] = UserBalance(
             username: user1Balance.username,
             netBalance: user1Balance.netBalance - amount,
-            owes: [...user1Balance.owes, {'to': user2['username'], 'amount': amount}],
+            owes: [
+              ...user1Balance.owes,
+              {'to': user2['username'], 'amount': amount},
+            ],
             isOwed: user1Balance.isOwed,
           );
 
@@ -133,7 +146,10 @@ class GroupExpenseBloc extends Bloc<GroupExpenseEvent, GroupExpenseState> {
             username: user2Balance.username,
             netBalance: user2Balance.netBalance + amount,
             owes: user2Balance.owes,
-            isOwed: [...user2Balance.isOwed, {'from': user1['username'], 'amount': amount}],
+            isOwed: [
+              ...user2Balance.isOwed,
+              {'from': user1['username'], 'amount': amount},
+            ],
           );
         }
       } else if (amount < 0) {
@@ -145,7 +161,10 @@ class GroupExpenseBloc extends Bloc<GroupExpenseEvent, GroupExpenseState> {
           userBalances[user2['id']] = UserBalance(
             username: user2Balance.username,
             netBalance: user2Balance.netBalance - absAmount,
-            owes: [...user2Balance.owes, {'to': user1['username'], 'amount': absAmount}],
+            owes: [
+              ...user2Balance.owes,
+              {'to': user1['username'], 'amount': absAmount},
+            ],
             isOwed: user2Balance.isOwed,
           );
 
@@ -153,7 +172,10 @@ class GroupExpenseBloc extends Bloc<GroupExpenseEvent, GroupExpenseState> {
             username: user1Balance.username,
             netBalance: user1Balance.netBalance + absAmount,
             owes: user1Balance.owes,
-            isOwed: [...user1Balance.isOwed, {'from': user2['username'], 'amount': absAmount}],
+            isOwed: [
+              ...user1Balance.isOwed,
+              {'from': user2['username'], 'amount': absAmount},
+            ],
           );
         }
       }
@@ -162,10 +184,14 @@ class GroupExpenseBloc extends Bloc<GroupExpenseEvent, GroupExpenseState> {
     return userBalances.values.toList();
   }
 
-  GroupSummary _calculateSummary(List<dynamic> expenses, List<dynamic> balances, List<UserBalance> processedBalances) {
+  GroupSummary _calculateSummary(
+    List<dynamic> expenses,
+    List<dynamic> balances,
+    List<UserBalance> processedBalances,
+  ) {
     dev.log('Calculating summary with expenses: $expenses');
     dev.log('Calculating summary with balances: $balances');
-    
+
     return GroupSummary.fromData(
       expenses: expenses.map((e) => e as Map<String, dynamic>).toList(),
       balances: balances.map((b) => b as Map<String, dynamic>).toList(),
@@ -173,10 +199,13 @@ class GroupExpenseBloc extends Bloc<GroupExpenseEvent, GroupExpenseState> {
     );
   }
 
-  Future<void> _onLoadGroupExpenses(LoadGroupExpenses event, Emitter<GroupExpenseState> emit) async {
+  Future<void> _onLoadGroupExpenses(
+    LoadGroupExpenses event,
+    Emitter<GroupExpenseState> emit,
+  ) async {
     try {
       emit(GroupExpenseLoading());
-      
+
       final expenses = await _service.getGroupExpenses(event.groupId);
       final members = await _groupSettingsApi.getGroupDetails(event.groupId);
       final balances = await _service.getGroupBalances(event.groupId);
@@ -189,74 +218,95 @@ class GroupExpenseBloc extends Bloc<GroupExpenseEvent, GroupExpenseState> {
         throw 'Failed to fetch data';
       }
 
-      final expensesList = (expenses['expenses'] as List<dynamic>?)?.map((e) {
-        if (e is! Map<String, dynamic>) {
-          dev.log('Invalid expense format: $e');
-          return <String, dynamic>{
-            'date': DateTime.now().toIso8601String(),
-            'total_amount': '0',
-            'description': 'Invalid Expense',
-          };
-        }
-        dev.log('Processing expense: $e');
-        return e;
-      }).toList() ?? [];
+      final expensesList =
+          (expenses['expenses'] as List<dynamic>?)?.map((e) {
+            if (e is! Map<String, dynamic>) {
+              dev.log('Invalid expense format: $e');
+              return <String, dynamic>{
+                'date': DateTime.now().toIso8601String(),
+                'total_amount': '0',
+                'description': 'Invalid Expense',
+              };
+            }
+            dev.log('Processing expense: $e');
+            return e;
+          }).toList() ??
+          [];
 
-      final membersList = (members['members'] as List<dynamic>?)?.map((m) {
-        if (m is! Map<String, dynamic>) {
-          dev.log('Invalid member format: $m');
-          return <String, dynamic>{
-            'id': -1,
-            'username': 'Invalid Member',
-          };
-        }
-        return m;
-      }).toList() ?? [];
+      final membersList =
+          (members['members'] as List<dynamic>?)?.map((m) {
+            if (m is! Map<String, dynamic>) {
+              dev.log('Invalid member format: $m');
+              return <String, dynamic>{'id': -1, 'username': 'Invalid Member'};
+            }
+            return m;
+          }).toList() ??
+          [];
 
-      final balancesList = (balances['balances'] as List<dynamic>?)?.map((b) {
-        if (b is! Map<String, dynamic>) {
-          dev.log('Invalid balance format: $b');
-          return <String, dynamic>{
-            'user1': {'id': -1, 'username': 'Invalid User'},
-            'user2': {'id': -1, 'username': 'Invalid User'},
-            'balance_amount': '0',
-          };
-        }
-        return b;
-      }).toList() ?? [];
+      final balancesList =
+          (balances['balances'] as List<dynamic>?)?.map((b) {
+            if (b is! Map<String, dynamic>) {
+              dev.log('Invalid balance format: $b');
+              return <String, dynamic>{
+                'user1': {'id': -1, 'username': 'Invalid User'},
+                'user2': {'id': -1, 'username': 'Invalid User'},
+                'balance_amount': '0',
+              };
+            }
+            return b;
+          }).toList() ??
+          [];
 
       final processedBalances = _processBalances(membersList, balancesList);
       final groupedExpenses = _processExpenses(expensesList);
-      final summary = _calculateSummary(expensesList, balancesList, processedBalances);
+      final summary = _calculateSummary(
+        expensesList,
+        balancesList,
+        processedBalances,
+      );
 
-      emit(GroupExpensesLoaded(
-        expenses: expensesList,
-        members: membersList,
-        balances: balancesList,
-        groupedExpenses: groupedExpenses,
-        summary: summary,
-      ));
+      emit(
+        GroupExpensesLoaded(
+          expenses: expensesList,
+          members: membersList,
+          balances: balancesList,
+          groupedExpenses: groupedExpenses,
+          summary: summary,
+        ),
+      );
     } catch (e, stackTrace) {
       dev.log('Error in _onLoadGroupExpenses: $e\n$stackTrace');
       emit(GroupExpenseError(e.toString()));
     }
   }
 
-  Future<void> _onLoadGroupBalances(LoadGroupBalances event, Emitter<GroupExpenseState> emit) async {
+  Future<void> _onLoadGroupBalances(
+    LoadGroupBalances event,
+    Emitter<GroupExpenseState> emit,
+  ) async {
     try {
       if (state is GroupExpensesLoaded) {
         final currentState = state as GroupExpensesLoaded;
         final balances = await _service.getGroupBalances(event.groupId);
-        final processedBalances = _processBalances(currentState.members, balances['balances']);
-        final summary = _calculateSummary(currentState.expenses, balances['balances'], processedBalances);
+        final processedBalances = _processBalances(
+          currentState.members,
+          balances['balances'],
+        );
+        final summary = _calculateSummary(
+          currentState.expenses,
+          balances['balances'],
+          processedBalances,
+        );
 
-        emit(GroupExpensesLoaded(
-          expenses: currentState.expenses,
-          members: currentState.members,
-          balances: balances['balances'],
-          groupedExpenses: currentState.groupedExpenses,
-          summary: summary,
-        ));
+        emit(
+          GroupExpensesLoaded(
+            expenses: currentState.expenses,
+            members: currentState.members,
+            balances: balances['balances'],
+            groupedExpenses: currentState.groupedExpenses,
+            summary: summary,
+          ),
+        );
       }
     } catch (e) {
       emit(GroupExpenseError(e.toString()));
@@ -275,10 +325,12 @@ class GroupExpenseBloc extends Bloc<GroupExpenseEvent, GroupExpenseState> {
         amount: event.amount,
         payerId: event.payerId,
         userIds: event.userIds,
-        splitType: event.splitType == SplitMethod.percentage ? 'percentage' : 'equal',
+        splitType: event.splitType == SplitMethod.percentage
+            ? 'percentage'
+            : 'equal',
         splits: event.splits,
       );
-      
+
       add(LoadGroupExpenses(event.groupId));
     } catch (e) {
       emit(GroupExpenseError(e.toString()));
@@ -297,10 +349,27 @@ class GroupExpenseBloc extends Bloc<GroupExpenseEvent, GroupExpenseState> {
         description: event.description,
         amount: event.amount,
       );
-      
+
       // Reload expenses to get the updated state
       add(LoadGroupExpenses(event.groupId));
     } catch (e) {
+      emit(GroupExpenseError(e.toString()));
+    }
+  }
+
+  Future<void> _onDeleteGroupExpense(
+    DeleteGroupExpense event,
+    Emitter<GroupExpenseState> emit,
+  ) async {
+    print(
+      '[BLOC DEBUG] _onDeleteGroupExpense called: expenseId=${event.expenseId}, groupId=${event.groupId}',
+    );
+    try {
+      await _service.deleteGroupExpense(expenseId: event.expenseId);
+      print('[BLOC DEBUG] deleteGroupExpense service call completed');
+      add(LoadGroupExpenses(event.groupId));
+    } catch (e) {
+      print('[BLOC DEBUG] Error in _onDeleteGroupExpense: $e');
       emit(GroupExpenseError(e.toString()));
     }
   }

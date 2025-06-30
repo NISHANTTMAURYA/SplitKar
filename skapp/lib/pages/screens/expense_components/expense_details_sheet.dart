@@ -2,24 +2,42 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:skapp/utils/app_colors.dart';
+import 'package:skapp/services/auth_service.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:skapp/pages/screens/group_settings/bloc/group_expense_bloc.dart';
+import 'package:skapp/pages/screens/group_settings/bloc/group_expense_event.dart';
 
 class ExpenseDetailsSheet extends StatelessWidget {
   final Map<String, dynamic> expense;
   final VoidCallback? onEdit;
-  final VoidCallback? onDelete;
+  final int? groupId;
+  final bool? isAdmin;
 
   const ExpenseDetailsSheet({
     super.key,
     required this.expense,
     this.onEdit,
-    this.onDelete,
+    this.groupId,
+    this.isAdmin,
   });
+
+  static Future<bool> canDelete(BuildContext context, Map<String, dynamic> expense) async {
+    final authService = AuthService();
+    final userId = await authService.getUserId();
+    final creatorId = expense['created_by']?.toString();
+    final groupAdminId = expense['group_admin_id']?.toString();
+    final isCurrentUserCreator = userId != null && creatorId != null && userId == creatorId;
+    final isCurrentUserGroupAdmin = userId != null && groupAdminId != null && userId == groupAdminId;
+    debugPrint('[DEBUG] canDelete: userId=[33m$userId[0m, creatorId=$creatorId, groupAdminId=$groupAdminId, isCurrentUserCreator=$isCurrentUserCreator, isCurrentUserGroupAdmin=$isCurrentUserGroupAdmin, expense=$expense');
+    return isCurrentUserCreator || isCurrentUserGroupAdmin;
+  }
 
   static Future<void> show(
     BuildContext context,
     Map<String, dynamic> expense, {
     VoidCallback? onEdit,
-    VoidCallback? onDelete,
+    int? groupId,
+    bool? isAdmin,
   }) {
     print('DEBUG: Expense data in details sheet: $expense');
     return showModalBottomSheet(
@@ -35,13 +53,45 @@ class ExpenseDetailsSheet extends StatelessWidget {
           expense: expense,
           onEdit: onEdit != null ? () {
             print('DEBUG: Expense data before edit: $expense');
-            // Navigator.of(sheetContext).pop();
             onEdit();
           } : null,
-          onDelete: onDelete,
+          groupId: groupId,
+          isAdmin: isAdmin,
         ),
       ),
     );
+  }
+
+  /// Public static method to show delete confirmation and trigger delete
+  static Future<void> showDeleteConfirmation(BuildContext context, Map<String, dynamic> expense, {int? groupId}) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Expense'),
+        content: const Text('Are you sure you want to delete this expense? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      final eid = expense['id']?.toString() ?? expense['expense_id']?.toString();
+      if (groupId != null && eid != null) {
+        Future.microtask(() {
+          if (context.mounted) {
+            context.read<GroupExpenseBloc>().add(DeleteGroupExpense(expenseId: eid, groupId: groupId));
+          }
+        });
+      }
+    }
   }
 
   String _formatTimestamp(DateTime timestamp) {
@@ -65,252 +115,258 @@ class ExpenseDetailsSheet extends StatelessWidget {
     // Parse the date string to DateTime
     final timestamp = DateTime.parse(expense['date'] ?? DateTime.now().toIso8601String()).toLocal();
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      child: SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Handle
-            Container(
-              width: 40,
-              height: 4,
-              margin: const EdgeInsets.only(top: 8),
-              decoration: BoxDecoration(
-                color: appColors.borderColor2?.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            // Header
-            Padding(
-              padding: EdgeInsets.all(isSmallScreen ? 12 : 16),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Expense Details',
-                      style: GoogleFonts.cabin(
-                        fontSize: 20 * textScaleFactor,
-                        fontWeight: FontWeight.bold,
-                        color: appColors.textColor,
-                      ),
-                    ),
+    return FutureBuilder<bool>(
+      future: ExpenseDetailsSheet.canDelete(context, expense),
+      builder: (context, snapshot) {
+        final canDelete = snapshot.data ?? false;
+        return Container(
+          decoration: BoxDecoration(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Handle
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(top: 8),
+                  decoration: BoxDecoration(
+                    color: appColors.borderColor2?.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(2),
                   ),
-                  if (onEdit != null || onDelete != null)
-                    PopupMenuButton<String>(
-                      icon: Icon(Icons.more_vert, color: appColors.iconColor),
-                      onSelected: (value) {
-                        Navigator.pop(context);
-                        if (value == 'edit' && onEdit != null) {
-                          onEdit!();
-                        } else if (value == 'delete' && onDelete != null) {
-                          onDelete!();
-                        }
-                      },
-                      itemBuilder: (context) => [
-                        if (onEdit != null)
-                          const PopupMenuItem(
-                            value: 'edit',
-                            child: Row(
-                              children: [
-                                Icon(Icons.edit),
-                                SizedBox(width: 8),
-                                Text('Edit'),
-                              ],
-                            ),
+                ),
+                // Header
+                Padding(
+                  padding: EdgeInsets.all(isSmallScreen ? 12 : 16),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Expense Details',
+                          style: GoogleFonts.cabin(
+                            fontSize: 20 * textScaleFactor,
+                            fontWeight: FontWeight.bold,
+                            color: appColors.textColor,
                           ),
-                        if (onDelete != null)
-                          const PopupMenuItem(
-                            value: 'delete',
-                            child: Row(
-                              children: [
-                                Icon(Icons.delete, color: Colors.red),
-                                SizedBox(width: 8),
-                                Text('Delete', style: TextStyle(color: Colors.red)),
-                              ],
-                            ),
-                          ),
-                      ],
-                    ),
-                ],
-              ),
-            ),
-            // Content
-            Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.all(isSmallScreen ? 12 : 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Amount card
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: appColors.cardColor2?.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: appColors.borderColor2?.withOpacity(0.2) ?? Colors.transparent,
                         ),
                       ),
-                      child: Column(
-                        children: [
-                          Text(
-                            '₹${expense['total_amount']}',
-                            style: GoogleFonts.cabin(
-                              fontSize: 32 * textScaleFactor,
-                              fontWeight: FontWeight.bold,
-                              color: appColors.textColor,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            expense['description'] ?? 'Untitled Expense',
-                            style: GoogleFonts.cabin(
-                              fontSize: 16 * textScaleFactor,
-                              color: appColors.textColor2,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    // Paid by section
-                    Text(
-                      'Paid by',
-                      style: GoogleFonts.cabin(
-                        fontSize: 16 * textScaleFactor,
-                        fontWeight: FontWeight.w600,
-                        color: appColors.textColor,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: appColors.cardColor2?.withOpacity(0.05),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: appColors.borderColor2?.withOpacity(0.1) ?? Colors.transparent,
+                      if (onEdit != null || canDelete)
+                        PopupMenuButton<String>(
+                          icon: Icon(Icons.more_vert, color: appColors.iconColor),
+                          onSelected: (value) {
+                            if (value == 'edit' && onEdit != null) {
+                              Navigator.pop(context); // Only pop for edit
+                              onEdit!();
+                            } else if (value == 'delete' && canDelete) {
+                              ExpenseDetailsSheet.showDeleteConfirmation(context, expense, groupId: groupId);
+                            }
+                          },
+                          itemBuilder: (context) => [
+                            if (onEdit != null)
+                              const PopupMenuItem(
+                                value: 'edit',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.edit),
+                                    SizedBox(width: 8),
+                                    Text('Edit'),
+                                  ],
+                                ),
+                              ),
+                            if (canDelete)
+                              const PopupMenuItem(
+                                value: 'delete',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.delete, color: Colors.red),
+                                    SizedBox(width: 8),
+                                    Text('Delete', style: TextStyle(color: Colors.red)),
+                                  ],
+                                ),
+                              ),
+                          ],
                         ),
-                      ),
-                      child: Row(
-                        children: [
-                          CircleAvatar(
-                            radius: 20,
-                            backgroundColor: appColors.cardColor2?.withOpacity(0.1),
-                            backgroundImage: expense['payer_profile_pic'] != null &&
-                                          expense['payer_profile_pic'].isNotEmpty
-                                ? CachedNetworkImageProvider(expense['payer_profile_pic'])
-                                : null,
-                            child: expense['payer_profile_pic'] == null ||
-                                   expense['payer_profile_pic'].isEmpty
-                                ? Text(
-                                    (expense['payer_name'] ?? 'U')[0].toUpperCase(),
-                                    style: TextStyle(
-                                      color: appColors.textColor,
-                                      fontSize: 18 * textScaleFactor,
-                                    ),
-                                  )
-                                : null,
+                    ],
+                  ),
+                ),
+                // Content
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.all(isSmallScreen ? 12 : 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Amount card
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: appColors.cardColor2?.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: appColors.borderColor2?.withOpacity(0.2) ?? Colors.transparent,
+                            ),
                           ),
-                          const SizedBox(width: 12),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                          child: Column(
                             children: [
                               Text(
-                                expense['payer_name'] ?? 'Unknown',
+                                '₹${expense['total_amount']}',
                                 style: GoogleFonts.cabin(
-                                  fontSize: 16 * textScaleFactor,
-                                  fontWeight: FontWeight.w500,
+                                  fontSize: 32 * textScaleFactor,
+                                  fontWeight: FontWeight.bold,
                                   color: appColors.textColor,
                                 ),
                               ),
+                              const SizedBox(height: 4),
                               Text(
-                                _formatTimestamp(timestamp),
+                                expense['description'] ?? 'Untitled Expense',
                                 style: GoogleFonts.cabin(
-                                  fontSize: 12 * textScaleFactor,
+                                  fontSize: 16 * textScaleFactor,
                                   color: appColors.textColor2,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        // Paid by section
+                        Text(
+                          'Paid by',
+                          style: GoogleFonts.cabin(
+                            fontSize: 16 * textScaleFactor,
+                            fontWeight: FontWeight.w600,
+                            color: appColors.textColor,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: appColors.cardColor2?.withOpacity(0.05),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: appColors.borderColor2?.withOpacity(0.1) ?? Colors.transparent,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 20,
+                                backgroundColor: appColors.cardColor2?.withOpacity(0.1),
+                                backgroundImage: expense['payer_profile_pic'] != null &&
+                                          expense['payer_profile_pic'].isNotEmpty
+                                    ? CachedNetworkImageProvider(expense['payer_profile_pic'])
+                                    : null,
+                                child: expense['payer_profile_pic'] == null ||
+                                       expense['payer_profile_pic'].isEmpty
+                                    ? Text(
+                                        (expense['payer_name'] ?? 'U')[0].toUpperCase(),
+                                        style: TextStyle(
+                                          color: appColors.textColor,
+                                          fontSize: 18 * textScaleFactor,
+                                        ),
+                                      )
+                                    : null,
+                              ),
+                              const SizedBox(width: 12),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    expense['payer_name'] ?? 'Unknown',
+                                    style: GoogleFonts.cabin(
+                                      fontSize: 16 * textScaleFactor,
+                                      fontWeight: FontWeight.w500,
+                                      color: appColors.textColor,
+                                    ),
+                                  ),
+                                  Text(
+                                    _formatTimestamp(timestamp),
+                                    style: GoogleFonts.cabin(
+                                      fontSize: 12 * textScaleFactor,
+                                      color: appColors.textColor2,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        // Split details
+                        Text(
+                          'Split Details',
+                          style: GoogleFonts.cabin(
+                            fontSize: 16 * textScaleFactor,
+                            fontWeight: FontWeight.w600,
+                            color: appColors.textColor,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        ...(expense['owed_breakdown'] as List<dynamic>? ?? []).map<Widget>((person) => Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: appColors.cardColor2?.withOpacity(0.05),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: appColors.borderColor2?.withOpacity(0.1) ?? Colors.transparent,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 16,
+                                backgroundColor: appColors.cardColor2?.withOpacity(0.1),
+                                backgroundImage: person['profilePic'] != null &&
+                                          person['profilePic'].toString().isNotEmpty
+                                    ? CachedNetworkImageProvider(person['profilePic'])
+                                    : null,
+                                child: person['profilePic'] == null ||
+                                       person['profilePic'].toString().isEmpty
+                                    ? Text(
+                                        (person['name'] ?? 'U')[0].toUpperCase(),
+                                        style: TextStyle(
+                                          color: appColors.textColor,
+                                          fontSize: 14 * textScaleFactor,
+                                        ),
+                                      )
+                                    : null,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  person['name'] ?? 'Unknown',
+                                  style: GoogleFonts.cabin(
+                                    fontSize: 14 * textScaleFactor,
+                                    color: appColors.textColor,
+                                  ),
+                                ),
+                              ),
+                              Text(
+                                '₹${person['amount']}',
+                                style: GoogleFonts.cabin(
+                                  fontSize: 14 * textScaleFactor,
+                                  fontWeight: FontWeight.w600,
+                                  color: appColors.textColor,
                                 ),
                               ),
                             ],
                           ),
-                        ],
-                      ),
+                        )).toList(),
+                      ],
                     ),
-                    const SizedBox(height: 24),
-                    // Split details
-                    Text(
-                      'Split Details',
-                      style: GoogleFonts.cabin(
-                        fontSize: 16 * textScaleFactor,
-                        fontWeight: FontWeight.w600,
-                        color: appColors.textColor,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    ...(expense['owed_breakdown'] as List<dynamic>? ?? []).map<Widget>((person) => Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: appColors.cardColor2?.withOpacity(0.05),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: appColors.borderColor2?.withOpacity(0.1) ?? Colors.transparent,
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          CircleAvatar(
-                            radius: 16,
-                            backgroundColor: appColors.cardColor2?.withOpacity(0.1),
-                            backgroundImage: person['profilePic'] != null &&
-                                          person['profilePic'].toString().isNotEmpty
-                                ? CachedNetworkImageProvider(person['profilePic'])
-                                : null,
-                            child: person['profilePic'] == null ||
-                                   person['profilePic'].toString().isEmpty
-                                ? Text(
-                                    (person['name'] ?? 'U')[0].toUpperCase(),
-                                    style: TextStyle(
-                                      color: appColors.textColor,
-                                      fontSize: 14 * textScaleFactor,
-                                    ),
-                                  )
-                                : null,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              person['name'] ?? 'Unknown',
-                              style: GoogleFonts.cabin(
-                                fontSize: 14 * textScaleFactor,
-                                color: appColors.textColor,
-                              ),
-                            ),
-                          ),
-                          Text(
-                            '₹${person['amount']}',
-                            style: GoogleFonts.cabin(
-                              fontSize: 14 * textScaleFactor,
-                              fontWeight: FontWeight.w600,
-                              color: appColors.textColor,
-                            ),
-                          ),
-                        ],
-                      ),
-                    )).toList(),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
-} 
+}

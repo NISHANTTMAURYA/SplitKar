@@ -61,3 +61,16 @@ class EditGroupExpense extends GroupExpenseEvent {
   @override
   List<Object?> get props => [expenseId, groupId, description, amount];
 }
+
+class DeleteGroupExpense extends GroupExpenseEvent {
+  final String expenseId;
+  final int groupId;
+
+  DeleteGroupExpense({
+    required this.expenseId,
+    required this.groupId,
+  });
+
+  @override
+  List<Object?> get props => [expenseId, groupId];
+}
