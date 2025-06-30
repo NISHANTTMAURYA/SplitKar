@@ -288,6 +288,7 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
                       children: [
                         // Title field
                         TextFormField(
+                          maxLines: 3,
                           controller: _titleController,
                           decoration: InputDecoration(
                             labelText: 'Description',
