@@ -664,51 +664,64 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
             Expanded(
               child: BlocBuilder<GroupExpenseBloc, GroupExpenseState>(
                 builder: (context, state) {
-                  if (state is GroupExpenseLoading) {
-                    return const Center(child: CustomLoader());
-                  } else if (state is GroupExpensesLoaded) {
-                    return CustomScrollView(
-                      controller: _scrollController,
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      slivers: [
-                        SliverPersistentHeader(
-                          floating: true,
-                          delegate: _SummaryHeaderDelegate(
-                            child: _buildSummaryHeader(state),
-                            isExpanded: _isExpenseSummaryExpanded,
-                            onToggle: (value) {
-                              setState(() {
-                                _isExpenseSummaryExpanded = value;
-                              });
-                            },
+                  return RefreshIndicator(
+                    onRefresh: () async {
+                      context.read<GroupExpenseBloc>().add(LoadGroupExpenses(widget.groupId));
+                    },
+                    child: () {
+                      if (state is GroupExpenseLoading) {
+                        return const Center(child: CustomLoader());
+                      } else if (state is GroupExpensesLoaded) {
+                        return CustomScrollView(
+                          controller: _scrollController,
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          slivers: [
+                            SliverPersistentHeader(
+                              floating: true,
+                              delegate: _SummaryHeaderDelegate(
+                                child: _buildSummaryHeader(state),
+                                isExpanded: _isExpenseSummaryExpanded,
+                                onToggle: (value) {
+                                  setState(() {
+                                    _isExpenseSummaryExpanded = value;
+                                  });
+                                },
+                              ),
+                            ),
+                            if (_isExpenseSummaryExpanded)
+                              SliverToBoxAdapter(
+                                child: _buildExpandedSummaryContent(state),
+                              ),
+                            _buildExpensesList(state.groupedExpenses),
+                            const SliverPadding(
+                              padding: EdgeInsets.only(bottom: 100),
+                            ),
+                          ],
+                        );
+                      } else if (state is GroupExpenseError) {
+                        return Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Text(
+                              state.message,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
                           ),
-                        ),
-                        if (_isExpenseSummaryExpanded)
-                          SliverToBoxAdapter(
-                            child: _buildExpandedSummaryContent(state),
-                          ),
-                        _buildExpensesList(state.groupedExpenses),
-                        const SliverPadding(
-                          padding: EdgeInsets.only(bottom: 100),
-                        ),
-                      ],
-                    );
-                  } else if (state is GroupExpenseError) {
-                    return Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Text(
-                          state.message,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    );
-                  }
-                  return const SizedBox.shrink();
+                        );
+                      }
+                      // Default: show no expenses view with refresh
+                      return ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        children: const [
+                          _NoExpensesView(),
+                        ],
+                      );
+                    }(),
+                  );
                 },
               ),
             ),
