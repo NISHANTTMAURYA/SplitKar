@@ -4,6 +4,7 @@ import 'group_expense_event.dart';
 import 'group_expense_state.dart';
 import '../group_settings_api.dart';
 import 'dart:developer' as dev;
+import '../../expense_components/add_expense_sheet.dart';
 
 class GroupExpenseBloc extends Bloc<GroupExpenseEvent, GroupExpenseState> {
   final GroupExpenseService _service;
@@ -272,7 +273,7 @@ class GroupExpenseBloc extends Bloc<GroupExpenseEvent, GroupExpenseState> {
         amount: event.amount,
         payerId: event.payerId,
         userIds: event.userIds,
-        splitType: event.splitType,
+        splitType: event.splitType == SplitMethod.percentage ? 'percentage' : 'equal',
         splits: event.splits,
       );
       

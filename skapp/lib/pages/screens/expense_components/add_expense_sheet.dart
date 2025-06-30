@@ -7,6 +7,10 @@ import 'package:skapp/pages/screens/group_settings/bloc/group_expense_bloc.dart'
 import 'package:skapp/pages/screens/group_settings/bloc/group_expense_event.dart';
 import 'package:skapp/pages/screens/group_settings/bloc/group_expense_state.dart';
 import 'package:skapp/services/auth_service.dart';
+import 'package:skapp/widgets/app_notification.dart';
+import 'package:skapp/services/notification_service.dart';
+
+enum SplitMethod { equal, percentage }
 
 class AddExpenseSheet extends StatefulWidget {
   final int groupId;
@@ -48,10 +52,12 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
   final _titleController = TextEditingController();
   final _amountController = TextEditingController();
   final Map<String, bool> _selectedMembers = {};
-  String _splitMethod = 'equal'; // 'equal' or 'custom'
-  final Map<String, TextEditingController> _customAmountControllers = {};
+  SplitMethod _splitMethod = SplitMethod.equal;
+  final Map<String, TextEditingController> _percentageControllers = {};
   bool _isProcessing = false;
   final _authService = AuthService();
+  // Add a field to track the last error for percentage overflow
+  String? _percentageError;
 
   @override
   void initState() {
@@ -59,7 +65,7 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
     // Initialize selected members map
     for (var member in widget.members) {
       _selectedMembers[member['profile_code']] = true;
-      _customAmountControllers[member['profile_code']] = TextEditingController();
+      _percentageControllers[member['profile_code']] = TextEditingController();
     }
   }
 
@@ -67,25 +73,20 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
   void dispose() {
     _titleController.dispose();
     _amountController.dispose();
-    _customAmountControllers.values.forEach((controller) => controller.dispose());
+    _percentageControllers.values.forEach((controller) => controller.dispose());
     super.dispose();
   }
 
-  void _updateCustomAmounts() {
-    if (_splitMethod == 'equal' && _amountController.text.isNotEmpty) {
-      final totalAmount = double.tryParse(_amountController.text) ?? 0;
-      final selectedCount = _selectedMembers.values.where((selected) => selected).length;
-      if (selectedCount > 0) {
-        final perPersonAmount = (totalAmount / selectedCount).toStringAsFixed(2);
-        for (var entry in _selectedMembers.entries) {
-          if (entry.value) {
-            _customAmountControllers[entry.key]?.text = perPersonAmount;
-          } else {
-            _customAmountControllers[entry.key]?.text = '0';
-          }
-        }
+  int _getTotalPercentage() {
+    int total = 0;
+    for (var entry in _selectedMembers.entries) {
+      if (entry.value) {
+        final text = _percentageControllers[entry.key]?.text ?? '';
+        final value = int.tryParse(text) ?? 0;
+        total += value;
       }
     }
+    return total;
   }
 
   Widget _buildMemberTile(Map<String, dynamic> member) {
@@ -116,19 +117,49 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
           member['username'],
           style: GoogleFonts.cabin(color: appColors.textColor),
         ),
-        subtitle: _splitMethod == 'custom' && isSelected
+        subtitle: _splitMethod == SplitMethod.percentage && isSelected
             ? TextField(
-                controller: _customAmountControllers[profileCode],
+                controller: _percentageControllers[profileCode],
                 keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  FilteringTextInputFormatter.allow(RegExp(r'^[0-9]{0,3}\u0000?')),
+                ],
                 decoration: InputDecoration(
-                  prefixText: '₹',
-                  hintText: 'Amount',
+                  suffixText: '%',
+                  hintText: 'Percentage',
                   isDense: true,
                   contentPadding: const EdgeInsets.symmetric(vertical: 8),
                   hintStyle: TextStyle(color: appColors.textColor2),
                 ),
                 style: GoogleFonts.cabin(color: appColors.textColor),
+                onChanged: (value) {
+                  setState(() {
+                    _percentageError = null;
+                    final entered = int.tryParse(value) ?? 0;
+                    int runningTotal = 0;
+                    for (var entry in _selectedMembers.entries) {
+                      if (entry.value) {
+                        if (entry.key == profileCode) {
+                          runningTotal += entered;
+                        } else {
+                          final other = int.tryParse(_percentageControllers[entry.key]?.text ?? '') ?? 0;
+                          runningTotal += other;
+                        }
+                      }
+                    }
+                    if (runningTotal > 100) {
+                      // Revert the change
+                      _percentageControllers[profileCode]?.text = '';
+                      _percentageError = 'Total percentage cannot exceed 100%';
+                      NotificationService().showAppNotification(
+                        context,
+                        message: 'Total percentage cannot exceed 100%',
+                        icon: Icons.warning,
+                      );
+                    }
+                  });
+                },
               )
             : null,
         trailing: Checkbox(
@@ -136,7 +167,6 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
           onChanged: (value) {
             setState(() {
               _selectedMembers[profileCode] = value ?? false;
-              _updateCustomAmounts();
             });
           },
         ),
@@ -224,7 +254,6 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        onChanged: (_) => _updateCustomAmounts(),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'Please enter an amount';
@@ -254,39 +283,94 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
                       Row(
                         children: [
                           Expanded(
-                            child: RadioListTile(
+                            child: RadioListTile<SplitMethod>(
                               title: Text(
                                 'Equal',
                                 style: GoogleFonts.cabin(color: appColors.textColor),
                               ),
-                              value: 'equal',
+                              value: SplitMethod.equal,
                               groupValue: _splitMethod,
                               onChanged: (value) {
                                 setState(() {
-                                  _splitMethod = value.toString();
-                                  _updateCustomAmounts();
+                                  _splitMethod = value!;
                                 });
                               },
                             ),
                           ),
                           Expanded(
-                            child: RadioListTile(
+                            child: RadioListTile<SplitMethod>(
                               title: Text(
-                                'Custom',
-                                style: GoogleFonts.cabin(color: appColors.textColor),
+                                'Percentage Split',
+                                style: GoogleFonts.cabin(
+                                  color: appColors.textColor,
+                                  fontSize: 15, // Slightly smaller to fit one line
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
                               ),
-                              value: 'custom',
+                              value: SplitMethod.percentage,
                               groupValue: _splitMethod,
                               onChanged: (value) {
                                 setState(() {
-                                  _splitMethod = value.toString();
+                                  _splitMethod = value!;
                                 });
                               },
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 16),
+                      if (_splitMethod == SplitMethod.percentage) ...[
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Text(
+                              'Total: ',
+                              style: GoogleFonts.cabin(
+                                fontWeight: FontWeight.w600,
+                                color: appColors.textColor,
+                              ),
+                            ),
+                            Text(
+                              '${_getTotalPercentage()}%',
+                              style: GoogleFonts.cabin(
+                                fontWeight: FontWeight.bold,
+                                color: _getTotalPercentage() == 100
+                                    ? Theme.of(context).colorScheme.secondary
+                                    : Theme.of(context).colorScheme.error,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                          ],
+                        ),
+                        if (_percentageError != null || (_getTotalPercentage() != 100 && _getTotalPercentage() > 0))
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4.0),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.error.withOpacity(0.08),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.warning_amber_rounded, size: 18, color: Theme.of(context).colorScheme.error),
+                                  const SizedBox(width: 6),
+                                  Expanded(
+                                    child: Text(
+                                      _percentageError ?? 'Total percentage must be exactly 100%',
+                                      style: GoogleFonts.cabin(
+                                        color: Theme.of(context).colorScheme.error,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        const SizedBox(height: 8),
+                      ],
                       // Members list
                       Text(
                         'Split With',
@@ -311,6 +395,31 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
                     ? null
                     : () async {
                         if (_formKey.currentState?.validate() ?? false) {
+                          if (_splitMethod == SplitMethod.percentage) {
+                            if (_getTotalPercentage() != 100) {
+                              NotificationService().showAppNotification(
+                                context,
+                                message: 'Total percentage must be exactly 100%',
+                                icon: Icons.warning,
+                              );
+                              return;
+                            }
+                            // Validate each percentage is between 0 and 100
+                            for (var entry in _selectedMembers.entries) {
+                              if (entry.value) {
+                                final text = _percentageControllers[entry.key]?.text ?? '';
+                                final value = int.tryParse(text) ?? 0;
+                                if (value < 0 || value > 100) {
+                                  NotificationService().showAppNotification(
+                                    context,
+                                    message: 'Each percentage must be between 0 and 100',
+                                    icon: Icons.warning,
+                                  );
+                                  return;
+                                }
+                              }
+                            }
+                          }
                           setState(() {
                             _isProcessing = true;
                           });
@@ -343,12 +452,11 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
                             }
 
                             List<Map<String, dynamic>>? splits;
-                            if (_splitMethod == 'custom') {
+                            if (_splitMethod == SplitMethod.percentage) {
                               splits = selectedMembers.map((m) {
-                                final splitAmount = double.tryParse(
-                                  _customAmountControllers[m['profile_code']]?.text ?? '0'
-                                ) ?? 0.0;
-                                final percentage = (splitAmount / amount * 100).toStringAsFixed(2);
+                                final percentage = int.tryParse(
+                                  _percentageControllers[m['profile_code']]?.text ?? '0'
+                                ) ?? 0;
                                 return {
                                   'user_id': m['id'],
                                   'percentage': percentage,
@@ -364,7 +472,7 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
                                 amount: amount,
                                 payerId: currentUserId,
                                 userIds: userIds,
-                                splitType: _splitMethod == 'custom' ? 'percentage' : 'equal',
+                                splitType: _splitMethod,
                                 splits: splits,
                               ),
                             );
@@ -374,23 +482,31 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
                             await for (final state in context.read<GroupExpenseBloc>().stream) {
                               if (state is GroupExpenseError) {
                                 hasError = true;
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Failed to add expense: ${state.message}')),
+                                NotificationService().showAppNotification(
+                                  context,
+                                  message: 'Failed to add expense: ${state.message}',
+                                  icon: Icons.error,
                                 );
                                 break;
                               }
                               if (state is GroupExpensesLoaded) {
                                 // Successfully added and loaded new expenses
+                                if (mounted) {
+                                  NotificationService().showAppNotification(
+                                    context,
+                                    message: 'Expense added successfully!',
+                                    icon: Icons.check_circle,
+                                  );
+                                  Navigator.pop(context, true);
+                                }
                                 break;
                               }
                             }
-
-                            if (!hasError && mounted) {
-                              Navigator.pop(context, true);
-                            }
                           } catch (e) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Failed to add expense: $e')),
+                            NotificationService().showAppNotification(
+                              context,
+                              message: 'Failed to add expense: $e',
+                              icon: Icons.error,
                             );
                           } finally {
                             setState(() {

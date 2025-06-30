@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import '../../expense_components/add_expense_sheet.dart';
 
 abstract class GroupExpenseEvent extends Equatable {
   @override
@@ -27,7 +28,7 @@ class AddGroupExpense extends GroupExpenseEvent {
   final double amount;
   final int payerId;
   final List<int> userIds;
-  final String? splitType;
+  final SplitMethod splitType;
   final List<Map<String, dynamic>>? splits;
 
   AddGroupExpense({
@@ -36,7 +37,7 @@ class AddGroupExpense extends GroupExpenseEvent {
     required this.amount,
     required this.payerId,
     required this.userIds,
-    this.splitType,
+    required this.splitType,
     this.splits,
   });
 
