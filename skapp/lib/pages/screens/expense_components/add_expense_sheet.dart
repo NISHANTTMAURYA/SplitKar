@@ -56,6 +56,7 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
   final Map<String, TextEditingController> _percentageControllers = {};
   bool _isProcessing = false;
   final _authService = AuthService();
+  final _scrollController = ScrollController();
   // Add a field to track the last error for percentage overflow
   String? _percentageError;
 
@@ -74,6 +75,7 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
     _titleController.dispose();
     _amountController.dispose();
     _percentageControllers.values.forEach((controller) => controller.dispose());
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -133,6 +135,18 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
                   hintStyle: TextStyle(color: appColors.textColor2),
                 ),
                 style: GoogleFonts.cabin(color: appColors.textColor),
+                onTap: () {
+                  // Scroll to make the text field visible when focused
+                  Future.delayed(const Duration(milliseconds: 300), () {
+                    if (_scrollController.hasClients) {
+                      _scrollController.animateTo(
+                        _scrollController.position.maxScrollExtent,
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeOut,
+                      );
+                    }
+                  });
+                },
                 onChanged: (value) {
                   setState(() {
                     _percentageError = null;
@@ -183,6 +197,7 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
   @override
   Widget build(BuildContext context) {
     final appColors = Theme.of(context).extension<AppColorScheme>()!;
+    final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
 
     return Container(
       decoration: BoxDecoration(
@@ -190,351 +205,355 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Handle
-            Container(
-              width: 40,
-              height: 4,
-              margin: const EdgeInsets.only(top: 8),
-              decoration: BoxDecoration(
-                color: appColors.borderColor2?.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            // Title
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text(
-                'Add New Expense',
-                style: GoogleFonts.cabin(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: appColors.textColor,
+        child: Padding(
+          padding: EdgeInsets.only(bottom: bottomPadding),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Handle
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(top: 8),
+                decoration: BoxDecoration(
+                  color: appColors.borderColor2?.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(2),
                 ),
               ),
-            ),
-            // Form
-            Expanded(
-              child: SingleChildScrollView(
+              // Title
+              Padding(
                 padding: const EdgeInsets.all(16),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Title field
-                      TextFormField(
-                        controller: _titleController,
-                        decoration: InputDecoration(
-                          labelText: 'Description',
-                          hintText: 'What was this expense for?',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
+                child: Text(
+                  'Add New Expense',
+                  style: GoogleFonts.cabin(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: appColors.textColor,
+                  ),
+                ),
+              ),
+              // Form
+              Expanded(
+                child: SingleChildScrollView(
+                  controller: _scrollController,
+                  padding: const EdgeInsets.all(16),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Title field
+                        TextFormField(
+                          controller: _titleController,
+                          decoration: InputDecoration(
+                            labelText: 'Description',
+                            hintText: 'What was this expense for?',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter a description';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      // Amount field
-                      TextFormField(
-                        controller: _amountController,
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                        decoration: InputDecoration(
-                          labelText: 'Amount',
-                          prefixText: '₹',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter an amount';
-                          }
-                          try {
-                            final amount = double.parse(value);
-                            if (amount <= 0) {
-                              return 'Amount must be greater than 0';
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter a description';
                             }
-                          } catch (e) {
-                            return 'Please enter a valid number';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 24),
-                      // Split method selector
-                      Text(
-                        'Split Method',
-                        style: GoogleFonts.cabin(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: appColors.textColor,
+                            return null;
+                          },
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: RadioListTile<SplitMethod>(
-                              title: Text(
-                                'Equal',
-                                style: GoogleFonts.cabin(color: appColors.textColor),
-                              ),
-                              value: SplitMethod.equal,
-                              groupValue: _splitMethod,
-                              onChanged: (value) {
-                                setState(() {
-                                  _splitMethod = value!;
-                                });
-                              },
+                        const SizedBox(height: 16),
+                        // Amount field
+                        TextFormField(
+                          controller: _amountController,
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                          decoration: InputDecoration(
+                            labelText: 'Amount',
+                            prefixText: '₹',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          Expanded(
-                            child: RadioListTile<SplitMethod>(
-                              title: Text(
-                                'Percentage Split',
-                                style: GoogleFonts.cabin(
-                                  color: appColors.textColor,
-                                  fontSize: 15, // Slightly smaller to fit one line
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 1,
-                              ),
-                              value: SplitMethod.percentage,
-                              groupValue: _splitMethod,
-                              onChanged: (value) {
-                                setState(() {
-                                  _splitMethod = value!;
-                                });
-                              },
-                            ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter an amount';
+                            }
+                            try {
+                              final amount = double.parse(value);
+                              if (amount <= 0) {
+                                return 'Amount must be greater than 0';
+                              }
+                            } catch (e) {
+                              return 'Please enter a valid number';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 24),
+                        // Split method selector
+                        Text(
+                          'Split Method',
+                          style: GoogleFonts.cabin(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: appColors.textColor,
                           ),
-                        ],
-                      ),
-                      if (_splitMethod == SplitMethod.percentage) ...[
+                        ),
                         const SizedBox(height: 8),
                         Row(
                           children: [
-                            Text(
-                              'Total: ',
-                              style: GoogleFonts.cabin(
-                                fontWeight: FontWeight.w600,
-                                color: appColors.textColor,
+                            Expanded(
+                              child: RadioListTile<SplitMethod>(
+                                title: Text(
+                                  'Equal',
+                                  style: GoogleFonts.cabin(color: appColors.textColor),
+                                ),
+                                value: SplitMethod.equal,
+                                groupValue: _splitMethod,
+                                onChanged: (value) {
+                                  setState(() {
+                                    _splitMethod = value!;
+                                  });
+                                },
                               ),
                             ),
-                            Text(
-                              '${_getTotalPercentage()}%',
-                              style: GoogleFonts.cabin(
-                                fontWeight: FontWeight.bold,
-                                color: _getTotalPercentage() == 100
-                                    ? Theme.of(context).colorScheme.secondary
-                                    : Theme.of(context).colorScheme.error,
+                            Expanded(
+                              child: RadioListTile<SplitMethod>(
+                                title: Text(
+                                  'Percentage Split',
+                                  style: GoogleFonts.cabin(
+                                    color: appColors.textColor,
+                                    fontSize: 15, // Slightly smaller to fit one line
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                ),
+                                value: SplitMethod.percentage,
+                                groupValue: _splitMethod,
+                                onChanged: (value) {
+                                  setState(() {
+                                    _splitMethod = value!;
+                                  });
+                                },
                               ),
                             ),
-                            const SizedBox(width: 8),
                           ],
                         ),
-                        if (_percentageError != null || (_getTotalPercentage() != 100 && _getTotalPercentage() > 0))
-                          Padding(
-                            padding: const EdgeInsets.only(top: 4.0),
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.error.withOpacity(0.08),
-                                borderRadius: BorderRadius.circular(8),
+                        if (_splitMethod == SplitMethod.percentage) ...[
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Text(
+                                'Total: ',
+                                style: GoogleFonts.cabin(
+                                  fontWeight: FontWeight.w600,
+                                  color: appColors.textColor,
+                                ),
                               ),
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                              child: Row(
-                                children: [
-                                  Icon(Icons.warning_amber_rounded, size: 18, color: Theme.of(context).colorScheme.error),
-                                  const SizedBox(width: 6),
-                                  Expanded(
-                                    child: Text(
-                                      _percentageError ?? 'Total percentage must be exactly 100%',
-                                      style: GoogleFonts.cabin(
-                                        color: Theme.of(context).colorScheme.error,
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w500,
+                              Text(
+                                '${_getTotalPercentage()}%',
+                                style: GoogleFonts.cabin(
+                                  fontWeight: FontWeight.bold,
+                                  color: _getTotalPercentage() == 100
+                                      ? Theme.of(context).colorScheme.secondary
+                                      : Theme.of(context).colorScheme.error,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                            ],
+                          ),
+                          if (_percentageError != null || (_getTotalPercentage() != 100 && _getTotalPercentage() > 0))
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4.0),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).colorScheme.error.withOpacity(0.08),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.warning_amber_rounded, size: 18, color: Theme.of(context).colorScheme.error),
+                                    const SizedBox(width: 6),
+                                    Expanded(
+                                      child: Text(
+                                        _percentageError ?? 'Total percentage must be exactly 100%',
+                                        style: GoogleFonts.cabin(
+                                          color: Theme.of(context).colorScheme.error,
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w500,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ),
+                          const SizedBox(height: 8),
+                        ],
+                        // Members list
+                        Text(
+                          'Split With',
+                          style: GoogleFonts.cabin(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: appColors.textColor,
                           ),
-                        const SizedBox(height: 8),
-                      ],
-                      // Members list
-                      Text(
-                        'Split With',
-                        style: GoogleFonts.cabin(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: appColors.textColor,
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      ...widget.members.map((member) => _buildMemberTile(member)),
-                    ],
+                        const SizedBox(height: 8),
+                        ...widget.members.map((member) => _buildMemberTile(member)),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-            // Submit button
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: ElevatedButton(
-                onPressed: _isProcessing
-                    ? null
-                    : () async {
-                        if (_formKey.currentState?.validate() ?? false) {
-                          if (_splitMethod == SplitMethod.percentage) {
-                            if (_getTotalPercentage() != 100) {
-                              NotificationService().showAppNotification(
-                                context,
-                                message: 'Total percentage must be exactly 100%',
-                                icon: Icons.warning,
-                              );
-                              return;
-                            }
-                            // Validate each percentage is between 0 and 100
-                            for (var entry in _selectedMembers.entries) {
-                              if (entry.value) {
-                                final text = _percentageControllers[entry.key]?.text ?? '';
-                                final value = int.tryParse(text) ?? 0;
-                                if (value < 0 || value > 100) {
-                                  NotificationService().showAppNotification(
-                                    context,
-                                    message: 'Each percentage must be between 0 and 100',
-                                    icon: Icons.warning,
-                                  );
-                                  return;
-                                }
-                              }
-                            }
-                          }
-                          setState(() {
-                            _isProcessing = true;
-                          });
-
-                          try {
-                            // Get current user ID
-                            final currentUserId = await _getCurrentUserId();
-                            if (currentUserId == null) {
-                              throw 'Failed to get current user ID';
-                            }
-
-                            // Safely parse amount with null check
-                            final amount = double.tryParse(_amountController.text);
-                            if (amount == null) {
-                              throw 'Invalid amount format';
-                            }
-
-                            // Get selected user IDs and their splits
-                            final selectedMembers = widget.members
-                                .where((m) => _selectedMembers[m['profile_code']] ?? false)
-                                .toList();
-                            
-                            final List<int> userIds = selectedMembers
-                                .map<int>((m) => m['id'] as int)
-                                .toList();
-
-                            // Make sure current user is included in the split
-                            if (!userIds.contains(currentUserId)) {
-                              userIds.add(currentUserId);
-                            }
-
-                            List<Map<String, dynamic>>? splits;
+              // Submit button
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: ElevatedButton(
+                  onPressed: _isProcessing
+                      ? null
+                      : () async {
+                          if (_formKey.currentState?.validate() ?? false) {
                             if (_splitMethod == SplitMethod.percentage) {
-                              splits = selectedMembers.map((m) {
-                                final percentage = int.tryParse(
-                                  _percentageControllers[m['profile_code']]?.text ?? '0'
-                                ) ?? 0;
-                                return {
-                                  'user_id': m['id'],
-                                  'percentage': percentage,
-                                };
-                              }).toList();
-                            }
-
-                            // Add expense using bloc
-                            context.read<GroupExpenseBloc>().add(
-                              AddGroupExpense(
-                                groupId: widget.groupId,
-                                description: _titleController.text.trim(),
-                                amount: amount,
-                                payerId: currentUserId,
-                                userIds: userIds,
-                                splitType: _splitMethod,
-                                splits: splits,
-                              ),
-                            );
-
-                            // Listen for state changes before popping
-                            bool hasError = false;
-                            await for (final state in context.read<GroupExpenseBloc>().stream) {
-                              if (state is GroupExpenseError) {
-                                hasError = true;
+                              if (_getTotalPercentage() != 100) {
                                 NotificationService().showAppNotification(
                                   context,
-                                  message: 'Failed to add expense: ${state.message}',
-                                  icon: Icons.error,
+                                  message: 'Total percentage must be exactly 100%',
+                                  icon: Icons.warning,
                                 );
-                                break;
+                                return;
                               }
-                              if (state is GroupExpensesLoaded) {
-                                // Successfully added and loaded new expenses
-                                if (mounted) {
-                                  NotificationService().showAppNotification(
-                                    context,
-                                    message: 'Expense added successfully!',
-                                    icon: Icons.check_circle,
-                                  );
-                                  Navigator.pop(context, true);
+                              // Validate each percentage is between 0 and 100
+                              for (var entry in _selectedMembers.entries) {
+                                if (entry.value) {
+                                  final text = _percentageControllers[entry.key]?.text ?? '';
+                                  final value = int.tryParse(text) ?? 0;
+                                  if (value < 0 || value > 100) {
+                                    NotificationService().showAppNotification(
+                                      context,
+                                      message: 'Each percentage must be between 0 and 100',
+                                      icon: Icons.warning,
+                                    );
+                                    return;
+                                  }
                                 }
-                                break;
                               }
                             }
-                          } catch (e) {
-                            NotificationService().showAppNotification(
-                              context,
-                              message: 'Failed to add expense: $e',
-                              icon: Icons.error,
-                            );
-                          } finally {
                             setState(() {
-                              _isProcessing = false;
+                              _isProcessing = true;
                             });
+
+                            try {
+                              // Get current user ID
+                              final currentUserId = await _getCurrentUserId();
+                              if (currentUserId == null) {
+                                throw 'Failed to get current user ID';
+                              }
+
+                              // Safely parse amount with null check
+                              final amount = double.tryParse(_amountController.text);
+                              if (amount == null) {
+                                throw 'Invalid amount format';
+                              }
+
+                              // Get selected user IDs and their splits
+                              final selectedMembers = widget.members
+                                  .where((m) => _selectedMembers[m['profile_code']] ?? false)
+                                  .toList();
+                              
+                              final List<int> userIds = selectedMembers
+                                  .map<int>((m) => m['id'] as int)
+                                  .toList();
+
+                              // Make sure current user is included in the split
+                              if (!userIds.contains(currentUserId)) {
+                                userIds.add(currentUserId);
+                              }
+
+                              List<Map<String, dynamic>>? splits;
+                              if (_splitMethod == SplitMethod.percentage) {
+                                splits = selectedMembers.map((m) {
+                                  final percentage = int.tryParse(
+                                    _percentageControllers[m['profile_code']]?.text ?? '0'
+                                  ) ?? 0;
+                                  return {
+                                    'user_id': m['id'],
+                                    'percentage': percentage,
+                                  };
+                                }).toList();
+                              }
+
+                              // Add expense using bloc
+                              context.read<GroupExpenseBloc>().add(
+                                AddGroupExpense(
+                                  groupId: widget.groupId,
+                                  description: _titleController.text.trim(),
+                                  amount: amount,
+                                  payerId: currentUserId,
+                                  userIds: userIds,
+                                  splitType: _splitMethod,
+                                  splits: splits,
+                                ),
+                              );
+
+                              // Listen for state changes before popping
+                              bool hasError = false;
+                              await for (final state in context.read<GroupExpenseBloc>().stream) {
+                                if (state is GroupExpenseError) {
+                                  hasError = true;
+                                  NotificationService().showAppNotification(
+                                    context,
+                                    message: 'Failed to add expense: ${state.message}',
+                                    icon: Icons.error,
+                                  );
+                                  break;
+                                }
+                                if (state is GroupExpensesLoaded) {
+                                  // Successfully added and loaded new expenses
+                                  if (mounted) {
+                                    NotificationService().showAppNotification(
+                                      context,
+                                      message: 'Expense added successfully!',
+                                      icon: Icons.check_circle,
+                                    );
+                                    Navigator.pop(context, true);
+                                  }
+                                  break;
+                                }
+                              }
+                            } catch (e) {
+                              NotificationService().showAppNotification(
+                                context,
+                                message: 'Failed to add expense: $e',
+                                icon: Icons.error,
+                              );
+                            } finally {
+                              setState(() {
+                                _isProcessing = false;
+                              });
+                            }
                           }
-                        }
-                      },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: appColors.cardColor2,
-                  minimumSize: const Size(double.infinity, 50),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: appColors.cardColor2,
+                    minimumSize: const Size(double.infinity, 50),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
-                ),
-                child: _isProcessing
-                    ? const CircularProgressIndicator()
-                    : Text(
-                        'Add Expense',
-                        style: GoogleFonts.cabin(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
+                  child: _isProcessing
+                      ? const CircularProgressIndicator()
+                      : Text(
+                          'Add Expense',
+                          style: GoogleFonts.cabin(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                      ),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
