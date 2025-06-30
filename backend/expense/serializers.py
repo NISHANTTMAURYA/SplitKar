@@ -5,6 +5,8 @@ from django.utils import timezone
 from .models import Expense, ExpensePayment, ExpenseShare, ExpenseCategory, UserTotalBalance, Balance
 from connections.models import Group, Friendship
 from django.db.models import Sum
+from django.db import transaction
+from .signals import recalculate_user_balances
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -147,8 +149,6 @@ class AddExpenseSerializer(serializers.Serializer):
     
     def create(self, validated_data):
         """Create the expense with equal splitting"""
-        from django.db import transaction
-        
         user_ids = validated_data.pop('user_ids')
         payer_id = validated_data.pop('payer_id')
         group_id = validated_data.pop('group_id')
@@ -205,6 +205,13 @@ class AddExpenseSerializer(serializers.Serializer):
                         amount_owed=owed
                     )
             
+            # Recalculate balances for all involved users
+            involved_users = set()
+            involved_users.update([s.user for s in expense.shares.all()])
+            involved_users.update([p.payer for p in expense.payments.all()])
+            for user in involved_users:
+                recalculate_user_balances(user)
+
             return expense
 
     @staticmethod
@@ -285,7 +292,6 @@ class AddFriendExpenseSerializer(serializers.Serializer):
         return attrs
 
     def create(self, validated_data):
-        from django.db import transaction
         friend_ids = validated_data.pop('friend_ids')
         payer_id = validated_data.pop('payer_id')
         split_type = validated_data.pop('split_type', 'equal')
@@ -329,6 +335,12 @@ class AddFriendExpenseSerializer(serializers.Serializer):
                         percentage=percentage,
                         amount_owed=owed
                     )
+            # Recalculate balances for all involved users
+            involved_users = set()
+            involved_users.update([s.user for s in expense.shares.all()])
+            involved_users.update([p.payer for p in expense.payments.all()])
+            for user in involved_users:
+                recalculate_user_balances(user)
             return expense 
 
 
@@ -467,13 +479,23 @@ class ExpenseListSerializer(serializers.ModelSerializer):
 
 class EditExpenseSerializer(serializers.Serializer):
     expense_id = serializers.UUIDField(required=True)
-    description = serializers.CharField(max_length=200)
+    description = serializers.CharField(max_length=200, required=False)
     total_amount = serializers.DecimalField(
         max_digits=12, 
         decimal_places=2,
-        min_value=Decimal('0.01')
+        min_value=Decimal('0.01'),
+        required=False
     )
-    
+    category_id = serializers.IntegerField(required=False, allow_null=True)
+    payer_id = serializers.IntegerField(required=False)
+    user_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        min_length=1,
+        required=False
+    )
+    splits = SplitSerializer(many=True, required=False)
+    split_type = serializers.ChoiceField(choices=[('equal', 'Equal'), ('percentage', 'Percentage')], required=False)
+
     def validate(self, attrs):
         try:
             expense = Expense.objects.get(
@@ -483,29 +505,178 @@ class EditExpenseSerializer(serializers.Serializer):
             attrs['expense'] = expense
         except Expense.DoesNotExist:
             raise serializers.ValidationError("Expense not found")
+
+        # Ensure at least one field is provided for editing
+        editable_fields = [
+            'description', 'total_amount', 'category_id', 'payer_id', 'user_ids', 'splits', 'split_type'
+        ]
+        if not any(f in attrs for f in editable_fields):
+            raise serializers.ValidationError("At least one field must be provided to edit the expense.")
+
+        # Validate category
+        category_id = attrs.get('category_id')
+        if category_id is not None:
+            if category_id:
+                try:
+                    ExpenseCategory.objects.get(id=category_id)
+                except ExpenseCategory.DoesNotExist:
+                    raise serializers.ValidationError("Invalid category ID")
+
+        # Validate payer
+        payer_id = attrs.get('payer_id')
+        if payer_id is not None:
+            try:
+                User.objects.get(id=payer_id)
+            except User.DoesNotExist:
+                raise serializers.ValidationError("Payer not found")
+
+        # Validate user_ids
+        user_ids = attrs.get('user_ids')
+        if user_ids is not None:
+            if not user_ids:
+                raise serializers.ValidationError("user_ids cannot be empty")
+            existing_users = User.objects.filter(id__in=user_ids)
+            if len(existing_users) != len(user_ids):
+                existing_ids = set(existing_users.values_list('id', flat=True))
+                missing_ids = set(user_ids) - existing_ids
+                raise serializers.ValidationError(f"Users with IDs {missing_ids} not found")
+            if payer_id is not None and payer_id not in user_ids:
+                raise serializers.ValidationError("Payer must be included in user_ids")
+
+        # Validate splits for percentage
+        split_type = attrs.get('split_type', getattr(expense, 'split_type', 'equal'))
+        if split_type == 'percentage':
+            splits = attrs.get('splits')
+            ids = user_ids if user_ids is not None else list(expense.shares.values_list('user_id', flat=True))
+            if not splits or len(splits) == 0:
+                raise serializers.ValidationError("Splits are required for percentage split.")
+            split_user_ids = [int(s['user_id']) for s in splits]
+            if set(split_user_ids) != set(ids):
+                raise serializers.ValidationError("Splits must be provided for all users in user_ids.")
+            total_percentage = sum(Decimal(s['percentage']) for s in splits)
+            if abs(total_percentage - Decimal('100')) > Decimal('0.01'):
+                raise serializers.ValidationError("Total percentage must equal 100%.")
+
         return attrs
 
     def update(self, instance):
         from django.db import transaction
-        
+        from decimal import Decimal
+        from .models import ExpenseShare, ExpensePayment, ExpenseCategory
+        from django.contrib.auth.models import User
+
         with transaction.atomic():
-            # Update basic expense details
-            instance.description = self.validated_data['description']
-            instance.total_amount = self.validated_data['total_amount']
+            # Load all shares & payment info BEFORE any deletion or updates
+            shares = list(instance.shares.all())
+            payment = instance.payments.first()
+
+            # Update core fields only if present
+            if 'description' in self.validated_data:
+                instance.description = self.validated_data['description']
+            if 'total_amount' in self.validated_data:
+                instance.total_amount = self.validated_data['total_amount']
+            if 'category_id' in self.validated_data:
+                category_id = self.validated_data['category_id']
+                instance.category = ExpenseCategory.objects.get(id=category_id) if category_id else None
+            if 'split_type' in self.validated_data:
+                instance.split_type = self.validated_data['split_type']
             instance.save()
 
-            # Update the payment
-            payment = instance.payments.first()
-            payment.amount_paid = self.validated_data['total_amount']
-            payment.save()
+            # Update payer if changed
+            payer_changed = False
+            previous_payer_id = payment.payer.id if payment else None
+            if 'payer_id' in self.validated_data and payment:
+                new_payer_id = self.validated_data['payer_id']
+                if payment.payer.id != new_payer_id:
+                    # Delete previous payment
+                    payment.delete()
+                    # Create new payment for new payer
+                    new_payer = User.objects.get(id=new_payer_id)
+                    ExpensePayment.objects.create(
+                        expense=instance,
+                        payer=new_payer,
+                        amount_paid=instance.total_amount
+                    )
+                    payer_changed = True
+                    payment = instance.payments.first()  # Update reference
+            # Always update payment amount if total_amount changed
+            amount_changed = False
+            if 'total_amount' in self.validated_data:
+                payment.amount_paid = instance.total_amount
+                amount_changed = True
+            if payer_changed or amount_changed:
+                payment.save()
 
-            # Update shares based on existing split type
-            split_amount = self.validated_data['total_amount'] / instance.shares.count()
-            for share in instance.shares.all():
-                if instance.split_type == 'equal':
-                    share.amount_owed = split_amount
-                else:  # percentage split
-                    share.amount_owed = (self.validated_data['total_amount'] * share.percentage / 100).quantize(Decimal('0.01'))
-                share.save()
+            # If payer changed, update amount_paid_back for all shares
+            if payer_changed:
+                current_payer_id = payment.payer.id if payment else None
+                for share in instance.shares.all():
+                    if share.user_id == current_payer_id:
+                        share.amount_paid_back = share.amount_owed
+                    else:
+                        share.amount_paid_back = 0
+                    share.save(update_fields=["amount_paid_back"])
 
-            return instance 
+            # Update user_ids if changed
+            if 'user_ids' in self.validated_data:
+                new_user_ids = set(self.validated_data['user_ids'])
+                old_user_ids = set(share.user.id for share in shares)
+                if new_user_ids != old_user_ids:
+                    # Delete old shares and create new ones
+                    instance.shares.all().delete()
+                    if instance.split_type == 'equal':
+                        per_user_amount = instance.total_amount / len(new_user_ids)
+                        for uid in new_user_ids:
+                            ExpenseShare.objects.create(
+                                expense=instance,
+                                user=User.objects.get(id=uid),
+                                amount_owed=per_user_amount
+                            )
+                    elif instance.split_type == 'percentage':
+                        splits = self.validated_data.get('splits', [])
+                        for s in splits:
+                            share_user = User.objects.get(id=s['user_id'])
+                            percentage = Decimal(s['percentage'])
+                            owed = (instance.total_amount * percentage / 100).quantize(Decimal('0.01'))
+                            ExpenseShare.objects.create(
+                                expense=instance,
+                                user=share_user,
+                                percentage=percentage,
+                                amount_owed=owed
+                            )
+                else:
+                    # Only update owed amounts for existing shares
+                    if instance.split_type == 'equal':
+                        per_user_amount = instance.total_amount / len(shares)
+                        for share in shares:
+                            share.amount_owed = per_user_amount
+                            share.save()
+                    elif instance.split_type == 'percentage':
+                        for share in shares:
+                            if share.percentage is None:
+                                raise ValueError(f"Percentage missing for user {share.user.username}")
+                            share.amount_owed = (instance.total_amount * share.percentage / 100).quantize(Decimal('0.01'))
+                            share.save()
+            else:
+                # No user_ids change, just update owed amounts if total_amount changed
+                if 'total_amount' in self.validated_data:
+                    if instance.split_type == 'equal':
+                        per_user_amount = instance.total_amount / len(shares)
+                        for share in shares:
+                            share.amount_owed = per_user_amount
+                            share.save()
+                    elif instance.split_type == 'percentage':
+                        for share in shares:
+                            if share.percentage is None:
+                                raise ValueError(f"Percentage missing for user {share.user.username}")
+                            share.amount_owed = (instance.total_amount * share.percentage / 100).quantize(Decimal('0.01'))
+                            share.save()
+
+            # Recalculate balances for all involved users
+            involved_users = set()
+            involved_users.update([s.user for s in instance.shares.all()])
+            involved_users.update([p.payer for p in instance.payments.all()])
+            for user in involved_users:
+                recalculate_user_balances(user)
+
+        return instance 

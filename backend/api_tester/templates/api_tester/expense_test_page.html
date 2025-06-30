@@ -126,6 +126,51 @@
             </form>
             <div class="response-area" id="deleteExpenseResponse"></div>
         </div>
+        <div class="api-section">
+            <h3>Edit Expense</h3>
+            <form id="editExpenseForm" class="mb-3">
+                <div class="mb-3">
+                    <label for="editExpenseId" class="form-label">Expense ID</label>
+                    <input type="text" class="form-control" id="editExpenseId" required>
+                </div>
+                <div class="mb-3">
+                    <label for="editDescription" class="form-label">Description</label>
+                    <input type="text" class="form-control" id="editDescription">
+                </div>
+                <div class="mb-3">
+                    <label for="editTotalAmount" class="form-label">Total Amount</label>
+                    <input type="number" step="0.01" class="form-control" id="editTotalAmount">
+                </div>
+                <div class="mb-3">
+                    <label for="editCategoryId" class="form-label">Category</label>
+                    <select class="form-select" id="editCategoryId">
+                        <option value="">-- Select Category --</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="editPayerId" class="form-label">Payer ID</label>
+                    <input type="number" class="form-control" id="editPayerId">
+                </div>
+                <div class="mb-3">
+                    <label for="editUserIds" class="form-label">User IDs (comma separated)</label>
+                    <input type="text" class="form-control" id="editUserIds">
+                </div>
+                <div class="mb-3">
+                    <label for="editSplitType" class="form-label">Split Type</label>
+                    <select class="form-select" id="editSplitType">
+                        <option value="equal">Equal</option>
+                        <option value="percentage">Percentage</option>
+                    </select>
+                </div>
+                <div id="editPercentageSplitsSection" style="display: none;">
+                    <label class="form-label">Splits (for Percentage Split)</label>
+                    <div id="editPercentageSplitsInputs"></div>
+                    <button type="button" class="btn btn-secondary btn-sm mt-2" id="editAddSplitBtn">Add Split</button>
+                </div>
+                <button type="submit" class="btn btn-warning mt-3">Edit Expense</button>
+            </form>
+            <div class="response-area" id="editExpenseResponse"></div>
+        </div>
     </div>
     <script>
         // Get CSRF token and JWT token from cookies
@@ -151,7 +196,7 @@
             'Content-Type': 'application/json'
         });
 
-        // Fetch categories and populate dropdown
+        // Fetch categories and populate dropdowns
         async function fetchCategories() {
             try {
                 const response = await fetch('/api/expenses/categories/', {
@@ -159,11 +204,13 @@
                 });
                 const data = await response.json();
                 const select = document.getElementById('categoryId');
+                const editSelect = document.getElementById('editCategoryId');
                 data.forEach(cat => {
                     const option = document.createElement('option');
                     option.value = cat.id;
                     option.textContent = `${cat.name} ${cat.icon}`;
-                    select.appendChild(option);
+                    select.appendChild(option.cloneNode(true));
+                    editSelect.appendChild(option);
                 });
             } catch (error) {
                 // Optionally handle error
@@ -296,6 +343,81 @@
                 document.getElementById('deleteExpenseResponse').textContent = JSON.stringify(data, null, 2);
             } catch (error) {
                 document.getElementById('deleteExpenseResponse').textContent = 'Error: ' + error.message;
+            }
+        });
+
+        // Handle edit split type change
+        document.getElementById('editSplitType').addEventListener('change', function() {
+            const splitType = this.value;
+            const section = document.getElementById('editPercentageSplitsSection');
+            section.style.display = splitType === 'percentage' ? 'block' : 'none';
+        });
+
+        // Add split row for edit percentage split
+        document.getElementById('editAddSplitBtn').addEventListener('click', function() {
+            const container = document.getElementById('editPercentageSplitsInputs');
+            const row = document.createElement('div');
+            row.className = 'split-percentage-row';
+            row.innerHTML = `
+                <input type="number" class="form-control" placeholder="User ID" required>
+                <input type="number" class="form-control" placeholder="Percentage" step="0.01" required>
+                <button type="button" class="btn btn-danger btn-sm removeSplitBtn">Remove</button>
+            `;
+            container.appendChild(row);
+        });
+
+        // Remove split row for edit
+        document.getElementById('editPercentageSplitsInputs').addEventListener('click', function(e) {
+            if (e.target.classList.contains('removeSplitBtn')) {
+                e.target.parentElement.remove();
+            }
+        });
+
+        // Edit Expense API
+        document.getElementById('editExpenseForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const expenseId = document.getElementById('editExpenseId').value;
+            const description = document.getElementById('editDescription').value;
+            const totalAmount = document.getElementById('editTotalAmount').value;
+            const categoryId = document.getElementById('editCategoryId').value;
+            const payerId = document.getElementById('editPayerId').value;
+            const userIdsRaw = document.getElementById('editUserIds').value;
+            const splitType = document.getElementById('editSplitType').value;
+            let payload = {
+                expense_id: expenseId,
+                split_type: splitType
+            };
+            if (description) payload.description = description;
+            if (totalAmount) payload.total_amount = totalAmount;
+            if (categoryId) payload.category_id = parseInt(categoryId, 10);
+            if (payerId) payload.payer_id = parseInt(payerId, 10);
+            if (userIdsRaw) {
+                const userIds = userIdsRaw.split(',').map(id => parseInt(id.trim(), 10)).filter(id => !isNaN(id));
+                if (userIds.length > 0) payload.user_ids = userIds;
+            }
+            if (splitType === 'percentage') {
+                const splits = [];
+                const rows = document.querySelectorAll('#editPercentageSplitsInputs .split-percentage-row');
+                rows.forEach(row => {
+                    const inputs = row.querySelectorAll('input');
+                    const userId = parseInt(inputs[0].value, 10);
+                    const percentage = parseFloat(inputs[1].value);
+                    if (!isNaN(userId) && !isNaN(percentage)) {
+                        splits.push({ user_id: userId, percentage });
+                    }
+                });
+                payload.splits = splits;
+            }
+            try {
+                const response = await fetch('/api/expenses/edit/', {
+                    method: 'PUT',
+                    headers: getHeaders(),
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+                document.getElementById('editExpenseResponse').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('editExpenseResponse').textContent = 'Error: ' + error.message;
             }
         });
     </script>
