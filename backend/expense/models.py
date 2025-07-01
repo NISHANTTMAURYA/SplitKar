@@ -50,7 +50,7 @@ class ExpenseManager(models.Manager):
         if group:
             base_query &= Q(group=group)
             
-        return self.filter(base_query).distinct().order_by('-date')
+        return self.filter(base_query, is_deleted=False).distinct().order_by('-date')
     
     def get_user_expenses(self, user, group=None):
         """Get all expenses involving a user"""
@@ -59,7 +59,7 @@ class ExpenseManager(models.Manager):
         if group:
             query &= Q(group=group)
             
-        return self.filter(query).distinct().order_by('-date')
+        return self.filter(query, is_deleted=False).distinct().order_by('-date')
     
     def get_group_expenses(self, group):
         """Get all expenses for a specific group"""

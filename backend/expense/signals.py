@@ -322,8 +322,8 @@ def recalculate_user_balances(user):
     user_balances.update(balance_amount=Decimal('0'))
     
     # Recalculate from all expense shares and payments
-    user_payments = ExpensePayment.objects.filter(payer=user)
-    user_shares = ExpenseShare.objects.filter(user=user)
+    user_payments = ExpensePayment.objects.filter(payer=user, expense__is_deleted=False)
+    user_shares = ExpenseShare.objects.filter(user=user, expense__is_deleted=False)
     
     # Process each payment this user made
     for payment in user_payments:

@@ -204,7 +204,8 @@ def expenses_and_balance_with_friend(request):
     expenses = Expense.objects.filter(
         (models.Q(payments__payer=user) & models.Q(shares__user=friend)) |
         (models.Q(payments__payer=friend) & models.Q(shares__user=user)) |
-        (models.Q(shares__user=user) & models.Q(shares__user=friend))
+        (models.Q(shares__user=user) & models.Q(shares__user=friend)),
+        is_deleted=False
     ).distinct().order_by('-date')
 
     expense_serializer = ExpenseListSerializer(expenses, many=True, context={'user': user})
@@ -265,7 +266,7 @@ def group_expenses(request):
     if request.user not in group.members.all():
         return Response({'error': 'You are not a member of this group.'}, status=status.HTTP_403_FORBIDDEN)
 
-    expenses = Expense.objects.filter(group=group).order_by('-date')
+    expenses = Expense.objects.filter(group=group, is_deleted=False).order_by('-date')
     serializer = ExpenseListSerializer(expenses, many=True, context={'user': request.user})
     return Response({
         'expenses': serializer.data

@@ -394,6 +394,7 @@ class ExpenseListSerializer(serializers.ModelSerializer):
         fields = ['expense_id', 'description', 'total_amount', 'currency', 'date', 
                  'group_name', 'payer_id', 'payer_name', 'payer_profile_pic',
                  'owed_breakdown', 'you_owe', 'category', 'is_user_expense', 'created_by', 'group_admin_id']
+        read_only_fields = fields
 
     def get_group_name(self, obj):
         return obj.group.name if obj.group else None
