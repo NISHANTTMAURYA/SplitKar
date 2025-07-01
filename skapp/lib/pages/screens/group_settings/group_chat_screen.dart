@@ -666,7 +666,9 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                 builder: (context, state) {
                   return RefreshIndicator(
                     onRefresh: () async {
-                      context.read<GroupExpenseBloc>().add(LoadGroupExpenses(widget.groupId));
+                      context.read<GroupExpenseBloc>().add(
+                        LoadGroupExpenses(widget.groupId),
+                      );
                     },
                     child: () {
                       if (state is GroupExpenseLoading) {
@@ -716,9 +718,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                       // Default: show no expenses view with refresh
                       return ListView(
                         physics: const AlwaysScrollableScrollPhysics(),
-                        children: const [
-                          _NoExpensesView(),
-                        ],
+                        children: const [_NoExpensesView()],
                       );
                     }(),
                   );
@@ -768,7 +768,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                 });
               },
               child: Padding(
-                padding: EdgeInsets.all(isSmallScreen ? 12 : 16),
+                padding: EdgeInsets.all(isSmallScreen ? 8 : 12),
                 child: Row(
                   mainAxisSize: MainAxisSize.max,
                   children: [
@@ -788,21 +788,34 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
+                        mainAxisSize: MainAxisSize.max,
                         children: [
-                          Text(
-                            'Group Balance',
-                            style: GoogleFonts.cabin(
-                              fontSize: 16 * textScaleFactor,
-                              fontWeight: FontWeight.w600,
-                              color: appColors.inverseColor,
+                          Expanded(
+                            child: Text(
+                              'Group Balance',
+                              style: GoogleFonts.cabin(
+                                fontSize: 16 * textScaleFactor,
+                                fontWeight: FontWeight.w600,
+                                color: appColors.inverseColor,
+                              ),
                             ),
                           ),
-                          Text(
-                            '₹${state.summary.totalSpent.toStringAsFixed(2)} total spent • ${state.summary.totalSettlements} pending settlements',
-                            style: GoogleFonts.cabin(
-                              fontSize: 14 * textScaleFactor,
-                              color: appColors.inverseColor?.withOpacity(0.8),
+                          Expanded(
+                            child: Text(
+                              '₹${state.summary.totalSpent.toStringAsFixed(2)} total spent ',
+                              style: GoogleFonts.cabin(
+                                fontSize: 14 * textScaleFactor,
+                                color: appColors.inverseColor?.withOpacity(0.8),
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: Text(
+                              '${state.summary.totalSettlements} pending settlements',
+                              style: GoogleFonts.cabin(
+                                fontSize: 14 * textScaleFactor,
+                                color: appColors.inverseColor?.withOpacity(0.8),
+                              ),
                             ),
                           ),
                         ],
