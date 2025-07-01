@@ -6,6 +6,7 @@ import 'package:skapp/services/auth_service.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:skapp/pages/screens/group_settings/bloc/group_expense_bloc.dart';
 import 'package:skapp/pages/screens/group_settings/bloc/group_expense_event.dart';
+import 'package:skapp/pages/screens/group_settings/bloc/group_expense_state.dart';
 
 class ExpenseDetailsSheet extends StatelessWidget {
   final Map<String, dynamic> expense;
@@ -21,14 +22,21 @@ class ExpenseDetailsSheet extends StatelessWidget {
     this.isAdmin,
   });
 
-  static Future<bool> canDelete(BuildContext context, Map<String, dynamic> expense) async {
+  static Future<bool> canDelete(
+    BuildContext context,
+    Map<String, dynamic> expense,
+  ) async {
     final authService = AuthService();
     final userId = await authService.getUserId();
     final creatorId = expense['created_by']?.toString();
     final groupAdminId = expense['group_admin_id']?.toString();
-    final isCurrentUserCreator = userId != null && creatorId != null && userId == creatorId;
-    final isCurrentUserGroupAdmin = userId != null && groupAdminId != null && userId == groupAdminId;
-    debugPrint('[DEBUG] canDelete: userId=[33m$userId[0m, creatorId=$creatorId, groupAdminId=$groupAdminId, isCurrentUserCreator=$isCurrentUserCreator, isCurrentUserGroupAdmin=$isCurrentUserGroupAdmin, expense=$expense');
+    final isCurrentUserCreator =
+        userId != null && creatorId != null && userId == creatorId;
+    final isCurrentUserGroupAdmin =
+        userId != null && groupAdminId != null && userId == groupAdminId;
+    debugPrint(
+      '[DEBUG] canDelete: userId=[33m$userId[0m, creatorId=$creatorId, groupAdminId=$groupAdminId, isCurrentUserCreator=$isCurrentUserCreator, isCurrentUserGroupAdmin=$isCurrentUserGroupAdmin, expense=$expense',
+    );
     return isCurrentUserCreator || isCurrentUserGroupAdmin;
   }
 
@@ -40,7 +48,7 @@ class ExpenseDetailsSheet extends StatelessWidget {
     bool? isAdmin,
   }) {
     print('DEBUG: Expense data in details sheet: $expense');
-    return showModalBottomSheet(
+    return showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -51,24 +59,37 @@ class ExpenseDetailsSheet extends StatelessWidget {
         maxChildSize: 0.95,
         builder: (_, controller) => ExpenseDetailsSheet(
           expense: expense,
-          onEdit: onEdit != null ? () {
-            print('DEBUG: Expense data before edit: $expense');
-            onEdit();
-          } : null,
+          onEdit: onEdit != null
+              ? () {
+                  print('DEBUG: Expense data before edit: $expense');
+                  onEdit();
+                }
+              : null,
           groupId: groupId,
           isAdmin: isAdmin,
         ),
       ),
-    );
+    ).then((result) {
+      // If the sheet was closed due to a successful delete, refresh the parent
+      if (result == true && context.mounted) {
+        context.read<GroupExpenseBloc>().add(LoadGroupExpenses(groupId!));
+      }
+    });
   }
 
   /// Public static method to show delete confirmation and trigger delete
-  static Future<void> showDeleteConfirmation(BuildContext context, Map<String, dynamic> expense, {int? groupId}) async {
+  static Future<bool> showDeleteConfirmation(
+    BuildContext context,
+    Map<String, dynamic> expense, {
+    int? groupId,
+  }) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Expense'),
-        content: const Text('Are you sure you want to delete this expense? This action cannot be undone.'),
+        content: const Text(
+          'Are you sure you want to delete this expense? This action cannot be undone.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -83,26 +104,52 @@ class ExpenseDetailsSheet extends StatelessWidget {
       ),
     );
     if (confirmed == true) {
-      final eid = expense['id']?.toString() ?? expense['expense_id']?.toString();
+      final eid =
+          expense['id']?.toString() ?? expense['expense_id']?.toString();
       if (groupId != null && eid != null) {
-        Future.microtask(() {
-          if (context.mounted) {
-            context.read<GroupExpenseBloc>().add(DeleteGroupExpense(expenseId: eid, groupId: groupId));
+        // Don't pop the details sheet here, let the caller handle it
+        if (context.mounted) {
+          context.read<GroupExpenseBloc>().add(
+            DeleteGroupExpense(expenseId: eid, groupId: groupId),
+          );
+
+          // Wait for the delete operation to complete
+          bool success = false;
+          await for (final state in context.read<GroupExpenseBloc>().stream) {
+            if (state is GroupExpenseError) {
+              return false;
+            }
+            if (state is GroupExpensesLoaded) {
+              success = true;
+              break;
+            }
           }
-        });
+          return success;
+        }
       }
     }
+    return false;
   }
 
   String _formatTimestamp(DateTime timestamp) {
     // Convert UTC timestamp to local time
     final localTime = timestamp.toLocal();
     final months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
     ];
     return '${localTime.day} ${months[localTime.month - 1]} ${localTime.year} at '
-           '${localTime.hour.toString().padLeft(2, '0')}:${localTime.minute.toString().padLeft(2, '0')}';
+        '${localTime.hour.toString().padLeft(2, '0')}:${localTime.minute.toString().padLeft(2, '0')}';
   }
 
   @override
@@ -113,7 +160,9 @@ class ExpenseDetailsSheet extends StatelessWidget {
     final textScaleFactor = mediaQuery.textScaleFactor.clamp(0.8, 1.2);
 
     // Parse the date string to DateTime
-    final timestamp = DateTime.parse(expense['date'] ?? DateTime.now().toIso8601String()).toLocal();
+    final timestamp = DateTime.parse(
+      expense['date'] ?? DateTime.now().toIso8601String(),
+    ).toLocal();
 
     return FutureBuilder<bool>(
       future: ExpenseDetailsSheet.canDelete(context, expense),
@@ -155,13 +204,27 @@ class ExpenseDetailsSheet extends StatelessWidget {
                       ),
                       if (onEdit != null || canDelete)
                         PopupMenuButton<String>(
-                          icon: Icon(Icons.more_vert, color: appColors.iconColor),
-                          onSelected: (value) {
+                          icon: Icon(
+                            Icons.more_vert,
+                            color: appColors.iconColor,
+                          ),
+                          onSelected: (value) async {
                             if (value == 'edit' && onEdit != null) {
                               Navigator.pop(context); // Only pop for edit
                               onEdit!();
                             } else if (value == 'delete' && canDelete) {
-                              ExpenseDetailsSheet.showDeleteConfirmation(context, expense, groupId: groupId);
+                              final success =
+                                  await ExpenseDetailsSheet.showDeleteConfirmation(
+                                    context,
+                                    expense,
+                                    groupId: groupId,
+                                  );
+                              if (success && context.mounted) {
+                                Navigator.pop(
+                                  context,
+                                  true,
+                                ); // Pop with success result
+                              }
                             }
                           },
                           itemBuilder: (context) => [
@@ -183,7 +246,10 @@ class ExpenseDetailsSheet extends StatelessWidget {
                                   children: [
                                     Icon(Icons.delete, color: Colors.red),
                                     SizedBox(width: 8),
-                                    Text('Delete', style: TextStyle(color: Colors.red)),
+                                    Text(
+                                      'Delete',
+                                      style: TextStyle(color: Colors.red),
+                                    ),
                                   ],
                                 ),
                               ),
@@ -207,7 +273,9 @@ class ExpenseDetailsSheet extends StatelessWidget {
                             color: appColors.cardColor2?.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: appColors.borderColor2?.withOpacity(0.2) ?? Colors.transparent,
+                              color:
+                                  appColors.borderColor2?.withOpacity(0.2) ??
+                                  Colors.transparent,
                             ),
                           ),
                           child: Column(
@@ -249,22 +317,30 @@ class ExpenseDetailsSheet extends StatelessWidget {
                             color: appColors.cardColor2?.withOpacity(0.05),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: appColors.borderColor2?.withOpacity(0.1) ?? Colors.transparent,
+                              color:
+                                  appColors.borderColor2?.withOpacity(0.1) ??
+                                  Colors.transparent,
                             ),
                           ),
                           child: Row(
                             children: [
                               CircleAvatar(
                                 radius: 20,
-                                backgroundColor: appColors.cardColor2?.withOpacity(0.1),
-                                backgroundImage: expense['payer_profile_pic'] != null &&
-                                          expense['payer_profile_pic'].isNotEmpty
-                                    ? CachedNetworkImageProvider(expense['payer_profile_pic'])
+                                backgroundColor: appColors.cardColor2
+                                    ?.withOpacity(0.1),
+                                backgroundImage:
+                                    expense['payer_profile_pic'] != null &&
+                                        expense['payer_profile_pic'].isNotEmpty
+                                    ? CachedNetworkImageProvider(
+                                        expense['payer_profile_pic'],
+                                      )
                                     : null,
-                                child: expense['payer_profile_pic'] == null ||
-                                       expense['payer_profile_pic'].isEmpty
+                                child:
+                                    expense['payer_profile_pic'] == null ||
+                                        expense['payer_profile_pic'].isEmpty
                                     ? Text(
-                                        (expense['payer_name'] ?? 'U')[0].toUpperCase(),
+                                        (expense['payer_name'] ?? 'U')[0]
+                                            .toUpperCase(),
                                         style: TextStyle(
                                           color: appColors.textColor,
                                           fontSize: 18 * textScaleFactor,
@@ -307,57 +383,77 @@ class ExpenseDetailsSheet extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        ...(expense['owed_breakdown'] as List<dynamic>? ?? []).map<Widget>((person) => Container(
-                          margin: const EdgeInsets.only(bottom: 8),
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: appColors.cardColor2?.withOpacity(0.05),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: appColors.borderColor2?.withOpacity(0.1) ?? Colors.transparent,
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              CircleAvatar(
-                                radius: 16,
-                                backgroundColor: appColors.cardColor2?.withOpacity(0.1),
-                                backgroundImage: person['profilePic'] != null &&
-                                          person['profilePic'].toString().isNotEmpty
-                                    ? CachedNetworkImageProvider(person['profilePic'])
-                                    : null,
-                                child: person['profilePic'] == null ||
-                                       person['profilePic'].toString().isEmpty
-                                    ? Text(
-                                        (person['name'] ?? 'U')[0].toUpperCase(),
-                                        style: TextStyle(
-                                          color: appColors.textColor,
-                                          fontSize: 14 * textScaleFactor,
-                                        ),
-                                      )
-                                    : null,
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Text(
-                                  person['name'] ?? 'Unknown',
-                                  style: GoogleFonts.cabin(
-                                    fontSize: 14 * textScaleFactor,
-                                    color: appColors.textColor,
+                        ...(expense['owed_breakdown'] as List<dynamic>? ?? [])
+                            .map<Widget>(
+                              (person) => Container(
+                                margin: const EdgeInsets.only(bottom: 8),
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: appColors.cardColor2?.withOpacity(
+                                    0.05,
+                                  ),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color:
+                                        appColors.borderColor2?.withOpacity(
+                                          0.1,
+                                        ) ??
+                                        Colors.transparent,
                                   ),
                                 ),
-                              ),
-                              Text(
-                                '₹${person['amount']}',
-                                style: GoogleFonts.cabin(
-                                  fontSize: 14 * textScaleFactor,
-                                  fontWeight: FontWeight.w600,
-                                  color: appColors.textColor,
+                                child: Row(
+                                  children: [
+                                    CircleAvatar(
+                                      radius: 16,
+                                      backgroundColor: appColors.cardColor2
+                                          ?.withOpacity(0.1),
+                                      backgroundImage:
+                                          person['profilePic'] != null &&
+                                              person['profilePic']
+                                                  .toString()
+                                                  .isNotEmpty
+                                          ? CachedNetworkImageProvider(
+                                              person['profilePic'],
+                                            )
+                                          : null,
+                                      child:
+                                          person['profilePic'] == null ||
+                                              person['profilePic']
+                                                  .toString()
+                                                  .isEmpty
+                                          ? Text(
+                                              (person['name'] ?? 'U')[0]
+                                                  .toUpperCase(),
+                                              style: TextStyle(
+                                                color: appColors.textColor,
+                                                fontSize: 14 * textScaleFactor,
+                                              ),
+                                            )
+                                          : null,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        person['name'] ?? 'Unknown',
+                                        style: GoogleFonts.cabin(
+                                          fontSize: 14 * textScaleFactor,
+                                          color: appColors.textColor,
+                                        ),
+                                      ),
+                                    ),
+                                    Text(
+                                      '₹${person['amount']}',
+                                      style: GoogleFonts.cabin(
+                                        fontSize: 14 * textScaleFactor,
+                                        fontWeight: FontWeight.w600,
+                                        color: appColors.textColor,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                            ],
-                          ),
-                        )).toList(),
+                            )
+                            .toList(),
                       ],
                     ),
                   ),

@@ -365,6 +365,7 @@ class GroupExpenseBloc extends Bloc<GroupExpenseEvent, GroupExpenseState> {
       '[BLOC DEBUG] _onDeleteGroupExpense called: expenseId=${event.expenseId}, groupId=${event.groupId}',
     );
     try {
+      emit(GroupExpenseLoading());
       await _service.deleteGroupExpense(expenseId: event.expenseId);
       print('[BLOC DEBUG] deleteGroupExpense service call completed');
       add(LoadGroupExpenses(event.groupId));
