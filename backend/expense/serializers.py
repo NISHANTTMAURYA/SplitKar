@@ -496,6 +496,8 @@ class EditExpenseSerializer(serializers.Serializer):
     )
     splits = SplitSerializer(many=True, required=False)
     split_type = serializers.ChoiceField(choices=[('equal', 'Equal'), ('percentage', 'Percentage')], required=False)
+    currency = serializers.CharField(max_length=3, required=False)
+    notes = serializers.CharField(max_length=500, required=False, allow_blank=True)
 
     def validate(self, attrs):
         try:
@@ -509,7 +511,7 @@ class EditExpenseSerializer(serializers.Serializer):
 
         # Ensure at least one field is provided for editing
         editable_fields = [
-            'description', 'total_amount', 'category_id', 'payer_id', 'user_ids', 'splits', 'split_type'
+            'description', 'total_amount', 'category_id', 'payer_id', 'user_ids', 'splits', 'split_type', 'currency', 'notes'
         ]
         if not any(f in attrs for f in editable_fields):
             raise serializers.ValidationError("At least one field must be provided to edit the expense.")
@@ -581,6 +583,10 @@ class EditExpenseSerializer(serializers.Serializer):
                 instance.category = ExpenseCategory.objects.get(id=category_id) if category_id else None
             if 'split_type' in self.validated_data:
                 instance.split_type = self.validated_data['split_type']
+            if 'currency' in self.validated_data:
+                instance.currency = self.validated_data['currency']
+            if 'notes' in self.validated_data:
+                instance.notes = self.validated_data['notes']
             instance.save()
 
             # Update payer if changed

@@ -167,6 +167,14 @@
                     <div id="editPercentageSplitsInputs"></div>
                     <button type="button" class="btn btn-secondary btn-sm mt-2" id="editAddSplitBtn">Add Split</button>
                 </div>
+                <div class="mb-3">
+                    <label for="editCurrency" class="form-label">Currency</label>
+                    <input type="text" class="form-control" id="editCurrency" placeholder="INR">
+                </div>
+                <div class="mb-3">
+                    <label for="editNotes" class="form-label">Notes</label>
+                    <input type="text" class="form-control" id="editNotes">
+                </div>
                 <button type="submit" class="btn btn-warning mt-3">Edit Expense</button>
             </form>
             <div class="response-area" id="editExpenseResponse"></div>
@@ -383,6 +391,8 @@
             const payerId = document.getElementById('editPayerId').value;
             const userIdsRaw = document.getElementById('editUserIds').value;
             const splitType = document.getElementById('editSplitType').value;
+            const currency = document.getElementById('editCurrency').value;
+            const notes = document.getElementById('editNotes').value;
             let payload = {
                 expense_id: expenseId,
                 split_type: splitType
@@ -408,6 +418,8 @@
                 });
                 payload.splits = splits;
             }
+            if (currency) payload.currency = currency;
+            if (notes) payload.notes = notes;
             try {
                 const response = await fetch('/api/expenses/edit/', {
                     method: 'PUT',
