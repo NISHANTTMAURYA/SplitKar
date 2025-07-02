@@ -332,11 +332,25 @@ def recalculate_user_balances(user):
             if share.user != user:  # Don't create balance with self
                 payer_ratio = payment.amount_paid / expense.total_amount
                 amount_owed = share.amount_owed * payer_ratio
-                
                 Balance.objects.update_balance(
                     user1=share.user,
                     user2=user,
                     amount_change=amount_owed,
+                    group=expense.group
+                )
+
+    # Process each share this user owes (ensure balances for non-payers)
+    for share in user_shares:
+        expense = share.expense
+        for payment in expense.payments.all():
+            payer = payment.payer
+            if payer != user:  # Don't create balance with self
+                payer_ratio = payment.amount_paid / expense.total_amount
+                amount_owed = share.amount_owed * payer_ratio
+                Balance.objects.update_balance(
+                    user1=user,
+                    user2=payer,
+                    amount_change=-amount_owed,  # Negative because user owes payer
                     group=expense.group
                 )
     
