@@ -355,10 +355,20 @@ class GroupExpenseBloc extends Bloc<GroupExpenseEvent, GroupExpenseState> {
 
       if (searchResponse == null) throw 'Failed to search expenses';
 
+      if (!searchResponse.containsKey('expenses')) {
+        throw 'Invalid response format: missing expenses key';
+      }
+
       final searchExpenses = searchResponse['expenses'] as List<dynamic>;
       final searchResults = searchExpenses.map((e) {
-        final index = _findExpenseIndex(currentState.groupedExpenses, e['id']);
-        return SearchResult.fromExpense(Map<String, dynamic>.from(e), index);
+        final Map<String, dynamic> expense = Map<String, dynamic>.from(e);
+        return SearchResult(
+          expenseId: expense['id'].toString(),
+          description: expense['description'] ?? 'Untitled Expense',
+          amount: double.parse(expense['total_amount'].toString()),
+          payerName: expense['payer_name'] ?? 'Unknown',
+          date: DateTime.parse(expense['date']),
+        );
       }).toList();
 
       emit(
@@ -371,22 +381,6 @@ class GroupExpenseBloc extends Bloc<GroupExpenseEvent, GroupExpenseState> {
       dev.log('Error in _onSearchExpenses: $e');
       // Don't emit error state, just log it
     }
-  }
-
-  int _findExpenseIndex(
-    List<GroupedExpenses> groupedExpenses,
-    String expenseId,
-  ) {
-    int index = 0;
-    for (var group in groupedExpenses) {
-      for (var expense in group.expenses) {
-        if (expense['id'].toString() == expenseId) {
-          return index;
-        }
-        index++;
-      }
-    }
-    return -1;
   }
 
   Future<void> _onLoadGroupBalances(

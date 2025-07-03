@@ -415,7 +415,7 @@ class ExpenseListSerializer(serializers.ModelSerializer):
         if not payment:
             return ''
         try:
-            return payment.payer.profile.profile_pic or ''
+            return payment.payer.profile.profile_picture_url or ''
         except:
             return ''
 
@@ -428,7 +428,7 @@ class ExpenseListSerializer(serializers.ModelSerializer):
         for share in obj.shares.exclude(user=payer):
             user = share.user
             try:
-                profile_pic = user.profile.profile_pic or ''
+                profile_pic = user.profile.profile_picture_url or ''
             except:
                 profile_pic = ''
             breakdown.append({

@@ -20,7 +20,6 @@ class SearchResult {
   final double amount;
   final String payerName;
   final DateTime date;
-  final int messageIndex; // Index in the grouped expenses list for scrolling
 
   SearchResult({
     required this.expenseId,
@@ -28,7 +27,6 @@ class SearchResult {
     required this.amount,
     required this.payerName,
     required this.date,
-    required this.messageIndex,
   });
 
   factory SearchResult.fromExpense(Map<String, dynamic> expense, int index) {
@@ -38,7 +36,6 @@ class SearchResult {
       amount: double.parse(expense['total_amount'].toString()),
       payerName: expense['payer_name'] ?? 'Unknown',
       date: DateTime.parse(expense['date']),
-      messageIndex: index,
     );
   }
 }

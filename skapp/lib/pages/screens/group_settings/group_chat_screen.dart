@@ -237,7 +237,13 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                 _isSearchVisible = !_isSearchVisible;
                 if (!_isSearchVisible) {
                   _searchController.clear();
-                  // TODO: Clear search results
+                  // Clear search results and reload expenses
+                  context.read<GroupExpenseBloc>().add(
+                    LoadGroupExpenses(
+                      widget.groupId,
+                      resetPagination: true,
+                    ),
+                  );
                 }
               });
             },
@@ -585,6 +591,22 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                 decoration: InputDecoration(
                   hintText: 'Search expenses...',
                   prefixIcon: Icon(Icons.search, color: appColors.iconColor),
+                  suffixIcon: IconButton(
+                    icon: Icon(Icons.close, color: appColors.iconColor),
+                    onPressed: () {
+                      setState(() {
+                        _isSearchVisible = false;
+                        _searchController.clear();
+                      });
+                      // Clear search results and reload expenses
+                      context.read<GroupExpenseBloc>().add(
+                        LoadGroupExpenses(
+                          widget.groupId,
+                          resetPagination: true,
+                        ),
+                      );
+                    },
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(
@@ -708,12 +730,12 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     return BlocListener<GroupExpenseBloc, GroupExpenseState>(
       listener: (context, state) {
         if (state is GroupExpenseError) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(state.message)));
-          _isLoadingMore = false; // Reset flag on error
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(state.message))
+          );
+          _isLoadingMore = false;
         } else if (state is GroupExpensesLoaded) {
-          _isLoadingMore = false; // Reset flag when loading completes
+          _isLoadingMore = false;
           _isLoading = false;
         }
       },
@@ -740,44 +762,49 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                           if (state is GroupExpenseLoading) {
                             return const Center(child: CustomLoader());
                           } else if (state is GroupExpensesLoaded) {
-                            return CustomScrollView(
-                              controller: _scrollController,
-                              physics: const AlwaysScrollableScrollPhysics(),
-                              slivers: [
-                                SliverPersistentHeader(
-                                  floating: true,
-                                  delegate: _SummaryHeaderDelegate(
-                                    child: _buildSummaryHeader(state),
-                                    isExpanded: _isExpenseSummaryExpanded,
-                                    onToggle: (value) {
-                                      setState(() {
-                                        _isExpenseSummaryExpanded = value;
-                                      });
-                                    },
+                            // Only show the main content if no search results
+                            if (state.searchResults == null || state.searchResults!.isEmpty) {
+                              return CustomScrollView(
+                                controller: _scrollController,
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                slivers: [
+                                  SliverPersistentHeader(
+                                    floating: true,
+                                    delegate: _SummaryHeaderDelegate(
+                                      child: _buildSummaryHeader(state),
+                                      isExpanded: _isExpenseSummaryExpanded,
+                                      onToggle: (value) {
+                                        setState(() {
+                                          _isExpenseSummaryExpanded = value;
+                                        });
+                                      },
+                                    ),
                                   ),
-                                ),
-                                if (_isExpenseSummaryExpanded)
-                                  SliverToBoxAdapter(
-                                    child: _buildExpandedSummaryContent(state),
-                                  ),
-                                _buildExpensesList(state.groupedExpenses),
-                                if (state.hasMoreExpenses)
-                                  const SliverToBoxAdapter(
-                                    child: Padding(
-                                      padding: EdgeInsets.all(16.0),
-                                      child: Center(
-                                        child: CustomLoader(
-                                          size: 30,
-                                          isButtonLoader: true,
+                                  if (_isExpenseSummaryExpanded)
+                                    SliverToBoxAdapter(
+                                      child: _buildExpandedSummaryContent(state),
+                                    ),
+                                  _buildExpensesList(state.groupedExpenses),
+                                  if (state.hasMoreExpenses)
+                                    const SliverToBoxAdapter(
+                                      child: Padding(
+                                        padding: EdgeInsets.all(16.0),
+                                        child: Center(
+                                          child: CustomLoader(
+                                            size: 30,
+                                            isButtonLoader: true,
+                                          ),
                                         ),
                                       ),
                                     ),
+                                  const SliverPadding(
+                                    padding: EdgeInsets.only(bottom: 100),
                                   ),
-                                const SliverPadding(
-                                  padding: EdgeInsets.only(bottom: 100),
-                                ),
-                              ],
-                            );
+                                ],
+                              );
+                            } else {
+                              return const SizedBox.shrink(); // Hide main content when search results are shown
+                            }
                           } else if (state is GroupExpenseError) {
                             return Center(
                               child: Padding(
@@ -809,7 +836,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
               builder: (context, state) {
                 if (state is GroupExpensesLoaded &&
                     state.searchResults != null &&
-                    state.searchResults!.isNotEmpty) {
+                    state.searchResults!.isNotEmpty &&
+                    _isSearchVisible) {  // Add this condition
                   return _SearchResultsOverlay(
                     results: state.searchResults!,
                     onResultTap: (result) {
@@ -817,10 +845,24 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                         _isSearchVisible = false;
                         _searchController.clear();
                       });
-                      _scrollToExpense(result.messageIndex);
+                      
+                      // Clear search results and reload expenses
                       context.read<GroupExpenseBloc>().add(
-                        SearchExpenses(groupId: widget.groupId, query: ''),
+                        LoadGroupExpenses(
+                          widget.groupId,
+                          resetPagination: true,
+                        ),
                       );
+
+                      // Show expense details directly
+                      final expense = state.expenses.firstWhere(
+                        (e) => e['id'].toString() == result.expenseId,
+                        orElse: () => <String, dynamic>{},
+                      );
+                      
+                      if (expense.isNotEmpty) {
+                        _showExpenseDetails(expense);
+                      }
                     },
                     onClose: () {
                       setState(() {
@@ -828,7 +870,10 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                         _searchController.clear();
                       });
                       context.read<GroupExpenseBloc>().add(
-                        SearchExpenses(groupId: widget.groupId, query: ''),
+                        LoadGroupExpenses(
+                          widget.groupId,
+                          resetPagination: true,
+                        ),
                       );
                     },
                   );

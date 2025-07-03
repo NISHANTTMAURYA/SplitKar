@@ -173,10 +173,10 @@ class ExpenseMessage extends StatelessWidget {
                             CircleAvatar(
                               radius: isSmallScreen ? 14 : 16,
                               backgroundColor: appColors.cardColor2?.withOpacity(0.1),
-                              backgroundImage: paidByProfilePic.isNotEmpty
+                              backgroundImage: paidByProfilePic.startsWith('http')
                                   ? CachedNetworkImageProvider(paidByProfilePic)
                                   : null,
-                              child: paidByProfilePic.isEmpty
+                              child: !paidByProfilePic.startsWith('http')
                                   ? Text(
                                       paidBy[0].toUpperCase(),
                                       style: TextStyle(
@@ -228,11 +228,11 @@ class ExpenseMessage extends StatelessWidget {
                                     radius: isSmallScreen ? 8 : 10,
                                     backgroundColor: appColors.cardColor2?.withOpacity(0.2),
                                     backgroundImage: person['profilePic'] != null &&
-                                                   person['profilePic'].isNotEmpty
+                                                   person['profilePic'].toString().startsWith('http')
                                         ? CachedNetworkImageProvider(person['profilePic'])
                                         : null,
                                     child: (person['profilePic'] == null ||
-                                           person['profilePic'].isEmpty)
+                                           !person['profilePic'].toString().startsWith('http'))
                                         ? Text(
                                             person['name'][0].toUpperCase(),
                                             style: TextStyle(

@@ -351,14 +351,14 @@ class ExpenseDetailsSheet extends StatelessWidget {
                                     ?.withOpacity(0.1),
                                 backgroundImage:
                                     expense['payer_profile_pic'] != null &&
-                                        expense['payer_profile_pic'].isNotEmpty
+                                        expense['payer_profile_pic'].toString().startsWith('http')
                                     ? CachedNetworkImageProvider(
                                         expense['payer_profile_pic'],
                                       )
                                     : null,
                                 child:
                                     expense['payer_profile_pic'] == null ||
-                                        expense['payer_profile_pic'].isEmpty
+                                        !expense['payer_profile_pic'].toString().startsWith('http')
                                     ? Text(
                                         (expense['payer_name'] ?? 'U')[0]
                                             .toUpperCase(),
@@ -432,16 +432,16 @@ class ExpenseDetailsSheet extends StatelessWidget {
                                           person['profilePic'] != null &&
                                               person['profilePic']
                                                   .toString()
-                                                  .isNotEmpty
+                                                  .startsWith('http')
                                           ? CachedNetworkImageProvider(
                                               person['profilePic'],
                                             )
                                           : null,
                                       child:
                                           person['profilePic'] == null ||
-                                              person['profilePic']
+                                              !person['profilePic']
                                                   .toString()
-                                                  .isEmpty
+                                                  .startsWith('http')
                                           ? Text(
                                               (person['name'] ?? 'U')[0]
                                                   .toUpperCase(),

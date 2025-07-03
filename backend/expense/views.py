@@ -311,38 +311,49 @@ def group_expenses(request):
     # Get paginated expenses
     paginated_expenses = expenses[start_idx:end_idx]
 
-    if search_mode == 'chat':
-        # For chat search, return only expense IDs and minimal info
-        response_data = {
-            'expense_ids': [{
-                'expense_id': expense.expense_id,
-                'description': expense.description,
-                'date': expense.date,
-                'total_amount': str(expense.total_amount)
-            } for expense in paginated_expenses],
-            'pagination': {
-                'total_count': total_count,
-                'page': page,
-                'page_size': page_size,
-                'total_pages': total_pages,
-                'has_next': page < total_pages,
-                'has_previous': page > 1
-            }
+    # Prepare response data
+    expense_list = []
+    for expense in paginated_expenses:
+        expense_data = {
+            'id': expense.expense_id,
+            'description': expense.description,
+            'total_amount': str(expense.total_amount),
+            'date': expense.date,
+            'payer_name': expense.payments.first().payer.username if expense.payments.exists() else 'Unknown',
         }
-    else:
-        # Normal mode - return full expense details
-        serializer = ExpenseListSerializer(paginated_expenses, many=True, context={'user': request.user})
-        response_data = {
-            'expenses': serializer.data,
-            'pagination': {
-                'total_count': total_count,
-                'page': page,
-                'page_size': page_size,
-                'total_pages': total_pages,
-                'has_next': page < total_pages,
-                'has_previous': page > 1
-            }
+        
+        if search_mode == 'normal':
+            # Add additional data for normal mode
+            expense_data.update({
+                'notes': expense.notes,
+                'category': {
+                    'id': expense.category.id,
+                    'name': expense.category.name,
+                    'icon': expense.category.icon,
+                    'color': expense.category.color
+                } if expense.category else None,
+                'is_user_expense': expense.payments.filter(payer=request.user).exists(),
+                'payer_profile_pic': expense.payments.first().payer.profile.profile_picture_url if expense.payments.exists() and hasattr(expense.payments.first().payer.profile, 'profile_picture_url') else '',
+                'owed_breakdown': [{
+                    'name': share.user.username,
+                    'amount': str(share.amount_owed),
+                    'profilePic': share.user.profile.profile_picture_url if hasattr(share.user.profile, 'profile_picture_url') else ''
+                } for share in expense.shares.all()]
+            })
+
+        expense_list.append(expense_data)
+
+    response_data = {
+        'expenses': expense_list,
+        'pagination': {
+            'total_count': total_count,
+            'page': page,
+            'page_size': page_size,
+            'total_pages': total_pages,
+            'has_next': page < total_pages,
+            'has_previous': page > 1
         }
+    }
 
     return Response(response_data)
 
