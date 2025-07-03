@@ -14,14 +14,40 @@ class UserBalance {
   });
 }
 
+class SearchResult {
+  final String expenseId;
+  final String description;
+  final double amount;
+  final String payerName;
+  final DateTime date;
+  final int messageIndex; // Index in the grouped expenses list for scrolling
+
+  SearchResult({
+    required this.expenseId,
+    required this.description,
+    required this.amount,
+    required this.payerName,
+    required this.date,
+    required this.messageIndex,
+  });
+
+  factory SearchResult.fromExpense(Map<String, dynamic> expense, int index) {
+    return SearchResult(
+      expenseId: expense['id'].toString(),
+      description: expense['description'] ?? 'Untitled Expense',
+      amount: double.parse(expense['total_amount'].toString()),
+      payerName: expense['payer_name'] ?? 'Unknown',
+      date: DateTime.parse(expense['date']),
+      messageIndex: index,
+    );
+  }
+}
+
 class GroupedExpenses {
   final DateTime date;
   final List<Map<String, dynamic>> expenses;
 
-  GroupedExpenses({
-    required this.date,
-    required this.expenses,
-  });
+  GroupedExpenses({required this.date, required this.expenses});
 }
 
 class GroupSummary {
@@ -45,9 +71,9 @@ class GroupSummary {
       total += double.parse(expense['total_amount'].toString());
     }
 
-    int settlements = balances.where((b) => 
-      double.parse(b['balance_amount'].toString()).abs() > 0.01
-    ).length;
+    int settlements = balances
+        .where((b) => double.parse(b['balance_amount'].toString()).abs() > 0.01)
+        .length;
 
     return GroupSummary(
       totalSpent: total,
@@ -80,6 +106,10 @@ class GroupExpensesLoaded extends GroupExpenseState {
   final List<Map<String, dynamic>> balances;
   final List<GroupedExpenses> groupedExpenses;
   final GroupSummary summary;
+  final List<SearchResult>? searchResults;
+  final bool hasMoreExpenses;
+  final int currentPage;
+  final String? searchQuery;
 
   GroupExpensesLoaded({
     required this.expenses,
@@ -87,8 +117,46 @@ class GroupExpensesLoaded extends GroupExpenseState {
     required this.balances,
     required this.groupedExpenses,
     required this.summary,
-  });
+    this.searchResults,
+    bool? hasMoreExpenses,
+    this.currentPage = 1,
+    this.searchQuery,
+  }) : this.hasMoreExpenses = hasMoreExpenses ?? false;
 
   @override
-  List<Object?> get props => [expenses, members, balances, groupedExpenses, summary];
+  List<Object?> get props => [
+    expenses,
+    members,
+    balances,
+    groupedExpenses,
+    summary,
+    searchResults,
+    hasMoreExpenses,
+    currentPage,
+    searchQuery,
+  ];
+
+  GroupExpensesLoaded copyWith({
+    List<Map<String, dynamic>>? expenses,
+    List<Map<String, dynamic>>? members,
+    List<Map<String, dynamic>>? balances,
+    List<GroupedExpenses>? groupedExpenses,
+    GroupSummary? summary,
+    List<SearchResult>? searchResults,
+    bool? hasMoreExpenses,
+    int? currentPage,
+    String? searchQuery,
+  }) {
+    return GroupExpensesLoaded(
+      expenses: expenses ?? this.expenses,
+      members: members ?? this.members,
+      balances: balances ?? this.balances,
+      groupedExpenses: groupedExpenses ?? this.groupedExpenses,
+      summary: summary ?? this.summary,
+      searchResults: searchResults ?? this.searchResults,
+      hasMoreExpenses: hasMoreExpenses ?? this.hasMoreExpenses,
+      currentPage: currentPage ?? this.currentPage,
+      searchQuery: searchQuery ?? this.searchQuery,
+    );
+  }
 }

@@ -12,6 +12,8 @@ class GroupExpenseBloc extends Bloc<GroupExpenseEvent, GroupExpenseState> {
 
   GroupExpenseBloc(this._service) : super(GroupExpenseInitial()) {
     on<LoadGroupExpenses>(_onLoadGroupExpenses);
+    on<LoadMoreExpenses>(_onLoadMoreExpenses);
+    on<SearchExpenses>(_onSearchExpenses);
     on<LoadGroupBalances>(_onLoadGroupBalances);
     on<AddGroupExpense>(_onAddGroupExpense);
     on<EditGroupExpense>(_onEditGroupExpense);
@@ -206,13 +208,13 @@ class GroupExpenseBloc extends Bloc<GroupExpenseEvent, GroupExpenseState> {
     try {
       emit(GroupExpenseLoading());
 
-      final expenses = await _service.getGroupExpenses(event.groupId);
+      final expenses = await _service.getGroupExpenses(
+        event.groupId,
+        page: 1,
+        pageSize: 5,
+      );
       final members = await _groupSettingsApi.getGroupDetails(event.groupId);
       final balances = await _service.getGroupBalances(event.groupId);
-
-      dev.log('Raw expenses response: $expenses');
-      dev.log('Raw members response: $members');
-      dev.log('Raw balances response: $balances');
 
       if (expenses == null || members == null || balances == null) {
         throw 'Failed to fetch data';
@@ -228,7 +230,6 @@ class GroupExpenseBloc extends Bloc<GroupExpenseEvent, GroupExpenseState> {
                 'description': 'Invalid Expense',
               };
             }
-            dev.log('Processing expense: $e');
             return e;
           }).toList() ??
           [];
@@ -265,6 +266,8 @@ class GroupExpenseBloc extends Bloc<GroupExpenseEvent, GroupExpenseState> {
         processedBalances,
       );
 
+      final hasMore = expenses['pagination']?['has_next'] ?? false;
+
       emit(
         GroupExpensesLoaded(
           expenses: expensesList,
@@ -272,12 +275,117 @@ class GroupExpenseBloc extends Bloc<GroupExpenseEvent, GroupExpenseState> {
           balances: balancesList,
           groupedExpenses: groupedExpenses,
           summary: summary,
+          hasMoreExpenses: hasMore,
+          currentPage: 1,
         ),
       );
     } catch (e, stackTrace) {
       dev.log('Error in _onLoadGroupExpenses: $e\n$stackTrace');
       emit(GroupExpenseError(e.toString()));
     }
+  }
+
+  Future<void> _onLoadMoreExpenses(
+    LoadMoreExpenses event,
+    Emitter<GroupExpenseState> emit,
+  ) async {
+    try {
+      if (state is! GroupExpensesLoaded) return;
+      final currentState = state as GroupExpensesLoaded;
+
+      final expenses = await _service.getGroupExpenses(
+        event.groupId,
+        page: event.nextPage,
+        pageSize: 5,
+        searchQuery: event.searchQuery,
+      );
+
+      if (expenses == null) throw 'Failed to fetch more expenses';
+
+      final newExpenses =
+          (expenses['expenses'] as List<dynamic>?)?.map((e) {
+            if (e is! Map<String, dynamic>) {
+              return <String, dynamic>{
+                'date': DateTime.now().toIso8601String(),
+                'total_amount': '0',
+                'description': 'Invalid Expense',
+              };
+            }
+            return e;
+          }).toList() ??
+          [];
+
+      // Combine existing and new expenses
+      final allExpenses = [...currentState.expenses, ...newExpenses];
+      final groupedExpenses = _processExpenses(allExpenses);
+
+      emit(
+        currentState.copyWith(
+          expenses: allExpenses,
+          groupedExpenses: groupedExpenses,
+          hasMoreExpenses: expenses['pagination']['has_next'] ?? false,
+          currentPage: event.nextPage,
+        ),
+      );
+    } catch (e) {
+      dev.log('Error in _onLoadMoreExpenses: $e');
+      // Don't emit error state, just log it
+    }
+  }
+
+  Future<void> _onSearchExpenses(
+    SearchExpenses event,
+    Emitter<GroupExpenseState> emit,
+  ) async {
+    try {
+      if (state is! GroupExpensesLoaded) return;
+      final currentState = state as GroupExpensesLoaded;
+
+      if (event.query.isEmpty) {
+        emit(currentState.copyWith(searchResults: null, searchQuery: null));
+        return;
+      }
+
+      final searchResponse = await _service.getGroupExpenses(
+        event.groupId,
+        searchQuery: event.query,
+        searchMode: 'chat',
+      );
+
+      if (searchResponse == null) throw 'Failed to search expenses';
+
+      final searchExpenses = searchResponse['expenses'] as List<dynamic>;
+      final searchResults = searchExpenses.map((e) {
+        final index = _findExpenseIndex(currentState.groupedExpenses, e['id']);
+        return SearchResult.fromExpense(Map<String, dynamic>.from(e), index);
+      }).toList();
+
+      emit(
+        currentState.copyWith(
+          searchResults: searchResults,
+          searchQuery: event.query,
+        ),
+      );
+    } catch (e) {
+      dev.log('Error in _onSearchExpenses: $e');
+      // Don't emit error state, just log it
+    }
+  }
+
+  int _findExpenseIndex(
+    List<GroupedExpenses> groupedExpenses,
+    String expenseId,
+  ) {
+    int index = 0;
+    for (var group in groupedExpenses) {
+      for (var expense in group.expenses) {
+        if (expense['id'].toString() == expenseId) {
+          return index;
+        }
+        index++;
+      }
+    }
+    return -1;
   }
 
   Future<void> _onLoadGroupBalances(

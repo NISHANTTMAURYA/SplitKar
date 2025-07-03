@@ -8,10 +8,37 @@ abstract class GroupExpenseEvent extends Equatable {
 
 class LoadGroupExpenses extends GroupExpenseEvent {
   final int groupId;
-  LoadGroupExpenses(this.groupId);
+  final bool resetPagination;
+
+  LoadGroupExpenses(this.groupId, {this.resetPagination = false});
 
   @override
-  List<Object?> get props => [groupId];
+  List<Object?> get props => [groupId, resetPagination];
+}
+
+class LoadMoreExpenses extends GroupExpenseEvent {
+  final int groupId;
+  final int nextPage;
+  final String? searchQuery;
+
+  LoadMoreExpenses({
+    required this.groupId,
+    required this.nextPage,
+    this.searchQuery,
+  });
+
+  @override
+  List<Object?> get props => [groupId, nextPage, searchQuery];
+}
+
+class SearchExpenses extends GroupExpenseEvent {
+  final int groupId;
+  final String query;
+
+  SearchExpenses({required this.groupId, required this.query});
+
+  @override
+  List<Object?> get props => [groupId, query];
 }
 
 class LoadGroupBalances extends GroupExpenseEvent {
@@ -42,7 +69,15 @@ class AddGroupExpense extends GroupExpenseEvent {
   });
 
   @override
-  List<Object?> get props => [groupId, description, amount, payerId, userIds, splitType, splits];
+  List<Object?> get props => [
+    groupId,
+    description,
+    amount,
+    payerId,
+    userIds,
+    splitType,
+    splits,
+  ];
 }
 
 class EditGroupExpense extends GroupExpenseEvent {
@@ -66,10 +101,7 @@ class DeleteGroupExpense extends GroupExpenseEvent {
   final String expenseId;
   final int groupId;
 
-  DeleteGroupExpense({
-    required this.expenseId,
-    required this.groupId,
-  });
+  DeleteGroupExpense({required this.expenseId, required this.groupId});
 
   @override
   List<Object?> get props => [expenseId, groupId];
