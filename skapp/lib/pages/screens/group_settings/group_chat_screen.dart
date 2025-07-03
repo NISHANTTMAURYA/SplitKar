@@ -836,25 +836,11 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
               builder: (context, state) {
                 if (state is GroupExpensesLoaded &&
                     state.searchResults != null &&
-                    state.searchResults!.isNotEmpty &&
-                    _isSearchVisible) {  // Add this condition
+                    _isSearchVisible) {  // Remove the empty check to show overlay even with no results
                   return _SearchResultsOverlay(
                     results: state.searchResults!,
                     onResultTap: (result) {
-                      setState(() {
-                        _isSearchVisible = false;
-                        _searchController.clear();
-                      });
-                      
-                      // Clear search results and reload expenses
-                      context.read<GroupExpenseBloc>().add(
-                        LoadGroupExpenses(
-                          widget.groupId,
-                          resetPagination: true,
-                        ),
-                      );
-
-                      // Show expense details directly
+                      // Don't close search overlay or clear search
                       final expense = state.expenses.firstWhere(
                         (e) => e['id'].toString() == result.expenseId,
                         orElse: () => <String, dynamic>{},
@@ -876,6 +862,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                         ),
                       );
                     },
+                    searchController: _searchController,
+                    onSearchChanged: _onSearchChanged,
                   );
                 }
                 return const SizedBox.shrink();
@@ -1252,11 +1240,15 @@ class _SearchResultsOverlay extends StatelessWidget {
   final List<SearchResult> results;
   final Function(SearchResult) onResultTap;
   final VoidCallback onClose;
+  final TextEditingController searchController;
+  final Function(String) onSearchChanged;
 
   const _SearchResultsOverlay({
     required this.results,
     required this.onResultTap,
     required this.onClose,
+    required this.searchController,
+    required this.onSearchChanged,
   });
 
   @override
@@ -1267,8 +1259,43 @@ class _SearchResultsOverlay extends StatelessWidget {
       color: appColors.cardColor?.withOpacity(0.98),
       child: Column(
         children: [
+          // Search Bar
           Padding(
             padding: const EdgeInsets.all(16.0),
+            child: TextField(
+              controller: searchController,
+              decoration: InputDecoration(
+                hintText: 'Search expenses...',
+                prefixIcon: Icon(Icons.search, color: appColors.iconColor),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color: appColors.borderColor ?? Colors.transparent,
+                  ),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color: appColors.borderColor?.withOpacity(0.2) ?? Colors.transparent,
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color: appColors.borderColor ?? Colors.transparent,
+                  ),
+                ),
+              ),
+              onChanged: onSearchChanged,
+              keyboardType: TextInputType.text,
+              textInputAction: TextInputAction.search,
+              autocorrect: false,
+              enableSuggestions: false,
+            ),
+          ),
+          // Results Header
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             child: Row(
               children: [
                 Text(
@@ -1287,6 +1314,7 @@ class _SearchResultsOverlay extends StatelessWidget {
               ],
             ),
           ),
+          // Results List
           Expanded(
             child: ListView.builder(
               itemCount: results.length,
