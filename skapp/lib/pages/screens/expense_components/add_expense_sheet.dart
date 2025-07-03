@@ -64,6 +64,7 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
   final _authService = AuthService();
   final _scrollController = ScrollController();
   String? _percentageError;
+  Map<String, dynamic>? _selectedCategory;
 
   @override
   void initState() {
@@ -76,6 +77,9 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
       _selectedMembers[member['profile_code']] = true;
       _percentageControllers[member['profile_code']] = TextEditingController();
     }
+
+    // Load expense categories
+    context.read<GroupExpenseBloc>().add(LoadExpenseCategories());
 
     // Pre-fill data if editing an existing expense
     if (widget.existingExpense != null) {
@@ -243,6 +247,53 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
     );
   }
 
+  Widget _buildCategoryDropdown(AppColorScheme appColors) {
+    return BlocBuilder<GroupExpenseBloc, GroupExpenseState>(
+      builder: (context, state) {
+        if (state is ExpenseCategoriesLoaded) {
+          return Container(
+            margin: const EdgeInsets.only(bottom: 16),
+            child: DropdownButtonFormField<Map<String, dynamic>>(
+              value: _selectedCategory,
+              decoration: InputDecoration(
+                labelText: 'Category',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              items: state.categories.map((category) {
+                return DropdownMenuItem<Map<String, dynamic>>(
+                  value: category,
+                  child: Row(
+                    children: [
+                      Text(
+                        category['icon'] ?? '📝',
+                        style: const TextStyle(fontSize: 18),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        category['name'],
+                        style: GoogleFonts.cabin(
+                          color: appColors.textColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+              onChanged: (value) {
+                setState(() {
+                  _selectedCategory = value;
+                });
+              },
+            ),
+          );
+        }
+        return const SizedBox.shrink();
+      },
+    );
+  }
+
   Future<int?> _getCurrentUserId() async {
     final userId = await _authService.getUserId();
     if (userId == null) return null;
@@ -346,6 +397,9 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
                             return null;
                           },
                         ),
+                        const SizedBox(height: 16),
+                        // Category dropdown
+                        if (!isEditMode) _buildCategoryDropdown(appColors),
                         const SizedBox(height: 24),
                         // Split method selector - only show in create mode
                         if (!isEditMode) ...[
@@ -600,6 +654,7 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
                                     userIds: userIds,
                                     splitType: _splitMethod,
                                     splits: splits,
+                                    categoryId: _selectedCategory?['id'],
                                   ),
                                 );
                               }

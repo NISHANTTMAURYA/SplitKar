@@ -18,6 +18,7 @@ class GroupExpenseBloc extends Bloc<GroupExpenseEvent, GroupExpenseState> {
     on<AddGroupExpense>(_onAddGroupExpense);
     on<EditGroupExpense>(_onEditGroupExpense);
     on<DeleteGroupExpense>(_onDeleteGroupExpense);
+    on<LoadExpenseCategories>(_onLoadExpenseCategories);
   }
 
   List<GroupedExpenses> _processExpenses(List<dynamic> rawExpenses) {
@@ -437,6 +438,7 @@ class GroupExpenseBloc extends Bloc<GroupExpenseEvent, GroupExpenseState> {
             ? 'percentage'
             : 'equal',
         splits: event.splits,
+        categoryId: event.categoryId,
       );
 
       add(LoadGroupExpenses(event.groupId));
@@ -479,6 +481,19 @@ class GroupExpenseBloc extends Bloc<GroupExpenseEvent, GroupExpenseState> {
       add(LoadGroupExpenses(event.groupId));
     } catch (e) {
       print('[BLOC DEBUG] Error in _onDeleteGroupExpense: $e');
+      emit(GroupExpenseError(e.toString()));
+    }
+  }
+
+  Future<void> _onLoadExpenseCategories(
+    LoadExpenseCategories event,
+    Emitter<GroupExpenseState> emit,
+  ) async {
+    try {
+      emit(GroupExpenseLoading());
+      final categories = await _service.getExpenseCategories();
+      emit(ExpenseCategoriesLoaded(categories));
+    } catch (e) {
       emit(GroupExpenseError(e.toString()));
     }
   }

@@ -289,6 +289,27 @@ class ExpenseDetailsSheet extends StatelessWidget {
                                 ),
                               ),
                               const SizedBox(height: 4),
+                              if (expense['category'] != null) ...[
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      expense['category']['icon'] ?? '📝',
+                                      style: const TextStyle(fontSize: 20),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      expense['category']['name'] ?? '',
+                                      style: GoogleFonts.cabin(
+                                        fontSize: 15 * textScaleFactor,
+                                        color: appColors.textColor2,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                              ],
                               Text(
                                 expense['description'] ?? 'Untitled Expense',
                                 style: GoogleFonts.cabin(

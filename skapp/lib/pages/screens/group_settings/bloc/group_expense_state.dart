@@ -83,7 +83,7 @@ class GroupSummary {
   }
 }
 
-abstract class GroupExpenseState extends Equatable {
+class GroupExpenseState extends Equatable {
   @override
   List<Object?> get props => [];
 }
@@ -98,6 +98,15 @@ class GroupExpenseError extends GroupExpenseState {
 
   @override
   List<Object?> get props => [message];
+}
+
+class ExpenseCategoriesLoaded extends GroupExpenseState {
+  final List<Map<String, dynamic>> categories;
+
+  ExpenseCategoriesLoaded(this.categories);
+
+  @override
+  List<Object?> get props => [categories];
 }
 
 class GroupExpensesLoaded extends GroupExpenseState {

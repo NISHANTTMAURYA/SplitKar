@@ -654,6 +654,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                 print('DEBUG: Expense data being passed to onTap: $expense');
                 _showExpenseDetails(expense);
               },
+              category: expense['category'],
             ),
           ),
         ),

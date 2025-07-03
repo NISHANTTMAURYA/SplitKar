@@ -138,6 +138,7 @@ class GroupExpenseService {
     required List<int> userIds,
     String? splitType = 'equal',
     List<Map<String, dynamic>>? splits,
+    int? categoryId,
   }) async {
     try {
       String? token = await _authService.getToken();
@@ -162,6 +163,7 @@ class GroupExpenseService {
         'group_id': groupId,
         'split_type': splitType,
         if (splits != null) 'splits': splits,
+        if (categoryId != null) 'category_id': categoryId,
       };
 
       final response = await client.post(
@@ -190,6 +192,7 @@ class GroupExpenseService {
             userIds: userIds,
             splitType: splitType,
             splits: splits,
+            categoryId: categoryId,
           );
         }
         throw 'Session expired. Please log in again.';
@@ -301,6 +304,38 @@ class GroupExpenseService {
       }
     } catch (e) {
       _logger.severe('Error deleting group expense: $e');
+      rethrow;
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getExpenseCategories() async {
+    try {
+      String? token = await _authService.getToken();
+      if (token == null) throw 'Session expired. Please log in again.';
+
+      final response = await client.get(
+        Uri.parse('${baseUrl}/expenses/categories/'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        return List<Map<String, dynamic>>.from(data);
+      } else if (response.statusCode == 401) {
+        final refreshSuccess = await _authService.handleTokenRefresh();
+        if (refreshSuccess) {
+          return getExpenseCategories();
+        }
+        throw 'Session expired. Please log in again.';
+      } else {
+        final error = _parseErrorResponse(response);
+        throw error;
+      }
+    } catch (e) {
+      _logger.severe('Error fetching expense categories: $e');
       rethrow;
     }
   }

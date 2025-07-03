@@ -16,6 +16,8 @@ class LoadGroupExpenses extends GroupExpenseEvent {
   List<Object?> get props => [groupId, resetPagination];
 }
 
+class LoadExpenseCategories extends GroupExpenseEvent {}
+
 class LoadMoreExpenses extends GroupExpenseEvent {
   final int groupId;
   final int nextPage;
@@ -57,6 +59,7 @@ class AddGroupExpense extends GroupExpenseEvent {
   final List<int> userIds;
   final SplitMethod splitType;
   final List<Map<String, dynamic>>? splits;
+  final int? categoryId;
 
   AddGroupExpense({
     required this.groupId,
@@ -66,6 +69,7 @@ class AddGroupExpense extends GroupExpenseEvent {
     required this.userIds,
     required this.splitType,
     this.splits,
+    this.categoryId,
   });
 
   @override
@@ -77,6 +81,7 @@ class AddGroupExpense extends GroupExpenseEvent {
     userIds,
     splitType,
     splits,
+    categoryId,
   ];
 }
 

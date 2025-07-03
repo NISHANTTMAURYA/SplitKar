@@ -13,6 +13,7 @@ class ExpenseMessage extends StatelessWidget {
   final bool isUserExpense;
   final VoidCallback? onLongPress;
   final VoidCallback? onTap;
+  final Map<String, dynamic>? category;
 
   const ExpenseMessage({
     super.key,
@@ -25,6 +26,7 @@ class ExpenseMessage extends StatelessWidget {
     required this.isUserExpense,
     this.onLongPress,
     this.onTap,
+    this.category,
   });
 
   String _formatTimestamp(DateTime timestamp) {
@@ -137,6 +139,26 @@ class ExpenseMessage extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        if (category != null) ...[
+                          Row(
+                            children: [
+                              Text(
+                                category!['icon'] ?? '📝',
+                                style: const TextStyle(fontSize: 18),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                category!['name'] ?? '',
+                                style: GoogleFonts.cabin(
+                                  fontSize: 14 * textScaleFactor,
+                                  color: appColors.textColor2,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                        ],
                         Text(
                           title,
                           style: GoogleFonts.cabin(
