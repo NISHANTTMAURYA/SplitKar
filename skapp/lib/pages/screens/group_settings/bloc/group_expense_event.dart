@@ -111,3 +111,13 @@ class DeleteGroupExpense extends GroupExpenseEvent {
   @override
   List<Object?> get props => [expenseId, groupId];
 }
+
+class DebouncedSearchExpenses extends GroupExpenseEvent {
+  final int groupId;
+  final String query;
+
+  DebouncedSearchExpenses({required this.groupId, required this.query});
+
+  @override
+  List<Object?> get props => [groupId, query];
+}

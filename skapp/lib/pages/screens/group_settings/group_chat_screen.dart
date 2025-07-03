@@ -37,7 +37,6 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   bool _isExpenseSummaryExpanded = false;
   bool _isSearchVisible = false;
   final TextEditingController _searchController = TextEditingController();
-  Timer? _searchDebouncer;
   Timer? _scrollDebouncer;
   bool _isLoadingMore = false;
   bool _isLoading = true;
@@ -80,14 +79,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   }
 
   void _onSearchChanged(String value) {
-    _searchDebouncer?.cancel();
-    _searchDebouncer = Timer(const Duration(milliseconds: 300), () {
-      if (mounted) {
-        context.read<GroupExpenseBloc>().add(
-          SearchExpenses(groupId: widget.groupId, query: value),
-        );
-      }
-    });
+    context.read<GroupExpenseBloc>().searchWithDebounce(widget.groupId, value);
   }
 
   void _scrollToExpense(int messageIndex) {
@@ -121,8 +113,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   void dispose() {
     _scrollController.dispose();
     _searchController.dispose();
-    _searchDebouncer?.cancel();
-    _scrollDebouncer?.cancel(); // Cancel scroll debouncer
+    _scrollDebouncer?.cancel();
     super.dispose();
   }
 
@@ -725,6 +716,15 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     }
   }
 
+  Future<void> _loadAndShowExpense(String expenseId, GroupExpensesLoaded state) async {
+    final bloc = context.read<GroupExpenseBloc>();
+    final expense = await bloc.loadExpenseById(expenseId, widget.groupId);
+    
+    if (expense != null && mounted) {
+      _showExpenseDetails(expense);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocListener<GroupExpenseBloc, GroupExpenseState>(
@@ -836,19 +836,11 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
               builder: (context, state) {
                 if (state is GroupExpensesLoaded &&
                     state.searchResults != null &&
-                    _isSearchVisible) {  // Remove the empty check to show overlay even with no results
+                    _isSearchVisible) {
                   return _SearchResultsOverlay(
                     results: state.searchResults!,
-                    onResultTap: (result) {
-                      // Don't close search overlay or clear search
-                      final expense = state.expenses.firstWhere(
-                        (e) => e['id'].toString() == result.expenseId,
-                        orElse: () => <String, dynamic>{},
-                      );
-                      
-                      if (expense.isNotEmpty) {
-                        _showExpenseDetails(expense);
-                      }
+                    onResultTap: (result) async {
+                      await _loadAndShowExpense(result.expenseId, state);
                     },
                     onClose: () {
                       setState(() {
@@ -864,6 +856,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                     },
                     searchController: _searchController,
                     onSearchChanged: _onSearchChanged,
+                    groupId: widget.groupId,
                   );
                 }
                 return const SizedBox.shrink();
@@ -1242,6 +1235,7 @@ class _SearchResultsOverlay extends StatelessWidget {
   final VoidCallback onClose;
   final TextEditingController searchController;
   final Function(String) onSearchChanged;
+  final int groupId;
 
   const _SearchResultsOverlay({
     required this.results,
@@ -1249,6 +1243,7 @@ class _SearchResultsOverlay extends StatelessWidget {
     required this.onClose,
     required this.searchController,
     required this.onSearchChanged,
+    required this.groupId,
   });
 
   @override
@@ -1316,41 +1311,54 @@ class _SearchResultsOverlay extends StatelessWidget {
           ),
           // Results List
           Expanded(
-            child: ListView.builder(
-              itemCount: results.length,
-              itemBuilder: (context, index) {
-                final result = results[index];
-                return ListTile(
-                  leading: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: appColors.cardColor2?.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(Icons.receipt_long, color: appColors.iconColor),
-                  ),
-                  title: Text(
-                    result.description,
-                    style: GoogleFonts.cabin(
-                      color: appColors.textColor,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  subtitle: Text(
-                    '₹${result.amount.toStringAsFixed(2)} • ${result.payerName}',
-                    style: GoogleFonts.cabin(
-                      color: appColors.textColor2,
-                      fontSize: 12,
-                    ),
-                  ),
-                  trailing: Text(
-                    result.date.toLocal().toString().split(' ')[0],
-                    style: GoogleFonts.cabin(
-                      color: appColors.textColor2,
-                      fontSize: 12,
-                    ),
-                  ),
-                  onTap: () => onResultTap(result),
+            child: BlocBuilder<GroupExpenseBloc, GroupExpenseState>(
+              builder: (context, state) {
+                if (state is! GroupExpensesLoaded) {
+                  return const Center(child: CustomLoader());
+                }
+
+                return ListView.builder(
+                  itemCount: results.length,
+                  itemBuilder: (context, index) {
+                    final result = results[index];
+                    return ListTile(
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: appColors.cardColor2?.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(Icons.receipt_long, color: appColors.iconColor),
+                      ),
+                      title: Text(
+                        result.description,
+                        style: GoogleFonts.cabin(
+                          color: appColors.textColor,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      subtitle: Text(
+                        '₹${result.amount.toStringAsFixed(2)} • ${result.payerName}',
+                        style: GoogleFonts.cabin(
+                          color: appColors.textColor2,
+                          fontSize: 12,
+                        ),
+                      ),
+                      trailing: Text(
+                        result.date.toLocal().toString().split(' ')[0],
+                        style: GoogleFonts.cabin(
+                          color: appColors.textColor2,
+                          fontSize: 12,
+                        ),
+                      ),
+                      onTap: () async {
+                        final state = context.read<GroupExpenseBloc>().state;
+                        if (state is GroupExpensesLoaded) {
+                          await onResultTap(result);
+                        }
+                      },
+                    );
+                  },
                 );
               },
             ),
