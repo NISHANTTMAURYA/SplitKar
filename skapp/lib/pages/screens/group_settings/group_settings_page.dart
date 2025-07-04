@@ -431,7 +431,7 @@ class _GroupSettingsPageState extends State<GroupSettingsPage> {
         if (mounted) {
           _notificationService.showAppNotification(
             context,
-            title: 'Error',
+            title: 'Member with unsettled balances',
             message: e.toString(),
             icon: Icons.error_outline,
             isImportant: true,

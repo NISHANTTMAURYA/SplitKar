@@ -88,7 +88,16 @@ class GroupSettingsApi {
         throw 'You are not authorized to remove members from this group';
       } else {
         final errorData = jsonDecode(response.body);
-        throw errorData['error'] ?? 'Failed to remove member from group';
+        if (errorData is Map<String, dynamic>) {
+          if (errorData.containsKey('error')) {
+            throw errorData['error'];
+          } else if (errorData.containsKey('detail')) {
+            throw errorData['detail'];
+          } else if (errorData.values.isNotEmpty && errorData.values.first is List) {
+            throw (errorData.values.first as List).join(', ');
+          }
+        }
+        throw 'Failed to remove member from group';
       }
     } catch (e) {
       _logger.severe('Error removing member from group: $e');

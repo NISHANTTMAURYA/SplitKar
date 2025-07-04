@@ -346,7 +346,9 @@ def group_expenses(request):
                 }
                 for payment in expense.payments.all()
             ],
-            'payer_name': expense.payments.first().payer.get_full_name() or expense.payments.first().payer.username if expense.payments.exists() else 'Unknown'
+            'payer_name': expense.payments.first().payer.get_full_name() or expense.payments.first().payer.username if expense.payments.exists() else 'Unknown',
+            'created_by': expense.created_by.id if expense.created_by else None,
+            'group_admin_id': expense.group.created_by.id if expense.group and expense.group.created_by else None,
         }
         
         if search_mode == 'normal':
