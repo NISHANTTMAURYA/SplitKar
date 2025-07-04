@@ -56,10 +56,6 @@
                     <input type="number" class="form-control" id="groupId" required>
                 </div>
                 <div class="mb-3">
-                    <label for="payerId" class="form-label">Payer ID</label>
-                    <input type="number" class="form-control" id="payerId" required>
-                </div>
-                <div class="mb-3">
                     <label for="userIds" class="form-label">User IDs (comma separated)</label>
                     <input type="text" class="form-control" id="userIds" required>
                 </div>
@@ -88,6 +84,11 @@
                     <label class="form-label">Splits (for Percentage Split)</label>
                     <div id="percentageSplitsInputs"></div>
                     <button type="button" class="btn btn-secondary btn-sm mt-2" id="addSplitBtn">Add Split</button>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Payments (Multiple Payers)</label>
+                    <div id="paymentsInputs"></div>
+                    <button type="button" class="btn btn-secondary btn-sm mt-2" id="addPaymentBtn">Add Payer</button>
                 </div>
                 <button type="submit" class="btn btn-primary mt-3">Add Expense</button>
             </form>
@@ -146,10 +147,6 @@
                     <select class="form-select" id="editCategoryId">
                         <option value="">-- Select Category --</option>
                     </select>
-                </div>
-                <div class="mb-3">
-                    <label for="editPayerId" class="form-label">Payer ID</label>
-                    <input type="number" class="form-control" id="editPayerId">
                 </div>
                 <div class="mb-3">
                     <label for="editUserIds" class="form-label">User IDs (comma separated)</label>
@@ -253,26 +250,55 @@
             }
         });
 
+        // Add payment row for multiple payers
+        document.getElementById('addPaymentBtn').addEventListener('click', function() {
+            const container = document.getElementById('paymentsInputs');
+            const row = document.createElement('div');
+            row.className = 'split-percentage-row';
+            row.innerHTML = `
+                <input type="number" class="form-control" placeholder="Payer ID" required>
+                <input type="number" class="form-control" placeholder="Amount Paid" step="0.01" required>
+                <button type="button" class="btn btn-danger btn-sm removePaymentBtn">Remove</button>
+            `;
+            container.appendChild(row);
+        });
+        // Remove payment row
+        document.getElementById('paymentsInputs').addEventListener('click', function(e) {
+            if (e.target.classList.contains('removePaymentBtn')) {
+                e.target.parentElement.remove();
+            }
+        });
+
         document.getElementById('addExpenseForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const description = document.getElementById('description').value;
             const totalAmount = document.getElementById('totalAmount').value;
             const groupId = document.getElementById('groupId').value;
-            const payerId = document.getElementById('payerId').value;
             const userIds = document.getElementById('userIds').value.split(',').map(id => parseInt(id.trim(), 10)).filter(id => !isNaN(id));
             const categoryId = document.getElementById('categoryId').value;
             const currency = document.getElementById('currency').value;
             const notes = document.getElementById('notes').value;
             const splitType = document.getElementById('splitType').value;
+            // Gather payments
+            const payments = [];
+            const paymentRows = document.querySelectorAll('#paymentsInputs .split-percentage-row');
+            paymentRows.forEach(row => {
+                const inputs = row.querySelectorAll('input');
+                const payerId = parseInt(inputs[0].value, 10);
+                const amountPaid = parseFloat(inputs[1].value);
+                if (!isNaN(payerId) && !isNaN(amountPaid)) {
+                    payments.push({ payer_id: payerId, amount_paid: amountPaid });
+                }
+            });
             let payload = {
                 description,
                 total_amount: totalAmount,
                 group_id: groupId,
-                payer_id: payerId,
                 user_ids: userIds,
                 currency,
                 notes,
-                split_type: splitType
+                split_type: splitType,
+                payments
             };
             if (categoryId) {
                 payload.category_id = parseInt(categoryId, 10);
@@ -388,7 +414,6 @@
             const description = document.getElementById('editDescription').value;
             const totalAmount = document.getElementById('editTotalAmount').value;
             const categoryId = document.getElementById('editCategoryId').value;
-            const payerId = document.getElementById('editPayerId').value;
             const userIdsRaw = document.getElementById('editUserIds').value;
             const splitType = document.getElementById('editSplitType').value;
             const currency = document.getElementById('editCurrency').value;
@@ -400,7 +425,6 @@
             if (description) payload.description = description;
             if (totalAmount) payload.total_amount = totalAmount;
             if (categoryId) payload.category_id = parseInt(categoryId, 10);
-            if (payerId) payload.payer_id = parseInt(payerId, 10);
             if (userIdsRaw) {
                 const userIds = userIdsRaw.split(',').map(id => parseInt(id.trim(), 10)).filter(id => !isNaN(id));
                 if (userIds.length > 0) payload.user_ids = userIds;

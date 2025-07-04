@@ -33,6 +33,7 @@ def list_expense_categories(request):
 def add_expense(request):
     """
     Add an expense with equal or percentage splitting between specified users in a group
+    Now supports multiple payers.
     """
     serializer = AddExpenseSerializer(
         data=request.data,
@@ -49,6 +50,7 @@ def add_expense(request):
             group = Group.objects.get(id=group_id)
             total_amount = serializer.validated_data['total_amount']
             splits = request.data.get('splits')
+            payments = serializer.validated_data['payments']
             response_users = []
             if split_type == 'equal':
                 split_amount = total_amount / len(users)
@@ -73,6 +75,16 @@ def add_expense(request):
                         'percentage': str(percentage),
                         'amount_owed': str(owed)
                     })
+            response_payers = []
+            for payment in payments:
+                payer = User.objects.get(id=payment['payer_id'])
+                response_payers.append({
+                    'id': payer.id,
+                    'username': payer.username,
+                    'first_name': payer.first_name,
+                    'last_name': payer.last_name,
+                    'amount_paid': str(payment['amount_paid'])
+                })
             response_data = {
                 'message': 'Expense created successfully',
                 'expense_id': expense.expense_id,
@@ -85,7 +97,8 @@ def add_expense(request):
                     'name': group.name,
                     'description': group.description
                 },
-                'users': response_users
+                'users': response_users,
+                'payers': response_payers
             }
             return Response(response_data, status=status.HTTP_201_CREATED)
         except Exception as e:
