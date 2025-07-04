@@ -6,8 +6,7 @@ import 'package:skapp/utils/app_colors.dart';
 class ExpenseMessage extends StatelessWidget {
   final String title;
   final double amount;
-  final String paidBy;
-  final String paidByProfilePic;
+  final List<Map<String, dynamic>> payers;
   final List<Map<String, dynamic>> splitWith;
   final DateTime timestamp;
   final bool isUserExpense;
@@ -19,8 +18,7 @@ class ExpenseMessage extends StatelessWidget {
     super.key,
     required this.title,
     required this.amount,
-    required this.paidBy,
-    required this.paidByProfilePic,
+    required this.payers,
     required this.splitWith,
     required this.timestamp,
     required this.isUserExpense,
@@ -63,6 +61,7 @@ class ExpenseMessage extends StatelessWidget {
   Widget _buildPayerInfo(BuildContext context) {
     final appColors = Theme.of(context).extension<AppColorScheme>()!;
     final isSmallScreen = MediaQuery.of(context).size.width < 360;
+    final textScaleFactor = MediaQuery.of(context).textScaleFactor.clamp(0.8, 1.2);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -75,24 +74,55 @@ class ExpenseMessage extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 4),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircleAvatar(
-              radius: isSmallScreen ? 14 : 16,
-              backgroundColor: appColors.cardColor2?.withOpacity(0.1),
-              backgroundImage: paidByProfilePic.startsWith('http')
-                  ? CachedNetworkImageProvider(paidByProfilePic) as ImageProvider
-                  : const AssetImage('assets/images/default_profile.png'),
-            ),
-            const SizedBox(width: 4),
-            Text(
-              '$paidBy (₹$amount)',
-              style: TextStyle(
-                fontSize: isSmallScreen ? 12 : 14,
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: payers.map((payer) {
+            return Container(
+              padding: EdgeInsets.symmetric(
+                horizontal: isSmallScreen ? 6 : 8,
+                vertical: isSmallScreen ? 3 : 4,
               ),
-            ),
-          ],
+              decoration: BoxDecoration(
+                color: appColors.cardColor2?.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: appColors.borderColor2?.withOpacity(0.2) ?? Colors.transparent,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircleAvatar(
+                    radius: isSmallScreen ? 8 : 10,
+                    backgroundColor: appColors.cardColor2?.withOpacity(0.2),
+                    backgroundImage: payer['profilePic'] != null &&
+                        payer['profilePic'].toString().startsWith('http')
+                        ? CachedNetworkImageProvider(payer['profilePic'])
+                        : null,
+                    child: (payer['profilePic'] == null ||
+                            !payer['profilePic'].toString().startsWith('http'))
+                        ? Text(
+                            ((payer['first_name'] ?? payer['username'] ?? 'U') as String)[0].toUpperCase(),
+                            style: TextStyle(
+                              color: appColors.textColor,
+                              fontSize: (isSmallScreen ? 8 : 10) * textScaleFactor,
+                            ),
+                          )
+                        : null,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${payer['first_name'] ?? payer['username'] ?? 'Unknown'} (₹${payer['amount_paid']})',
+                    style: GoogleFonts.cabin(
+                      fontSize: (isSmallScreen ? 10 : 12) * textScaleFactor,
+                      color: appColors.textColor,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
         ),
       ],
     );

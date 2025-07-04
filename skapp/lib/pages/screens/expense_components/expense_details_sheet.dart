@@ -332,66 +332,66 @@ class ExpenseDetailsSheet extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: appColors.cardColor2?.withOpacity(0.05),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color:
-                                  appColors.borderColor2?.withOpacity(0.1) ??
-                                  Colors.transparent,
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              CircleAvatar(
-                                radius: 20,
-                                backgroundColor: appColors.cardColor2
-                                    ?.withOpacity(0.1),
-                                backgroundImage:
-                                    expense['payer_profile_pic'] != null &&
-                                        expense['payer_profile_pic'].toString().startsWith('http')
-                                    ? CachedNetworkImageProvider(
-                                        expense['payer_profile_pic'],
-                                      )
-                                    : null,
-                                child:
-                                    expense['payer_profile_pic'] == null ||
-                                        !expense['payer_profile_pic'].toString().startsWith('http')
-                                    ? Text(
-                                        (expense['payer_name'] ?? 'U')[0]
-                                            .toUpperCase(),
-                                        style: TextStyle(
-                                          color: appColors.textColor,
-                                          fontSize: 18 * textScaleFactor,
-                                        ),
-                                      )
-                                    : null,
-                              ),
-                              const SizedBox(width: 12),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    expense['payer_name'] ?? 'Unknown',
-                                    style: GoogleFonts.cabin(
-                                      fontSize: 16 * textScaleFactor,
-                                      fontWeight: FontWeight.w500,
-                                      color: appColors.textColor,
-                                    ),
+                        Column(
+                          children: [
+                            for (var payer in (expense['payers'] as List<dynamic>? ?? []))
+                              Container(
+                                margin: const EdgeInsets.only(bottom: 8),
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: appColors.cardColor2?.withOpacity(0.05),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: appColors.borderColor2?.withOpacity(0.1) ?? Colors.transparent,
                                   ),
-                                  Text(
-                                    _formatTimestamp(timestamp),
-                                    style: GoogleFonts.cabin(
-                                      fontSize: 12 * textScaleFactor,
-                                      color: appColors.textColor2,
+                                ),
+                                child: Row(
+                                  children: [
+                                    CircleAvatar(
+                                      radius: 20,
+                                      backgroundColor: appColors.cardColor2?.withOpacity(0.1),
+                                      backgroundImage: payer['profilePic'] != null &&
+                                          payer['profilePic'].toString().startsWith('http')
+                                          ? CachedNetworkImageProvider(payer['profilePic'])
+                                          : null,
+                                      child: (payer['profilePic'] == null ||
+                                              !payer['profilePic'].toString().startsWith('http'))
+                                          ? Text(
+                                              ((payer['first_name'] ?? payer['username'] ?? 'U') as String)[0].toUpperCase(),
+                                              style: TextStyle(
+                                                color: appColors.textColor,
+                                                fontSize: 18 * textScaleFactor,
+                                              ),
+                                            )
+                                          : null,
                                     ),
-                                  ),
-                                ],
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            '${payer['first_name'] ?? payer['username'] ?? 'Unknown'} ${payer['last_name'] ?? ''}',
+                                            style: GoogleFonts.cabin(
+                                              fontSize: 16 * textScaleFactor,
+                                              fontWeight: FontWeight.w500,
+                                              color: appColors.textColor,
+                                            ),
+                                          ),
+                                          Text(
+                                            '₹${payer['amount_paid']}',
+                                            style: GoogleFonts.cabin(
+                                              fontSize: 14 * textScaleFactor,
+                                              color: appColors.textColor2,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ],
-                          ),
+                          ],
                         ),
                         const SizedBox(height: 24),
                         // Split details

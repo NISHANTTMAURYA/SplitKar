@@ -338,7 +338,11 @@ def group_expenses(request):
                     'username': payment.payer.username,
                     'first_name': payment.payer.first_name,
                     'last_name': payment.payer.last_name,
-                    'amount_paid': str(payment.amount_paid)
+                    'amount_paid': str(payment.amount_paid),
+                    'profilePic': (
+                        payment.payer.profile.profile_picture_url
+                        if hasattr(payment.payer, 'profile') and hasattr(payment.payer.profile, 'profile_picture_url') else ''
+                    )
                 }
                 for payment in expense.payments.all()
             ],

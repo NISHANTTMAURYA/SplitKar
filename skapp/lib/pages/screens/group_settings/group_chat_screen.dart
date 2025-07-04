@@ -768,8 +768,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
               amount: expense['total_amount'] != null
                   ? double.parse(expense['total_amount'].toString())
                   : 0.0,
-              paidBy: expense['payer_name'] ?? 'Unknown',
-              paidByProfilePic: expense['payer_profile_pic'] ?? '',
+              payers: (expense['payers'] as List<dynamic>?)?.cast<Map<String, dynamic>>() ?? [],
               splitWith:
                   (expense['owed_breakdown'] as List<dynamic>?)
                       ?.map(
