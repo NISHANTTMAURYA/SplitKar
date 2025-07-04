@@ -87,6 +87,11 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
     print(
       'DEBUG: Existing expense data in AddExpenseSheet: ${widget.existingExpense}',
     );
+    if (widget.existingExpense != null) {
+      print('DEBUG: Expense ID field: ${widget.existingExpense!['id']}');
+      print('DEBUG: Expense ID field type: ${widget.existingExpense!['id'].runtimeType}');
+      print('DEBUG: All expense keys: ${widget.existingExpense!.keys.toList()}');
+    }
     // Initialize selected members map
     for (var member in widget.members) {
       _selectedMembers[member['profile_code']] = true;
@@ -853,11 +858,25 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
 
                               if (isEditMode) {
                                 // Edit existing expense
+                                final expenseId = widget.existingExpense!['id']?.toString();
+                                print('DEBUG: Editing expense with ID: $expenseId');
+                                print('DEBUG: Existing expense data: ${widget.existingExpense}');
+                                
+                                if (expenseId == null) {
+                                  throw 'Expense ID is null. Cannot edit expense.';
+                                }
+                                
+                                if (expenseId.isEmpty) {
+                                  throw 'Expense ID is empty. Cannot edit expense.';
+                                }
+                                
+                                print('DEBUG: Final expense ID being sent: $expenseId');
+                                print('DEBUG: Expense ID length: ${expenseId.length}');
+                                print('DEBUG: Expense ID format check: ${RegExp(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', caseSensitive: false).hasMatch(expenseId)}');
+                                
                                 context.read<GroupExpenseBloc>().add(
                                   EditGroupExpense(
-                                    expenseId: widget
-                                        .existingExpense!['expense_id']
-                                        .toString(),
+                                    expenseId: expenseId,
                                     groupId: widget.groupId,
                                     description: _titleController.text.trim(),
                                     amount: amount,

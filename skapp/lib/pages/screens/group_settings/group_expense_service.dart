@@ -244,6 +244,8 @@ class GroupExpenseService {
       };
 
       _logger.info('Sending edit expense request with body: $body');
+      _logger.info('Expense ID being sent: $expenseId');
+      _logger.info('Expense ID type: ${expenseId.runtimeType}');
 
       final response = await client.put(
         Uri.parse('${baseUrl}/expenses/edit/'),
