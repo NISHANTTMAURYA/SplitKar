@@ -5,17 +5,43 @@ import 'group_expense_state.dart';
 import '../group_settings_api.dart';
 import 'dart:developer' as dev;
 import '../../expense_components/add_expense_sheet.dart';
+import 'dart:async';
 
 class GroupExpenseBloc extends Bloc<GroupExpenseEvent, GroupExpenseState> {
   final GroupExpenseService _service;
   final GroupSettingsApi _groupSettingsApi = GroupSettingsApi();
+  Timer? _searchDebouncer;
 
   GroupExpenseBloc(this._service) : super(GroupExpenseInitial()) {
     on<LoadGroupExpenses>(_onLoadGroupExpenses);
+    on<LoadMoreExpenses>(_onLoadMoreExpenses);
+    on<SearchExpenses>(_onSearchExpenses);
+    on<DebouncedSearchExpenses>(_onDebouncedSearchExpenses);
     on<LoadGroupBalances>(_onLoadGroupBalances);
     on<AddGroupExpense>(_onAddGroupExpense);
     on<EditGroupExpense>(_onEditGroupExpense);
     on<DeleteGroupExpense>(_onDeleteGroupExpense);
+    on<LoadExpenseCategories>(_onLoadExpenseCategories);
+  }
+
+  void searchWithDebounce(int groupId, String query) {
+    _searchDebouncer?.cancel();
+    _searchDebouncer = Timer(const Duration(milliseconds: 300), () {
+      add(DebouncedSearchExpenses(groupId: groupId, query: query));
+    });
+  }
+
+  Future<void> _onDebouncedSearchExpenses(
+    DebouncedSearchExpenses event,
+    Emitter<GroupExpenseState> emit,
+  ) async {
+    add(SearchExpenses(groupId: event.groupId, query: event.query));
+  }
+
+  @override
+  Future<void> close() {
+    _searchDebouncer?.cancel();
+    return super.close();
   }
 
   List<GroupedExpenses> _processExpenses(List<dynamic> rawExpenses) {
@@ -206,13 +232,13 @@ class GroupExpenseBloc extends Bloc<GroupExpenseEvent, GroupExpenseState> {
     try {
       emit(GroupExpenseLoading());
 
-      final expenses = await _service.getGroupExpenses(event.groupId);
+      final expenses = await _service.getGroupExpenses(
+        event.groupId,
+        page: 1,
+        pageSize: 5,
+      );
       final members = await _groupSettingsApi.getGroupDetails(event.groupId);
       final balances = await _service.getGroupBalances(event.groupId);
-
-      dev.log('Raw expenses response: $expenses');
-      dev.log('Raw members response: $members');
-      dev.log('Raw balances response: $balances');
 
       if (expenses == null || members == null || balances == null) {
         throw 'Failed to fetch data';
@@ -228,7 +254,6 @@ class GroupExpenseBloc extends Bloc<GroupExpenseEvent, GroupExpenseState> {
                 'description': 'Invalid Expense',
               };
             }
-            dev.log('Processing expense: $e');
             return e;
           }).toList() ??
           [];
@@ -265,6 +290,8 @@ class GroupExpenseBloc extends Bloc<GroupExpenseEvent, GroupExpenseState> {
         processedBalances,
       );
 
+      final hasMore = expenses['pagination']?['has_next'] ?? false;
+
       emit(
         GroupExpensesLoaded(
           expenses: expensesList,
@@ -272,11 +299,110 @@ class GroupExpenseBloc extends Bloc<GroupExpenseEvent, GroupExpenseState> {
           balances: balancesList,
           groupedExpenses: groupedExpenses,
           summary: summary,
+          hasMoreExpenses: hasMore,
+          currentPage: 1,
         ),
       );
     } catch (e, stackTrace) {
       dev.log('Error in _onLoadGroupExpenses: $e\n$stackTrace');
       emit(GroupExpenseError(e.toString()));
+    }
+  }
+
+  Future<void> _onLoadMoreExpenses(
+    LoadMoreExpenses event,
+    Emitter<GroupExpenseState> emit,
+  ) async {
+    try {
+      if (state is! GroupExpensesLoaded) return;
+      final currentState = state as GroupExpensesLoaded;
+
+      final expenses = await _service.getGroupExpenses(
+        event.groupId,
+        page: event.nextPage,
+        pageSize: 5,
+        searchQuery: event.searchQuery,
+      );
+
+      if (expenses == null) throw 'Failed to fetch more expenses';
+
+      final newExpenses =
+          (expenses['expenses'] as List<dynamic>?)?.map((e) {
+            if (e is! Map<String, dynamic>) {
+              return <String, dynamic>{
+                'date': DateTime.now().toIso8601String(),
+                'total_amount': '0',
+                'description': 'Invalid Expense',
+              };
+            }
+            return e;
+          }).toList() ??
+          [];
+
+      // Combine existing and new expenses
+      final allExpenses = [...currentState.expenses, ...newExpenses];
+      final groupedExpenses = _processExpenses(allExpenses);
+
+      emit(
+        currentState.copyWith(
+          expenses: allExpenses,
+          groupedExpenses: groupedExpenses,
+          hasMoreExpenses: expenses['pagination']['has_next'] ?? false,
+          currentPage: event.nextPage,
+        ),
+      );
+    } catch (e) {
+      dev.log('Error in _onLoadMoreExpenses: $e');
+      // Don't emit error state, just log it
+    }
+  }
+
+  Future<void> _onSearchExpenses(
+    SearchExpenses event,
+    Emitter<GroupExpenseState> emit,
+  ) async {
+    try {
+      if (state is! GroupExpensesLoaded) return;
+      final currentState = state as GroupExpensesLoaded;
+
+      if (event.query.isEmpty) {
+        emit(currentState.copyWith(searchResults: null, searchQuery: null));
+        return;
+      }
+
+      final searchResponse = await _service.getGroupExpenses(
+        event.groupId,
+        searchQuery: event.query,
+        searchMode: 'chat',
+      );
+
+      if (searchResponse == null) throw 'Failed to search expenses';
+
+      if (!searchResponse.containsKey('expenses')) {
+        throw 'Invalid response format: missing expenses key';
+      }
+
+      final searchExpenses = searchResponse['expenses'] as List<dynamic>;
+      final searchResults = searchExpenses.map((e) {
+        final Map<String, dynamic> expense = Map<String, dynamic>.from(e);
+        return SearchResult(
+          expenseId: expense['id'].toString(),
+          description: expense['description'] ?? 'Untitled Expense',
+          amount: double.parse(expense['total_amount'].toString()),
+          payerName: expense['payer_name'] ?? 'Unknown',
+          date: DateTime.parse(expense['date']),
+        );
+      }).toList();
+
+      emit(
+        currentState.copyWith(
+          searchResults: searchResults,
+          searchQuery: event.query,
+        ),
+      );
+    } catch (e) {
+      dev.log('Error in _onSearchExpenses: $e');
+      // Don't emit error state, just log it
     }
   }
 
@@ -329,6 +455,7 @@ class GroupExpenseBloc extends Bloc<GroupExpenseEvent, GroupExpenseState> {
             ? 'percentage'
             : 'equal',
         splits: event.splits,
+        categoryId: event.categoryId,
       );
 
       add(LoadGroupExpenses(event.groupId));
@@ -373,5 +500,59 @@ class GroupExpenseBloc extends Bloc<GroupExpenseEvent, GroupExpenseState> {
       print('[BLOC DEBUG] Error in _onDeleteGroupExpense: $e');
       emit(GroupExpenseError(e.toString()));
     }
+  }
+
+  Future<void> _onLoadExpenseCategories(
+    LoadExpenseCategories event,
+    Emitter<GroupExpenseState> emit,
+  ) async {
+    try {
+      emit(GroupExpenseLoading());
+      final categories = await _service.getExpenseCategories();
+      emit(ExpenseCategoriesLoaded(categories));
+    } catch (e) {
+      emit(GroupExpenseError(e.toString()));
+    }
+  }
+
+  Future<Map<String, dynamic>?> loadExpenseById(String expenseId, int groupId) async {
+    // First try to find in current state
+    if (state is GroupExpensesLoaded) {
+      final currentState = state as GroupExpensesLoaded;
+      final expense = currentState.expenses.firstWhere(
+        (e) => e['id'].toString() == expenseId,
+        orElse: () => <String, dynamic>{},
+      );
+      if (expense.isNotEmpty) {
+        return expense;
+      }
+    }
+
+    // If not found, load all pages until we find it
+    int currentPage = 1;
+    while (true) {
+      final expenses = await _service.getGroupExpenses(
+        groupId,
+        page: currentPage,
+        pageSize: 5,
+      );
+
+      if (expenses['expenses'] != null) {
+        final expensesList = expenses['expenses'] as List<dynamic>;
+        final expense = expensesList.firstWhere(
+          (e) => e['id'].toString() == expenseId,
+          orElse: () => null,
+        );
+        if (expense != null) {
+          return expense as Map<String, dynamic>;
+        }
+      }
+
+      if (!(expenses['pagination']?['has_next'] ?? false)) {
+        break;
+      }
+      currentPage++;
+    }
+    return null;
   }
 }

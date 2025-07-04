@@ -14,6 +14,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:skapp/pages/screens/group_settings/bloc/group_expense_bloc.dart';
 import 'package:skapp/pages/screens/group_settings/bloc/group_expense_state.dart';
 import 'package:skapp/pages/screens/group_settings/bloc/group_expense_event.dart';
+import 'dart:async';
 
 class GroupChatScreen extends StatefulWidget {
   final String chatName;
@@ -36,6 +37,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   bool _isExpenseSummaryExpanded = false;
   bool _isSearchVisible = false;
   final TextEditingController _searchController = TextEditingController();
+  Timer? _scrollDebouncer;
+  bool _isLoadingMore = false;
   bool _isLoading = true;
   List<Map<String, dynamic>> _expenses = [];
   List<Map<String, dynamic>> _members = [];
@@ -46,6 +49,51 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     _isLoading = true; // Set initial loading state
     // Load expenses when screen opens
     context.read<GroupExpenseBloc>().add(LoadGroupExpenses(widget.groupId));
+
+    // Add scroll listener for infinite scrolling
+    _scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    if (_isLoadingMore) return; // Prevent duplicate calls while loading
+
+    _scrollDebouncer?.cancel();
+    _scrollDebouncer = Timer(const Duration(milliseconds: 200), () {
+      if (!mounted) return;
+
+      if (_scrollController.position.pixels >=
+          _scrollController.position.maxScrollExtent * 0.8) {
+        final state = context.read<GroupExpenseBloc>().state;
+        if (state is GroupExpensesLoaded && state.hasMoreExpenses) {
+          _isLoadingMore = true; // Set flag before loading
+          context.read<GroupExpenseBloc>().add(
+            LoadMoreExpenses(
+              groupId: widget.groupId,
+              nextPage: state.currentPage + 1,
+              searchQuery: state.searchQuery,
+            ),
+          );
+        }
+      }
+    });
+  }
+
+  void _onSearchChanged(String value) {
+    context.read<GroupExpenseBloc>().searchWithDebounce(widget.groupId, value);
+  }
+
+  void _scrollToExpense(int messageIndex) {
+    if (messageIndex < 0) return;
+
+    // Calculate approximate position
+    final itemHeight = 100.0; // Estimated height of each expense item
+    final targetPosition = messageIndex * itemHeight;
+
+    _scrollController.animateTo(
+      targetPosition,
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeInOut,
+    );
   }
 
   void _scrollToBottom() {
@@ -65,6 +113,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   void dispose() {
     _scrollController.dispose();
     _searchController.dispose();
+    _scrollDebouncer?.cancel();
     super.dispose();
   }
 
@@ -179,7 +228,13 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                 _isSearchVisible = !_isSearchVisible;
                 if (!_isSearchVisible) {
                   _searchController.clear();
-                  // TODO: Clear search results
+                  // Clear search results and reload expenses
+                  context.read<GroupExpenseBloc>().add(
+                    LoadGroupExpenses(
+                      widget.groupId,
+                      resetPagination: true,
+                    ),
+                  );
                 }
               });
             },
@@ -527,6 +582,22 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                 decoration: InputDecoration(
                   hintText: 'Search expenses...',
                   prefixIcon: Icon(Icons.search, color: appColors.iconColor),
+                  suffixIcon: IconButton(
+                    icon: Icon(Icons.close, color: appColors.iconColor),
+                    onPressed: () {
+                      setState(() {
+                        _isSearchVisible = false;
+                        _searchController.clear();
+                      });
+                      // Clear search results and reload expenses
+                      context.read<GroupExpenseBloc>().add(
+                        LoadGroupExpenses(
+                          widget.groupId,
+                          resetPagination: true,
+                        ),
+                      );
+                    },
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(
@@ -548,9 +619,11 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                     ),
                   ),
                 ),
-                onChanged: (value) {
-                  // TODO: Implement search functionality
-                },
+                onChanged: _onSearchChanged,
+                keyboardType: TextInputType.text,
+                textInputAction: TextInputAction.search,
+                autocorrect: false,
+                enableSuggestions: false,
               ),
             )
           : const SizedBox.shrink(),
@@ -594,6 +667,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                 print('DEBUG: Expense data being passed to onTap: $expense');
                 _showExpenseDetails(expense);
               },
+              category: expense['category'],
             ),
           ),
         ),
@@ -642,88 +716,151 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     }
   }
 
+  Future<void> _loadAndShowExpense(String expenseId, GroupExpensesLoaded state) async {
+    final bloc = context.read<GroupExpenseBloc>();
+    final expense = await bloc.loadExpenseById(expenseId, widget.groupId);
+    
+    if (expense != null && mounted) {
+      _showExpenseDetails(expense);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocListener<GroupExpenseBloc, GroupExpenseState>(
       listener: (context, state) {
         if (state is GroupExpenseError) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(state.message)));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(state.message))
+          );
+          _isLoadingMore = false;
         } else if (state is GroupExpensesLoaded) {
-          // Scroll to bottom both when first loaded and when new expense is added
-          // _scrollToBottom();
+          _isLoadingMore = false;
           _isLoading = false;
         }
       },
       child: Scaffold(
         appBar: _buildAppBar(context),
-        body: Column(
+        body: Stack(
           children: [
-            _buildSearchBar(),
-            Expanded(
-              child: BlocBuilder<GroupExpenseBloc, GroupExpenseState>(
-                builder: (context, state) {
-                  return RefreshIndicator(
-                    onRefresh: () async {
-                      context.read<GroupExpenseBloc>().add(
-                        LoadGroupExpenses(widget.groupId),
+            Column(
+              children: [
+                _buildSearchBar(),
+                Expanded(
+                  child: BlocBuilder<GroupExpenseBloc, GroupExpenseState>(
+                    builder: (context, state) {
+                      return RefreshIndicator(
+                        onRefresh: () async {
+                          context.read<GroupExpenseBloc>().add(
+                            LoadGroupExpenses(
+                              widget.groupId,
+                              resetPagination: true,
+                            ),
+                          );
+                        },
+                        child: () {
+                          if (state is GroupExpenseLoading) {
+                            return const Center(child: CustomLoader());
+                          } else if (state is GroupExpensesLoaded) {
+                            // Only show the main content if no search results
+                            if (state.searchResults == null || state.searchResults!.isEmpty) {
+                              return CustomScrollView(
+                                controller: _scrollController,
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                slivers: [
+                                  SliverPersistentHeader(
+                                    floating: true,
+                                    delegate: _SummaryHeaderDelegate(
+                                      child: _buildSummaryHeader(state),
+                                      isExpanded: _isExpenseSummaryExpanded,
+                                      onToggle: (value) {
+                                        setState(() {
+                                          _isExpenseSummaryExpanded = value;
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                  if (_isExpenseSummaryExpanded)
+                                    SliverToBoxAdapter(
+                                      child: _buildExpandedSummaryContent(state),
+                                    ),
+                                  _buildExpensesList(state.groupedExpenses),
+                                  if (state.hasMoreExpenses)
+                                    const SliverToBoxAdapter(
+                                      child: Padding(
+                                        padding: EdgeInsets.all(16.0),
+                                        child: Center(
+                                          child: CustomLoader(
+                                            size: 30,
+                                            isButtonLoader: true,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  const SliverPadding(
+                                    padding: EdgeInsets.only(bottom: 100),
+                                  ),
+                                ],
+                              );
+                            } else {
+                              return const SizedBox.shrink(); // Hide main content when search results are shown
+                            }
+                          } else if (state is GroupExpenseError) {
+                            return Center(
+                              child: Padding(
+                                padding: const EdgeInsets.all(16.0),
+                                child: Text(
+                                  state.message,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            );
+                          }
+                          return ListView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            children: const [_NoExpensesView()],
+                          );
+                        }(),
                       );
                     },
-                    child: () {
-                      if (state is GroupExpenseLoading) {
-                        return const Center(child: CustomLoader());
-                      } else if (state is GroupExpensesLoaded) {
-                        return CustomScrollView(
-                          controller: _scrollController,
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          slivers: [
-                            SliverPersistentHeader(
-                              floating: true,
-                              delegate: _SummaryHeaderDelegate(
-                                child: _buildSummaryHeader(state),
-                                isExpanded: _isExpenseSummaryExpanded,
-                                onToggle: (value) {
-                                  setState(() {
-                                    _isExpenseSummaryExpanded = value;
-                                  });
-                                },
-                              ),
-                            ),
-                            if (_isExpenseSummaryExpanded)
-                              SliverToBoxAdapter(
-                                child: _buildExpandedSummaryContent(state),
-                              ),
-                            _buildExpensesList(state.groupedExpenses),
-                            const SliverPadding(
-                              padding: EdgeInsets.only(bottom: 100),
-                            ),
-                          ],
-                        );
-                      } else if (state is GroupExpenseError) {
-                        return Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Text(
-                              state.message,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        );
-                      }
-                      // Default: show no expenses view with refresh
-                      return ListView(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        children: const [_NoExpensesView()],
+                  ),
+                ),
+              ],
+            ),
+            // Search Results Overlay
+            BlocBuilder<GroupExpenseBloc, GroupExpenseState>(
+              builder: (context, state) {
+                if (state is GroupExpensesLoaded &&
+                    state.searchResults != null &&
+                    _isSearchVisible) {
+                  return _SearchResultsOverlay(
+                    results: state.searchResults!,
+                    onResultTap: (result) async {
+                      await _loadAndShowExpense(result.expenseId, state);
+                    },
+                    onClose: () {
+                      setState(() {
+                        _isSearchVisible = false;
+                        _searchController.clear();
+                      });
+                      context.read<GroupExpenseBloc>().add(
+                        LoadGroupExpenses(
+                          widget.groupId,
+                          resetPagination: true,
+                        ),
                       );
-                    }(),
+                    },
+                    searchController: _searchController,
+                    onSearchChanged: _onSearchChanged,
+                    groupId: widget.groupId,
                   );
-                },
-              ),
+                }
+                return const SizedBox.shrink();
+              },
             ),
           ],
         ),
@@ -1089,5 +1226,145 @@ class _SummaryHeaderDelegate extends SliverPersistentHeaderDelegate {
   @override
   bool shouldRebuild(covariant _SummaryHeaderDelegate oldDelegate) {
     return oldDelegate.isExpanded != isExpanded || oldDelegate.child != child;
+  }
+}
+
+class _SearchResultsOverlay extends StatelessWidget {
+  final List<SearchResult> results;
+  final Function(SearchResult) onResultTap;
+  final VoidCallback onClose;
+  final TextEditingController searchController;
+  final Function(String) onSearchChanged;
+  final int groupId;
+
+  const _SearchResultsOverlay({
+    required this.results,
+    required this.onResultTap,
+    required this.onClose,
+    required this.searchController,
+    required this.onSearchChanged,
+    required this.groupId,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final appColors = Theme.of(context).extension<AppColorScheme>()!;
+
+    return Container(
+      color: appColors.cardColor?.withOpacity(0.98),
+      child: Column(
+        children: [
+          // Search Bar
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: TextField(
+              controller: searchController,
+              decoration: InputDecoration(
+                hintText: 'Search expenses...',
+                prefixIcon: Icon(Icons.search, color: appColors.iconColor),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color: appColors.borderColor ?? Colors.transparent,
+                  ),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color: appColors.borderColor?.withOpacity(0.2) ?? Colors.transparent,
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color: appColors.borderColor ?? Colors.transparent,
+                  ),
+                ),
+              ),
+              onChanged: onSearchChanged,
+              keyboardType: TextInputType.text,
+              textInputAction: TextInputAction.search,
+              autocorrect: false,
+              enableSuggestions: false,
+            ),
+          ),
+          // Results Header
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: Row(
+              children: [
+                Text(
+                  '${results.length} result${results.length == 1 ? '' : 's'}',
+                  style: GoogleFonts.cabin(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: appColors.textColor,
+                  ),
+                ),
+                const Spacer(),
+                IconButton(
+                  icon: Icon(Icons.close, color: appColors.iconColor),
+                  onPressed: onClose,
+                ),
+              ],
+            ),
+          ),
+          // Results List
+          Expanded(
+            child: BlocBuilder<GroupExpenseBloc, GroupExpenseState>(
+              builder: (context, state) {
+                if (state is! GroupExpensesLoaded) {
+                  return const Center(child: CustomLoader());
+                }
+
+                return ListView.builder(
+                  itemCount: results.length,
+                  itemBuilder: (context, index) {
+                    final result = results[index];
+                    return ListTile(
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: appColors.cardColor2?.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(Icons.receipt_long, color: appColors.iconColor),
+                      ),
+                      title: Text(
+                        result.description,
+                        style: GoogleFonts.cabin(
+                          color: appColors.textColor,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      subtitle: Text(
+                        '₹${result.amount.toStringAsFixed(2)} • ${result.payerName}',
+                        style: GoogleFonts.cabin(
+                          color: appColors.textColor2,
+                          fontSize: 12,
+                        ),
+                      ),
+                      trailing: Text(
+                        result.date.toLocal().toString().split(' ')[0],
+                        style: GoogleFonts.cabin(
+                          color: appColors.textColor2,
+                          fontSize: 12,
+                        ),
+                      ),
+                      onTap: () async {
+                        final state = context.read<GroupExpenseBloc>().state;
+                        if (state is GroupExpensesLoaded) {
+                          await onResultTap(result);
+                        }
+                      },
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

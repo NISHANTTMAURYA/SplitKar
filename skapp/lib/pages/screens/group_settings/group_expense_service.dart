@@ -20,13 +20,38 @@ class GroupExpenseService {
   // Cache management methods similar to FriendsService
   Map<int, List<Map<String, dynamic>>>? _cachedGroupExpenses;
 
-  Future<Map<String, dynamic>> getGroupExpenses(int groupId) async {
+  Future<Map<String, dynamic>> getGroupExpenses(
+    int groupId, {
+    int page = 1,
+    int pageSize = 5,
+    String? searchQuery,
+    String searchMode = 'normal',
+  }) async {
     try {
       String? token = await _authService.getToken();
       if (token == null) throw 'Session expired. Please log in again.';
 
+      // Build query parameters
+      final queryParams = {
+        'group_id': groupId.toString(),
+        'page': page.toString(),
+        'page_size': pageSize.toString(),
+        'search_mode': searchMode,
+      };
+
+      // Add search query if provided
+      if (searchQuery != null && searchQuery.isNotEmpty) {
+        queryParams['search'] = searchQuery;
+      }
+
+      final uri = Uri.parse(
+        '${baseUrl}/expenses/group-expenses/',
+      ).replace(queryParameters: queryParams);
+
+      _logger.info('Fetching expenses with params: $queryParams');
+
       final response = await client.get(
-        Uri.parse('${baseUrl}/expenses/group-expenses/?group_id=$groupId'),
+        uri,
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -39,11 +64,25 @@ class GroupExpenseService {
           throw 'Invalid response format: missing expenses key';
         }
         _logger.info('Got expenses response: $responseData');
+
+        // Cache first page results if no search query
+        if (page == 1 && searchQuery == null) {
+          _cachedGroupExpenses?[groupId] = List<Map<String, dynamic>>.from(
+            responseData['expenses'],
+          );
+        }
+
         return responseData;
       } else if (response.statusCode == 401) {
         final refreshSuccess = await _authService.handleTokenRefresh();
         if (refreshSuccess) {
-          return getGroupExpenses(groupId);
+          return getGroupExpenses(
+            groupId,
+            page: page,
+            pageSize: pageSize,
+            searchQuery: searchQuery,
+            searchMode: searchMode,
+          );
         }
         throw 'Session expired. Please log in again.';
       } else {
@@ -99,6 +138,7 @@ class GroupExpenseService {
     required List<int> userIds,
     String? splitType = 'equal',
     List<Map<String, dynamic>>? splits,
+    int? categoryId,
   }) async {
     try {
       String? token = await _authService.getToken();
@@ -123,6 +163,7 @@ class GroupExpenseService {
         'group_id': groupId,
         'split_type': splitType,
         if (splits != null) 'splits': splits,
+        if (categoryId != null) 'category_id': categoryId,
       };
 
       final response = await client.post(
@@ -151,6 +192,7 @@ class GroupExpenseService {
             userIds: userIds,
             splitType: splitType,
             splits: splits,
+            categoryId: categoryId,
           );
         }
         throw 'Session expired. Please log in again.';
@@ -262,6 +304,38 @@ class GroupExpenseService {
       }
     } catch (e) {
       _logger.severe('Error deleting group expense: $e');
+      rethrow;
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getExpenseCategories() async {
+    try {
+      String? token = await _authService.getToken();
+      if (token == null) throw 'Session expired. Please log in again.';
+
+      final response = await client.get(
+        Uri.parse('${baseUrl}/expenses/categories/'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        return List<Map<String, dynamic>>.from(data);
+      } else if (response.statusCode == 401) {
+        final refreshSuccess = await _authService.handleTokenRefresh();
+        if (refreshSuccess) {
+          return getExpenseCategories();
+        }
+        throw 'Session expired. Please log in again.';
+      } else {
+        final error = _parseErrorResponse(response);
+        throw error;
+      }
+    } catch (e) {
+      _logger.severe('Error fetching expense categories: $e');
       rethrow;
     }
   }
