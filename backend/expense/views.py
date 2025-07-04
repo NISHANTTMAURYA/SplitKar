@@ -437,6 +437,16 @@ def edit_expense(request):
                     'description': updated_expense.description,
                     'total_amount': str(updated_expense.total_amount),
                     'split_type': updated_expense.split_type,
+                    'payers': [
+                        {
+                            'id': payment.payer.id,
+                            'username': payment.payer.username,
+                            'first_name': payment.payer.first_name,
+                            'last_name': payment.payer.last_name,
+                            'amount_paid': str(payment.amount_paid)
+                        }
+                        for payment in updated_expense.payments.all()
+                    ],
                     'shares': [
                         {
                             'user_id': share.user.id,

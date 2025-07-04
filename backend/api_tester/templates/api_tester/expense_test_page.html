@@ -172,6 +172,9 @@
                     <label for="editNotes" class="form-label">Notes</label>
                     <input type="text" class="form-control" id="editNotes">
                 </div>
+                <label class="form-label mt-2">Payers (ID and Amount Paid)</label>
+                <div id="editPayersInputs"></div>
+                <button type="button" class="btn btn-secondary btn-sm mt-2" id="editAddPayerBtn">Add Payer</button>
                 <button type="submit" class="btn btn-warning mt-3">Edit Expense</button>
             </form>
             <div class="response-area" id="editExpenseResponse"></div>
@@ -407,6 +410,27 @@
             }
         });
 
+        // Add payer row for edit
+        function addEditPayerRow(payerId = '', amountPaid = '') {
+            const container = document.getElementById('editPayersInputs');
+            const row = document.createElement('div');
+            row.className = 'payer-row mb-2';
+            row.innerHTML = `
+                <input type="number" class="form-control d-inline-block w-auto me-2" placeholder="Payer ID" value="${payerId}">
+                <input type="number" step="0.01" class="form-control d-inline-block w-auto me-2" placeholder="Amount Paid" value="${amountPaid}">
+                <button type="button" class="btn btn-danger btn-sm remove-payer-btn">Remove</button>
+            `;
+            container.appendChild(row);
+        }
+        document.getElementById('editAddPayerBtn').addEventListener('click', function() {
+            addEditPayerRow();
+        });
+        document.getElementById('editPayersInputs').addEventListener('click', function(e) {
+            if (e.target.classList.contains('remove-payer-btn')) {
+                e.target.parentElement.remove();
+            }
+        });
+
         // Edit Expense API
         document.getElementById('editExpenseForm').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -444,6 +468,18 @@
             }
             if (currency) payload.currency = currency;
             if (notes) payload.notes = notes;
+            // Gather payers
+            const payerRows = document.querySelectorAll('#editPayersInputs .payer-row');
+            const payments = [];
+            payerRows.forEach(row => {
+                const inputs = row.querySelectorAll('input');
+                const payer_id = inputs[0].value;
+                const amount_paid = inputs[1].value;
+                if (payer_id && amount_paid) {
+                    payments.push({ payer_id: parseInt(payer_id), amount_paid: amount_paid });
+                }
+            });
+            payload.payments = payments;
             try {
                 const response = await fetch('/api/expenses/edit/', {
                     method: 'PUT',

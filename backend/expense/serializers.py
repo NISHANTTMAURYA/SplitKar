@@ -450,7 +450,7 @@ class EditExpenseSerializer(serializers.Serializer):
         required=False
     )
     category_id = serializers.IntegerField(required=False, allow_null=True)
-    payer_id = serializers.IntegerField(required=False)
+    payments = AddExpensePaymentSerializer(many=True, required=False)
     user_ids = serializers.ListField(
         child=serializers.IntegerField(),
         min_length=1,
@@ -473,7 +473,7 @@ class EditExpenseSerializer(serializers.Serializer):
 
         # Ensure at least one field is provided for editing
         editable_fields = [
-            'description', 'total_amount', 'category_id', 'payer_id', 'user_ids', 'splits', 'split_type', 'currency', 'notes'
+            'description', 'total_amount', 'category_id', 'payments', 'user_ids', 'splits', 'split_type', 'currency', 'notes'
         ]
         if not any(f in attrs for f in editable_fields):
             raise serializers.ValidationError("At least one field must be provided to edit the expense.")
@@ -487,13 +487,18 @@ class EditExpenseSerializer(serializers.Serializer):
                 except ExpenseCategory.DoesNotExist:
                     raise serializers.ValidationError("Invalid category ID")
 
-        # Validate payer
-        payer_id = attrs.get('payer_id')
-        if payer_id is not None:
-            try:
-                User.objects.get(id=payer_id)
-            except User.DoesNotExist:
-                raise serializers.ValidationError("Payer not found")
+        # Validate payments if present
+        payments = attrs.get('payments')
+        total_amount = attrs.get('total_amount', getattr(expense, 'total_amount', None))
+        if payments is not None:
+            if not payments or len(payments) == 0:
+                raise serializers.ValidationError("At least one payer is required.")
+            payer_ids = [p['payer_id'] for p in payments]
+            if len(set(payer_ids)) != len(payer_ids):
+                raise serializers.ValidationError("Duplicate payer_id in payments.")
+            sum_paid = sum(Decimal(p['amount_paid']) for p in payments)
+            if abs(sum_paid - total_amount) > Decimal('0.01'):
+                raise serializers.ValidationError("Sum of all payments must equal total_amount")
 
         # Validate user_ids
         user_ids = attrs.get('user_ids')
@@ -505,22 +510,6 @@ class EditExpenseSerializer(serializers.Serializer):
                 existing_ids = set(existing_users.values_list('id', flat=True))
                 missing_ids = set(user_ids) - existing_ids
                 raise serializers.ValidationError(f"Users with IDs {missing_ids} not found")
-            if payer_id is not None and payer_id not in user_ids:
-                raise serializers.ValidationError("Payer must be included in user_ids")
-
-        # Validate splits for percentage
-        split_type = attrs.get('split_type', getattr(expense, 'split_type', 'equal'))
-        if split_type == 'percentage':
-            splits = attrs.get('splits')
-            ids = user_ids if user_ids is not None else list(expense.shares.values_list('user_id', flat=True))
-            if not splits or len(splits) == 0:
-                raise serializers.ValidationError("Splits are required for percentage split.")
-            split_user_ids = [int(s['user_id']) for s in splits]
-            if set(split_user_ids) != set(ids):
-                raise serializers.ValidationError("Splits must be provided for all users in user_ids.")
-            total_percentage = sum(Decimal(s['percentage']) for s in splits)
-            if abs(total_percentage - Decimal('100')) > Decimal('0.01'):
-                raise serializers.ValidationError("Total percentage must equal 100%.")
 
         return attrs
 
@@ -533,7 +522,7 @@ class EditExpenseSerializer(serializers.Serializer):
         with transaction.atomic():
             # Load all shares & payment info BEFORE any deletion or updates
             shares = list(instance.shares.all())
-            payment = instance.payments.first()
+            payments = list(instance.payments.all())
 
             # Update core fields only if present
             if 'description' in self.validated_data:
@@ -551,40 +540,26 @@ class EditExpenseSerializer(serializers.Serializer):
                 instance.notes = self.validated_data['notes']
             instance.save()
 
-            # Update payer if changed
-            payer_changed = False
-            previous_payer_id = payment.payer.id if payment else None
-            if 'payer_id' in self.validated_data and payment:
-                new_payer_id = self.validated_data['payer_id']
-                if payment.payer.id != new_payer_id:
-                    # Delete previous payment
-                    payment.delete()
-                    # Create new payment for new payer
-                    new_payer = User.objects.get(id=new_payer_id)
+            # Update payments if present
+            if 'payments' in self.validated_data:
+                # Remove all old payments
+                instance.payments.all().delete()
+                payments = self.validated_data['payments']
+                for payment in payments:
+                    payer = User.objects.get(id=payment['payer_id'])
                     ExpensePayment.objects.create(
                         expense=instance,
-                        payer=new_payer,
-                        amount_paid=instance.total_amount
+                        payer=payer,
+                        amount_paid=payment['amount_paid']
                     )
-                    payer_changed = True
-                    payment = instance.payments.first()  # Update reference
-            # Always update payment amount if total_amount changed
-            amount_changed = False
-            if 'total_amount' in self.validated_data:
-                payment.amount_paid = instance.total_amount
-                amount_changed = True
-            if payer_changed or amount_changed:
-                payment.save()
 
-            # If payer changed, update amount_paid_back for all shares
-            if payer_changed:
-                current_payer_id = payment.payer.id if payment else None
-                for share in instance.shares.all():
-                    if share.user_id == current_payer_id:
-                        share.amount_paid_back = share.amount_owed
-                    else:
-                        share.amount_paid_back = 0
-                    share.save(update_fields=["amount_paid_back"])
+            # After payments are updated, update shares' amount_paid_back
+            instance_payments = list(instance.payments.all())
+            paid_by_user = {p.payer.id: p.amount_paid for p in instance_payments}
+            for share in instance.shares.all():
+                paid = paid_by_user.get(share.user.id, Decimal('0'))
+                share.amount_paid_back = min(share.amount_owed, paid)
+                share.save(update_fields=["amount_paid_back"])
 
             # Update user_ids if changed
             if 'user_ids' in self.validated_data:
