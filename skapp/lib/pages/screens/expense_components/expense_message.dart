@@ -60,6 +60,44 @@ class ExpenseMessage extends StatelessWidget {
     }
   }
 
+  Widget _buildPayerInfo(BuildContext context) {
+    final appColors = Theme.of(context).extension<AppColorScheme>()!;
+    final isSmallScreen = MediaQuery.of(context).size.width < 360;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Paid by:',
+          style: TextStyle(
+            fontSize: 12,
+            color: Theme.of(context).textTheme.bodySmall?.color,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircleAvatar(
+              radius: isSmallScreen ? 14 : 16,
+              backgroundColor: appColors.cardColor2?.withOpacity(0.1),
+              backgroundImage: paidByProfilePic.startsWith('http')
+                  ? CachedNetworkImageProvider(paidByProfilePic) as ImageProvider
+                  : const AssetImage('assets/images/default_profile.png'),
+            ),
+            const SizedBox(width: 4),
+            Text(
+              '$paidBy (₹$amount)',
+              style: TextStyle(
+                fontSize: isSmallScreen ? 12 : 14,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final appColors = Theme.of(context).extension<AppColorScheme>()!;
@@ -168,34 +206,7 @@ class ExpenseMessage extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            CircleAvatar(
-                              radius: isSmallScreen ? 14 : 16,
-                              backgroundColor: appColors.cardColor2?.withOpacity(0.1),
-                              backgroundImage: paidByProfilePic.startsWith('http')
-                                  ? CachedNetworkImageProvider(paidByProfilePic)
-                                  : null,
-                              child: !paidByProfilePic.startsWith('http')
-                                  ? Text(
-                                      paidBy[0].toUpperCase(),
-                                      style: TextStyle(
-                                        color: appColors.textColor,
-                                        fontSize: (isSmallScreen ? 12 : 14) * textScaleFactor,
-                                      ),
-                                    )
-                                  : null,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Paid by $paidBy',
-                              style: GoogleFonts.cabin(
-                                fontSize: 14 * textScaleFactor,
-                                color: appColors.textColor2,
-                              ),
-                            ),
-                          ],
-                        ),
+                        _buildPayerInfo(context),
                         const SizedBox(height: 8),
                         Text(
                           'Split with:',

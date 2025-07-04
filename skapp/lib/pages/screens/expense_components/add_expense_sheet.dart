@@ -10,8 +10,21 @@ import 'package:skapp/services/auth_service.dart';
 import 'package:skapp/widgets/app_notification.dart';
 import 'package:skapp/services/notification_service.dart';
 import 'package:skapp/widgets/custom_loader.dart';
+import 'package:collection/collection.dart';
 
 enum SplitMethod { equal, percentage }
+
+class PaymentInfo {
+  final int userId;
+  final String username;
+  double amountPaid;
+  
+  PaymentInfo({
+    required this.userId,
+    required this.username,
+    required this.amountPaid,
+  });
+}
 
 class AddExpenseSheet extends StatefulWidget {
   final int groupId;
@@ -65,6 +78,8 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
   final _scrollController = ScrollController();
   String? _percentageError;
   Map<String, dynamic>? _selectedCategory;
+  final List<PaymentInfo> _payments = [];
+  String? _paymentError;
 
   @override
   void initState() {
@@ -121,6 +136,9 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
         }
       }
     }
+
+    // Initialize current user as first payer
+    _initializeCurrentUserPayment();
   }
 
   @override
@@ -300,6 +318,239 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
     return int.parse(userId);
   }
 
+  Future<String?> _getUserName(int userId) async {
+    // Get username from your existing group members list
+    final member = widget.members.firstWhereOrNull((m) => m['id'] == userId);
+    return member?['username'] as String?;
+  }
+
+  Future<void> _initializeCurrentUserPayment() async {
+    final currentUserId = await _getCurrentUserId();
+    if (currentUserId != null) {
+      final username = await _getUserName(currentUserId);
+      _payments.add(PaymentInfo(
+        userId: currentUserId,
+        username: username ?? 'Unknown',
+        amountPaid: 0,
+      ));
+      setState(() {});
+    }
+  }
+
+  Widget _buildPayersSection(AppColorScheme appColors) {
+    final isSmallScreen = MediaQuery.of(context).size.width < 360;
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Who paid?', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+        const SizedBox(height: 8),
+        // List current payers
+        ..._payments.map((payment) => Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: isSmallScreen 
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  DropdownButtonFormField<int>(
+                    value: payment.userId,
+                    items: widget.members
+                        .where((m) => !_payments.any((p) => p != payment && p.userId == m['id']))
+                        .map((member) => DropdownMenuItem(
+                              value: member['id'] as int,
+                              child: Text(
+                                member['username'] as String,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ))
+                        .toList(),
+                    onChanged: (int? newValue) {
+                      if (newValue != null) {
+                        setState(() {
+                          final index = _payments.indexOf(payment);
+                          final username = widget.members
+                              .firstWhere((m) => m['id'] == newValue)['username'] as String;
+                          _payments[index] = PaymentInfo(
+                            userId: newValue,
+                            username: username,
+                            amountPaid: payment.amountPaid,
+                          );
+                        });
+                      }
+                    },
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          initialValue: payment.amountPaid > 0 ? payment.amountPaid.toString() : '',
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          decoration: InputDecoration(
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            hintText: 'Amount paid',
+                            prefixText: '₹ ',
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          ),
+                          onChanged: (value) {
+                            setState(() {
+                              payment.amountPaid = double.tryParse(value) ?? 0;
+                            });
+                          },
+                        ),
+                      ),
+                      if (_payments.length > 1) 
+                        IconButton(
+                          icon: const Icon(Icons.remove_circle_outline),
+                          onPressed: () {
+                            setState(() {
+                              _payments.remove(payment);
+                            });
+                          },
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          constraints: const BoxConstraints(),
+                          iconSize: 20,
+                        ),
+                    ],
+                  ),
+                ],
+              )
+            : Row(
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: DropdownButtonFormField<int>(
+                      value: payment.userId,
+                      items: widget.members
+                          .where((m) => !_payments.any((p) => p != payment && p.userId == m['id']))
+                          .map((member) => DropdownMenuItem(
+                                value: member['id'] as int,
+                                child: Text(
+                                  member['username'] as String,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ))
+                          .toList(),
+                      onChanged: (int? newValue) {
+                        if (newValue != null) {
+                          setState(() {
+                            final index = _payments.indexOf(payment);
+                            final username = widget.members
+                                .firstWhere((m) => m['id'] == newValue)['username'] as String;
+                            _payments[index] = PaymentInfo(
+                              userId: newValue,
+                              username: username,
+                              amountPaid: payment.amountPaid,
+                            );
+                          });
+                        }
+                      },
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    flex: 2,
+                    child: TextFormField(
+                      initialValue: payment.amountPaid > 0 ? payment.amountPaid.toString() : '',
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        hintText: 'Amount paid',
+                        prefixText: '₹ ',
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      ),
+                      onChanged: (value) {
+                        setState(() {
+                          payment.amountPaid = double.tryParse(value) ?? 0;
+                        });
+                      },
+                    ),
+                  ),
+                  if (_payments.length > 1) 
+                    IconButton(
+                      icon: const Icon(Icons.remove_circle_outline),
+                      onPressed: () {
+                        setState(() {
+                          _payments.remove(payment);
+                        });
+                      },
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      constraints: const BoxConstraints(),
+                      iconSize: 20,
+                    ),
+                ],
+              ),
+        )).toList(),
+        // Add payer button
+        if (_payments.length < widget.members.length)
+          TextButton.icon(
+            icon: const Icon(Icons.add),
+            label: const Text('Add another payer'),
+            onPressed: () {
+              final availableMembers = widget.members
+                  .where((m) => !_payments.any((p) => p.userId == m['id']))
+                  .toList();
+              if (availableMembers.isNotEmpty) {
+                setState(() {
+                  _payments.add(PaymentInfo(
+                    userId: availableMembers.first['id'] as int,
+                    username: availableMembers.first['username'] as String,
+                    amountPaid: 0,
+                  ));
+                });
+              }
+            },
+          ),
+        if (_paymentError != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              _paymentError!,
+              style: const TextStyle(color: Colors.red),
+            ),
+          ),
+        // Show remaining amount
+        if (_remainingAmount != 0)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              'Remaining: ₹${_remainingAmount.toStringAsFixed(2)}',
+              style: TextStyle(
+                color: _remainingAmount > 0 ? Colors.red : Colors.green,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  double get _remainingAmount {
+    final totalAmount = double.tryParse(_amountController.text) ?? 0;
+    final paidAmount = _payments.fold(0.0, (sum, p) => sum + p.amountPaid);
+    return totalAmount - paidAmount;
+  }
+
   @override
   Widget build(BuildContext context) {
     final appColors = Theme.of(context).extension<AppColorScheme>()!;
@@ -397,6 +648,8 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
                             return null;
                           },
                         ),
+                        const SizedBox(height: 16),
+                        if (!isEditMode) _buildPayersSection(appColors),
                         const SizedBox(height: 16),
                         // Category dropdown
                         if (!isEditMode) _buildCategoryDropdown(appColors),
@@ -645,12 +898,17 @@ class _AddExpenseSheetState extends State<AddExpenseSheet> {
                                   }).toList();
                                 }
 
+                                final payments = _payments.map((p) => {
+                                  'payer_id': p.userId,
+                                  'amount_paid': p.amountPaid.toStringAsFixed(2),
+                                }).toList();
+
                                 context.read<GroupExpenseBloc>().add(
                                   AddGroupExpense(
                                     groupId: widget.groupId,
                                     description: _titleController.text.trim(),
                                     amount: amount,
-                                    payerId: currentUserId,
+                                    payments: payments,
                                     userIds: userIds,
                                     splitType: _splitMethod,
                                     splits: splits,

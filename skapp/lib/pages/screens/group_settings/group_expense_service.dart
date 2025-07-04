@@ -134,7 +134,7 @@ class GroupExpenseService {
     required int groupId,
     required String description,
     required double amount,
-    required int payerId,
+    required List<Map<String, dynamic>> payments,
     required List<int> userIds,
     String? splitType = 'equal',
     List<Map<String, dynamic>>? splits,
@@ -154,17 +154,30 @@ class GroupExpenseService {
       if (userIds.isEmpty) {
         throw 'At least one user must be selected';
       }
+      if (payments.isEmpty) {
+        throw 'At least one payer must be specified';
+      }
+
+      // Validate total payments equals amount
+      final totalPaid = payments.fold(0.0, 
+        (sum, payment) => sum + (double.tryParse(payment['amount_paid'].toString()) ?? 0.0)
+      );
+      if ((totalPaid - amount).abs() > 0.01) {
+        throw 'Total payments must equal the expense amount';
+      }
 
       final body = {
         'description': description.trim(),
-        'total_amount': amount.toStringAsFixed(2), // Ensure 2 decimal places
-        'payer_id': payerId,
+        'total_amount': amount.toStringAsFixed(2),
+        'payments': payments,
         'user_ids': userIds,
         'group_id': groupId,
         'split_type': splitType,
         if (splits != null) 'splits': splits,
         if (categoryId != null) 'category_id': categoryId,
       };
+
+      _logger.info('Sending add expense request with body: $body');
 
       final response = await client.post(
         Uri.parse('${baseUrl}/expenses/add/'),
@@ -188,7 +201,7 @@ class GroupExpenseService {
             groupId: groupId,
             description: description,
             amount: amount,
-            payerId: payerId,
+            payments: payments,
             userIds: userIds,
             splitType: splitType,
             splits: splits,

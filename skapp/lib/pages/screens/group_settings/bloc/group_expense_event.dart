@@ -55,7 +55,7 @@ class AddGroupExpense extends GroupExpenseEvent {
   final int groupId;
   final String description;
   final double amount;
-  final int payerId;
+  final List<Map<String, dynamic>> payments;
   final List<int> userIds;
   final SplitMethod splitType;
   final List<Map<String, dynamic>>? splits;
@@ -65,7 +65,7 @@ class AddGroupExpense extends GroupExpenseEvent {
     required this.groupId,
     required this.description,
     required this.amount,
-    required this.payerId,
+    required this.payments,
     required this.userIds,
     required this.splitType,
     this.splits,
@@ -77,7 +77,7 @@ class AddGroupExpense extends GroupExpenseEvent {
     groupId,
     description,
     amount,
-    payerId,
+    payments,
     userIds,
     splitType,
     splits,

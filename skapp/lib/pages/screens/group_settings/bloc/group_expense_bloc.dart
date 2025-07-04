@@ -451,7 +451,7 @@ class GroupExpenseBloc extends Bloc<GroupExpenseEvent, GroupExpenseState> {
         groupId: event.groupId,
         description: event.description,
         amount: event.amount,
-        payerId: event.payerId,
+        payments: event.payments,
         userIds: event.userIds,
         splitType: event.splitType == SplitMethod.percentage
             ? 'percentage'
