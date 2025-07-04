@@ -332,7 +332,16 @@ def group_expenses(request):
             'description': expense.description,
             'total_amount': str(expense.total_amount),
             'date': expense.date,
-            'payer_name': expense.payments.first().payer.username if expense.payments.exists() else 'Unknown',
+            'payers': [
+                {
+                    'id': payment.payer.id,
+                    'username': payment.payer.username,
+                    'first_name': payment.payer.first_name,
+                    'last_name': payment.payer.last_name,
+                    'amount_paid': str(payment.amount_paid)
+                }
+                for payment in expense.payments.all()
+            ],
         }
         
         if search_mode == 'normal':
