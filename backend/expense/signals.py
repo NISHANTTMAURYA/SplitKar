@@ -43,24 +43,14 @@ def update_balances_on_payment(sender, instance, created, **kwargs):
     if created:
         expense = instance.expense
         payer = instance.payer
-        
-        # ✅ Auto-mark payer's own share as paid if they have one
-        payer_share = expense.shares.filter(user=payer).first()
-        if payer_share and payer_share.amount_paid_back < payer_share.amount_owed:
-            payer_share.amount_paid_back = payer_share.amount_owed
-            payer_share.save(update_fields=["amount_paid_back"])
-            print(f"[Auto-Paid] {payer.username}'s own share marked as paid")
-        
         # For each person who owes money on this expense
         for share in expense.shares.all():
             share_user = share.user
-            
             if payer != share_user:  # Don't create balance with yourself
                 # Calculate how much this share_user owes this specific payer
                 # Based on payer's contribution to total expense
                 payer_contribution_ratio = instance.amount_paid / expense.total_amount
                 amount_owed_to_payer = share.amount_owed * payer_contribution_ratio
-                
                 # Update balance - share_user owes payer more money
                 Balance.objects.update_balance(
                     user1=share_user,  # Person who owes
@@ -68,7 +58,6 @@ def update_balances_on_payment(sender, instance, created, **kwargs):
                     amount_change=amount_owed_to_payer,
                     group=expense.group
                 )
-                
                 print(f"Updated balance: {share_user.username} owes {payer.username} ₹{amount_owed_to_payer} more")
 
 @receiver(post_delete, sender=ExpensePayment)
@@ -168,18 +157,6 @@ def update_balance_on_expense_share_change(sender, instance, created, **kwargs):
     """Update balances when expense shares are created or modified"""
     expense = instance.expense
     share_user = instance.user
-
-    # Only auto-mark as paid if the user is a payer AND there is a payment for that user
-    is_current_payer = expense.payments.filter(payer=share_user).exists()
-    if is_current_payer:
-        if instance.amount_paid_back < instance.amount_owed:
-            instance.amount_paid_back = instance.amount_owed
-            instance.save(update_fields=["amount_paid_back"])
-    else:
-        if instance.amount_paid_back != 0:
-            instance.amount_paid_back = 0
-            instance.save(update_fields=["amount_paid_back"])
-    
     # ✅ Update balances for other users
     if created:
         for payment in expense.payments.all():
@@ -188,7 +165,6 @@ def update_balance_on_expense_share_change(sender, instance, created, **kwargs):
                 # Calculate how much this share_user owes this payer
                 payer_contribution_ratio = payment.amount_paid / expense.total_amount
                 amount_owed_to_payer = instance.amount_owed * payer_contribution_ratio
-                
                 # Update balance
                 Balance.objects.update_balance(
                     user1=share_user,

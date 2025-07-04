@@ -134,22 +134,31 @@ class AddExpenseSerializer(serializers.Serializer):
                 )
             if split_type == 'equal':
                 split_amount = total_amount / len(users)
+                # Calculate total paid by each user
+                paid_by_user = {p['payer_id']: Decimal(p['amount_paid']) for p in payments}
                 for user in users:
+                    paid = paid_by_user.get(user.id, Decimal('0'))
+                    paid_back = min(split_amount, paid)
                     ExpenseShare.objects.create(
                         expense=expense,
                         user=user,
-                        amount_owed=split_amount
+                        amount_owed=split_amount,
+                        amount_paid_back=paid_back
                     )
             elif split_type == 'percentage':
+                paid_by_user = {p['payer_id']: Decimal(p['amount_paid']) for p in payments}
                 for s in splits:
                     share_user = User.objects.get(id=s['user_id'])
                     percentage = Decimal(s['percentage'])
                     owed = (total_amount * percentage / 100).quantize(Decimal('0.01'))
+                    paid = paid_by_user.get(share_user.id, Decimal('0'))
+                    paid_back = min(owed, paid)
                     ExpenseShare.objects.create(
                         expense=expense,
                         user=share_user,
                         percentage=percentage,
-                        amount_owed=owed
+                        amount_owed=owed,
+                        amount_paid_back=paid_back
                     )
             involved_users = set()
             involved_users.update([s.user for s in expense.shares.all()])
@@ -262,22 +271,31 @@ class AddFriendExpenseSerializer(serializers.Serializer):
             )
             if split_type == 'equal':
                 split_amount = total_amount / len(users)
+                # Calculate total paid by each user
+                paid_by_user = {p['payer_id']: Decimal(p['amount_paid']) for p in payments}
                 for user in users:
+                    paid = paid_by_user.get(user.id, Decimal('0'))
+                    paid_back = min(split_amount, paid)
                     ExpenseShare.objects.create(
                         expense=expense,
                         user=user,
-                        amount_owed=split_amount
+                        amount_owed=split_amount,
+                        amount_paid_back=paid_back
                     )
             elif split_type == 'percentage':
+                paid_by_user = {p['payer_id']: Decimal(p['amount_paid']) for p in payments}
                 for s in splits:
                     share_user = User.objects.get(id=s['user_id'])
                     percentage = Decimal(s['percentage'])
                     owed = (total_amount * percentage / 100).quantize(Decimal('0.01'))
+                    paid = paid_by_user.get(share_user.id, Decimal('0'))
+                    paid_back = min(owed, paid)
                     ExpenseShare.objects.create(
                         expense=expense,
                         user=share_user,
                         percentage=percentage,
-                        amount_owed=owed
+                        amount_owed=owed,
+                        amount_paid_back=paid_back
                     )
             # Recalculate balances for all involved users
             involved_users = set()
