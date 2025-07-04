@@ -33,65 +33,51 @@ def validate_expense_totals(sender, instance, created, **kwargs):
         if abs(total_owed - instance.total_amount) > Decimal('0.01'):
             print(f"Warning: Expense {instance.id} - Total owed (₹{total_owed}) doesn't match expense amount (₹{instance.total_amount})")
 
+@receiver(post_save, sender=Expense)
+def update_balances_on_expense(sender, instance, created, **kwargs):
+    """Update balances for all users when an expense is created or updated."""
+    if created or not created:
+        # Clear all balances for this expense (to avoid double counting)
+        for share in instance.shares.all():
+            for payment in instance.payments.all():
+                Balance.objects.update_balance(
+                    user1=share.user,
+                    user2=payment.payer,
+                    amount_change=-Balance.objects.get_balance_between_users(share.user, payment.payer, instance.group).balance_amount,
+                    group=instance.group
+                )
+        # Now recalculate net owed and update balances
+        total_amount = instance.total_amount
+        payments = list(instance.payments.all())
+        shares = list(instance.shares.all())
+        # Calculate total paid by each user
+        paid_by_user = {}
+        for payment in payments:
+            paid_by_user[payment.payer_id] = paid_by_user.get(payment.payer_id, Decimal('0')) + payment.amount_paid
+        for share in shares:
+            user = share.user
+            amount_owed = share.amount_owed
+            amount_paid = paid_by_user.get(user.id, Decimal('0'))
+            net_owed = amount_owed - amount_paid
+            if abs(net_owed) < Decimal('0.01'):
+                continue  # Settled
+            # Distribute net_owed to payers by their payment ratio
+            for payment in payments:
+                payer = payment.payer
+                if payer == user:
+                    continue  # Don't create balance with yourself
+                payer_ratio = payment.amount_paid / total_amount if total_amount else Decimal('0')
+                amount_owed_to_payer = net_owed * payer_ratio
+                Balance.objects.update_balance(
+                    user1=user,
+                    user2=payer,
+                    amount_change=amount_owed_to_payer,
+                    group=instance.group
+                )
+
 # ============================================================================
 # BALANCE UPDATE SIGNALS
 # ============================================================================
-
-@receiver(post_save, sender=ExpensePayment)
-def update_balances_on_payment(sender, instance, created, **kwargs):
-    """Update balances when someone makes a payment for an expense"""
-    if created:
-        expense = instance.expense
-        payer = instance.payer
-        # For each person who owes money on this expense
-        for share in expense.shares.all():
-            share_user = share.user
-            if payer != share_user:  # Don't create balance with yourself
-                # Calculate how much this share_user owes this specific payer
-                # Based on payer's contribution to total expense
-                payer_contribution_ratio = instance.amount_paid / expense.total_amount
-                amount_owed_to_payer = share.amount_owed * payer_contribution_ratio
-                # Update balance - share_user owes payer more money
-                Balance.objects.update_balance(
-                    user1=share_user,  # Person who owes
-                    user2=payer,       # Person who is owed
-                    amount_change=amount_owed_to_payer,
-                    group=expense.group
-                )
-                print(f"Updated balance: {share_user.username} owes {payer.username} ₹{amount_owed_to_payer} more")
-
-@receiver(post_delete, sender=ExpensePayment)
-def reverse_balance_on_payment_delete(sender, instance, **kwargs):
-    """Reverse balance changes when an expense payment is deleted"""
-    expense = instance.expense
-    payer = instance.payer
-    
-    # ✅ Reverse auto-payment of payer's own share if they had one
-    payer_share = expense.shares.filter(user=payer).first()
-    if payer_share and payer_share.amount_paid_back >= payer_share.amount_owed:
-        # Check if this was auto-paid (amount_paid_back equals amount_owed)
-        # and if this payment was the one that triggered the auto-payment
-        payer_share.amount_paid_back = Decimal('0')  # Reset to unpaid
-        payer_share.save(update_fields=["amount_paid_back"])
-        print(f"[Auto-Paid Reversed] {payer.username}'s own share marked as unpaid")
-    
-    # Reverse the balance changes
-    for share in expense.shares.all():
-        share_user = share.user
-        
-        if payer != share_user:
-            payer_contribution_ratio = instance.amount_paid / expense.total_amount
-            amount_owed_to_payer = share.amount_owed * payer_contribution_ratio
-            
-            # Reverse the balance change
-            Balance.objects.update_balance(
-                user1=share_user,
-                user2=payer, 
-                amount_change=-amount_owed_to_payer,  # Negative to reverse
-                group=expense.group
-            )
-            
-            print(f"Reversed balance: {share_user.username} owes {payer.username} ₹{amount_owed_to_payer} less")
 
 @receiver(post_save, sender=Settlement)
 def update_balance_on_settlement(sender, instance, created, **kwargs):
