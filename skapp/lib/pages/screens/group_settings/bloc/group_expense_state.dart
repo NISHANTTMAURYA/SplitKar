@@ -116,6 +116,7 @@ class GroupExpensesLoaded extends GroupExpenseState {
   final bool hasMoreExpenses;
   final int currentPage;
   final String? searchQuery;
+  final List<Map<String, dynamic>> categories;
 
   GroupExpensesLoaded({
     required this.expenses,
@@ -127,6 +128,7 @@ class GroupExpensesLoaded extends GroupExpenseState {
     bool? hasMoreExpenses,
     this.currentPage = 1,
     this.searchQuery,
+    this.categories = const [],
   }) : this.hasMoreExpenses = hasMoreExpenses ?? false;
 
   @override
@@ -140,6 +142,7 @@ class GroupExpensesLoaded extends GroupExpenseState {
     hasMoreExpenses,
     currentPage,
     searchQuery,
+    categories,
   ];
 
   GroupExpensesLoaded copyWith({
@@ -152,6 +155,7 @@ class GroupExpensesLoaded extends GroupExpenseState {
     bool? hasMoreExpenses,
     int? currentPage,
     String? searchQuery,
+    List<Map<String, dynamic>>? categories,
   }) {
     return GroupExpensesLoaded(
       expenses: expenses ?? this.expenses,
@@ -163,6 +167,7 @@ class GroupExpensesLoaded extends GroupExpenseState {
       hasMoreExpenses: hasMoreExpenses ?? this.hasMoreExpenses,
       currentPage: currentPage ?? this.currentPage,
       searchQuery: searchQuery ?? this.searchQuery,
+      categories: categories ?? this.categories,
     );
   }
 }

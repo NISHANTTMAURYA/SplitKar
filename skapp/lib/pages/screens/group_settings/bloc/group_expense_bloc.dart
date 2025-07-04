@@ -239,6 +239,7 @@ class GroupExpenseBloc extends Bloc<GroupExpenseEvent, GroupExpenseState> {
       );
       final members = await _groupSettingsApi.getGroupDetails(event.groupId);
       final balances = await _service.getGroupBalances(event.groupId);
+      final categories = await _service.getExpenseCategories();
 
       if (expenses == null || members == null || balances == null) {
         throw 'Failed to fetch data';
@@ -301,6 +302,7 @@ class GroupExpenseBloc extends Bloc<GroupExpenseEvent, GroupExpenseState> {
           summary: summary,
           hasMoreExpenses: hasMore,
           currentPage: 1,
+          categories: categories ?? [],
         ),
       );
     } catch (e, stackTrace) {

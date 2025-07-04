@@ -577,56 +577,176 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
       child: _isSearchVisible
           ? Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: TextField(
-                controller: _searchController,
-                decoration: InputDecoration(
-                  hintText: 'Search expenses...',
-                  prefixIcon: Icon(Icons.search, color: appColors.iconColor),
-                  suffixIcon: IconButton(
-                    icon: Icon(Icons.close, color: appColors.iconColor),
-                    onPressed: () {
-                      setState(() {
-                        _isSearchVisible = false;
-                        _searchController.clear();
-                      });
-                      // Clear search results and reload expenses
-                      context.read<GroupExpenseBloc>().add(
-                        LoadGroupExpenses(
-                          widget.groupId,
-                          resetPagination: true,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _searchController,
+                      decoration: InputDecoration(
+                        hintText: 'Search expenses...',
+                        prefixIcon: Icon(Icons.search, color: appColors.iconColor),
+                        suffixIcon: BlocBuilder<GroupExpenseBloc, GroupExpenseState>(
+                          builder: (context, state) {
+                            if (state is GroupExpensesLoaded) {
+                              return IconButton(
+                                icon: Icon(Icons.category, color: appColors.iconColor),
+                                onPressed: () {
+                                  showModalBottomSheet(
+                                    context: context,
+                                    builder: (context) => Container(
+                                      padding: const EdgeInsets.all(16),
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Select Category',
+                                            style: GoogleFonts.cabin(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 16),
+                                          Wrap(
+                                            spacing: 8,
+                                            runSpacing: 8,
+                                            children: state.categories.map((category) {
+                                              return ActionChip(
+                                                avatar: Text(category['icon'] ?? ''),
+                                                label: Text(category['name'] ?? ''),
+                                                onPressed: () {
+                                                  _searchController.text = category['name'] ?? '';
+                                                  _onSearchChanged(_searchController.text);
+                                                  Navigator.pop(context);
+                                                },
+                                              );
+                                            }).toList(),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
+                              );
+                            }
+                            return const SizedBox.shrink();
+                          },
                         ),
-                      );
-                    },
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(
-                      color: appColors.borderColor ?? Colors.transparent,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                            color: appColors.borderColor ?? Colors.transparent,
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                            color: appColors.borderColor?.withOpacity(0.2) ?? Colors.transparent,
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                            color: appColors.borderColor ?? Colors.transparent,
+                          ),
+                        ),
+                      ),
+                      onChanged: _onSearchChanged,
+                      keyboardType: TextInputType.text,
+                      textInputAction: TextInputAction.search,
+                      autocorrect: false,
+                      enableSuggestions: false,
                     ),
                   ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(
-                      color:
-                          appColors.borderColor?.withOpacity(0.2) ??
-                          Colors.transparent,
-                    ),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(
-                      color: appColors.borderColor ?? Colors.transparent,
-                    ),
-                  ),
-                ),
-                onChanged: _onSearchChanged,
-                keyboardType: TextInputType.text,
-                textInputAction: TextInputAction.search,
-                autocorrect: false,
-                enableSuggestions: false,
+                ],
               ),
             )
           : const SizedBox.shrink(),
+    );
+  }
+
+  void _showCategoryFilter(BuildContext context) {
+    final appColors = Theme.of(context).extension<AppColorScheme>()!;
+    
+    // Load categories if not already loaded
+    context.read<GroupExpenseBloc>().add(LoadExpenseCategories());
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: appColors.cardColor,
+          borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(20),
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: appColors.cardColor2?.withOpacity(0.1),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(20),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Text(
+                    'Filter by Category',
+                    style: GoogleFonts.cabin(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: appColors.textColor,
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: Icon(Icons.close, color: appColors.iconColor),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+            ),
+            BlocBuilder<GroupExpenseBloc, GroupExpenseState>(
+              builder: (context, state) {
+                if (state is ExpenseCategoriesLoaded) {
+                  return Flexible(
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: state.categories.length,
+                      itemBuilder: (context, index) {
+                        final category = state.categories[index];
+                        return ListTile(
+                          leading: Text(
+                            category['icon'] ?? '📝',
+                            style: const TextStyle(fontSize: 24),
+                          ),
+                          title: Text(
+                            category['name'] ?? 'Unknown',
+                            style: GoogleFonts.cabin(
+                              color: appColors.textColor,
+                            ),
+                          ),
+                          onTap: () {
+                            _searchController.text = category['name'];
+                            _onSearchChanged(category['name']);
+                            Navigator.pop(context);
+                          },
+                        );
+                      },
+                    ),
+                  );
+                }
+                return const Center(child: CircularProgressIndicator());
+              },
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
     );
   }
 
@@ -1368,3 +1488,4 @@ class _SearchResultsOverlay extends StatelessWidget {
     );
   }
 }
+
