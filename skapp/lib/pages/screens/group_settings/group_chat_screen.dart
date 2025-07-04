@@ -220,7 +220,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         actions: [
           IconButton(
             icon: Icon(
-              _isSearchVisible ? Icons.close : Icons.search,
+              Icons.search,
               color: appColors.inverseColor,
             ),
             onPressed: () {
@@ -859,18 +859,122 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
           _isLoading = false;
         }
       },
-      child: Scaffold(
-        appBar: _buildAppBar(context),
-        body: Stack(
-          children: [
-            Column(
+      child: BlocBuilder<GroupExpenseBloc, GroupExpenseState>(
+        builder: (context, state) {
+          if (_isLoading && state is GroupExpenseLoading) {
+            return const Scaffold(
+              body: Center(child: CustomLoader()),
+            );
+          }
+
+          return Scaffold(
+            appBar: _buildAppBar(context),
+            body: Stack(
               children: [
-                _buildSearchBar(),
-                Expanded(
-                  child: BlocBuilder<GroupExpenseBloc, GroupExpenseState>(
-                    builder: (context, state) {
-                      return RefreshIndicator(
-                        onRefresh: () async {
+                Column(
+                  children: [
+                    _buildSearchBar(),
+                    Expanded(
+                      child: BlocBuilder<GroupExpenseBloc, GroupExpenseState>(
+                        builder: (context, state) {
+                          return RefreshIndicator(
+                            onRefresh: () async {
+                              context.read<GroupExpenseBloc>().add(
+                                LoadGroupExpenses(
+                                  widget.groupId,
+                                  resetPagination: true,
+                                ),
+                              );
+                            },
+                            child: () {
+                              if (state is GroupExpenseLoading && !_isLoading) {
+                                return const Center(child: CustomLoader());
+                              } else if (state is GroupExpensesLoaded) {
+                                // Only show the main content if no search results
+                                if (state.searchResults == null || state.searchResults!.isEmpty) {
+                                  return CustomScrollView(
+                                    controller: _scrollController,
+                                    physics: const AlwaysScrollableScrollPhysics(),
+                                    slivers: [
+                                      SliverPersistentHeader(
+                                        floating: true,
+                                        delegate: _SummaryHeaderDelegate(
+                                          child: _buildSummaryHeader(state),
+                                          isExpanded: _isExpenseSummaryExpanded,
+                                          onToggle: (value) {
+                                            setState(() {
+                                              _isExpenseSummaryExpanded = value;
+                                            });
+                                          },
+                                        ),
+                                      ),
+                                      if (_isExpenseSummaryExpanded)
+                                        SliverToBoxAdapter(
+                                          child: _buildExpandedSummaryContent(state),
+                                        ),
+                                      _buildExpensesList(state.groupedExpenses),
+                                      if (state.hasMoreExpenses)
+                                        const SliverToBoxAdapter(
+                                          child: Padding(
+                                            padding: EdgeInsets.all(16.0),
+                                            child: Center(
+                                              child: CustomLoader(
+                                                size: 30,
+                                                isButtonLoader: true,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      const SliverPadding(
+                                        padding: EdgeInsets.only(bottom: 100),
+                                      ),
+                                    ],
+                                  );
+                                } else {
+                                  return const SizedBox.shrink(); // Hide main content when search results are shown
+                                }
+                              } else if (state is GroupExpenseError) {
+                                return Center(
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(16.0),
+                                    child: Text(
+                                      state.message,
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }
+                              return ListView(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                children: const [_NoExpensesView()],
+                              );
+                            }(),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                // Search Results Overlay
+                BlocBuilder<GroupExpenseBloc, GroupExpenseState>(
+                  builder: (context, state) {
+                    if (state is GroupExpensesLoaded &&
+                        state.searchResults != null &&
+                        _isSearchVisible) {
+                      return _SearchResultsOverlay(
+                        results: state.searchResults!,
+                        onResultTap: (result) async {
+                          await _loadAndShowExpense(result.expenseId, state);
+                        },
+                        onClose: () {
+                          setState(() {
+                            _isSearchVisible = false;
+                            _searchController.clear();
+                          });
                           context.read<GroupExpenseBloc>().add(
                             LoadGroupExpenses(
                               widget.groupId,
@@ -878,113 +982,19 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                             ),
                           );
                         },
-                        child: () {
-                          if (state is GroupExpenseLoading) {
-                            return const Center(child: CustomLoader());
-                          } else if (state is GroupExpensesLoaded) {
-                            // Only show the main content if no search results
-                            if (state.searchResults == null || state.searchResults!.isEmpty) {
-                              return CustomScrollView(
-                                controller: _scrollController,
-                                physics: const AlwaysScrollableScrollPhysics(),
-                                slivers: [
-                                  SliverPersistentHeader(
-                                    floating: true,
-                                    delegate: _SummaryHeaderDelegate(
-                                      child: _buildSummaryHeader(state),
-                                      isExpanded: _isExpenseSummaryExpanded,
-                                      onToggle: (value) {
-                                        setState(() {
-                                          _isExpenseSummaryExpanded = value;
-                                        });
-                                      },
-                                    ),
-                                  ),
-                                  if (_isExpenseSummaryExpanded)
-                                    SliverToBoxAdapter(
-                                      child: _buildExpandedSummaryContent(state),
-                                    ),
-                                  _buildExpensesList(state.groupedExpenses),
-                                  if (state.hasMoreExpenses)
-                                    const SliverToBoxAdapter(
-                                      child: Padding(
-                                        padding: EdgeInsets.all(16.0),
-                                        child: Center(
-                                          child: CustomLoader(
-                                            size: 30,
-                                            isButtonLoader: true,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  const SliverPadding(
-                                    padding: EdgeInsets.only(bottom: 100),
-                                  ),
-                                ],
-                              );
-                            } else {
-                              return const SizedBox.shrink(); // Hide main content when search results are shown
-                            }
-                          } else if (state is GroupExpenseError) {
-                            return Center(
-                              child: Padding(
-                                padding: const EdgeInsets.all(16.0),
-                                child: Text(
-                                  state.message,
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ),
-                            );
-                          }
-                          return ListView(
-                            physics: const AlwaysScrollableScrollPhysics(),
-                            children: const [_NoExpensesView()],
-                          );
-                        }(),
+                        searchController: _searchController,
+                        onSearchChanged: _onSearchChanged,
+                        groupId: widget.groupId,
                       );
-                    },
-                  ),
+                    }
+                    return const SizedBox.shrink();
+                  },
                 ),
               ],
             ),
-            // Search Results Overlay
-            BlocBuilder<GroupExpenseBloc, GroupExpenseState>(
-              builder: (context, state) {
-                if (state is GroupExpensesLoaded &&
-                    state.searchResults != null &&
-                    _isSearchVisible) {
-                  return _SearchResultsOverlay(
-                    results: state.searchResults!,
-                    onResultTap: (result) async {
-                      await _loadAndShowExpense(result.expenseId, state);
-                    },
-                    onClose: () {
-                      setState(() {
-                        _isSearchVisible = false;
-                        _searchController.clear();
-                      });
-                      context.read<GroupExpenseBloc>().add(
-                        LoadGroupExpenses(
-                          widget.groupId,
-                          resetPagination: true,
-                        ),
-                      );
-                    },
-                    searchController: _searchController,
-                    onSearchChanged: _onSearchChanged,
-                    groupId: widget.groupId,
-                  );
-                }
-                return const SizedBox.shrink();
-              },
-            ),
-          ],
-        ),
-        floatingActionButton: _buildFloatingActionButton(),
+            floatingActionButton: _buildFloatingActionButton(),
+          );
+        },
       ),
     );
   }
@@ -1371,49 +1381,58 @@ class _SearchResultsOverlay extends StatelessWidget {
     final appColors = Theme.of(context).extension<AppColorScheme>()!;
 
     return Container(
-      color: appColors.cardColor?.withOpacity(0.98),
-      child: Column(
-        children: [
-          // Search Bar
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: TextField(
-              controller: searchController,
-              decoration: InputDecoration(
-                hintText: 'Search expenses...',
-                prefixIcon: Icon(Icons.search, color: appColors.iconColor),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(
-                    color: appColors.borderColor ?? Colors.transparent,
+      color: appColors.cardColor,
+      child: SafeArea(
+        child: Column(
+          children: [
+            // Search Bar
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: TextField(
+                controller: searchController,
+                decoration: InputDecoration(
+                  hintText: 'Search expenses...',
+                  prefixIcon: Icon(Icons.search, color: appColors.iconColor),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: appColors.borderColor ?? Colors.transparent,
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: appColors.borderColor?.withOpacity(0.2) ?? Colors.transparent,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                      color: appColors.borderColor ?? Colors.transparent,
+                    ),
+                  ),
+                  suffixIcon: IconButton(
+                    icon: Icon(Icons.close, color: appColors.iconColor),
+                    onPressed: () {
+                      searchController.clear();
+                      onSearchChanged('');
+                      onClose();
+                    },
                   ),
                 ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(
-                    color: appColors.borderColor?.withOpacity(0.2) ?? Colors.transparent,
-                  ),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(
-                    color: appColors.borderColor ?? Colors.transparent,
-                  ),
-                ),
+                onChanged: onSearchChanged,
+                keyboardType: TextInputType.text,
+                textInputAction: TextInputAction.search,
+                autocorrect: false,
+                enableSuggestions: false,
               ),
-              onChanged: onSearchChanged,
-              keyboardType: TextInputType.text,
-              textInputAction: TextInputAction.search,
-              autocorrect: false,
-              enableSuggestions: false,
             ),
-          ),
-          // Results Header
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            child: Row(
-              children: [
-                Text(
+            // Results Header
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
                   '${results.length} result${results.length == 1 ? '' : 's'}',
                   style: GoogleFonts.cabin(
                     fontSize: 16,
@@ -1421,69 +1440,64 @@ class _SearchResultsOverlay extends StatelessWidget {
                     color: appColors.textColor,
                   ),
                 ),
-                const Spacer(),
-                IconButton(
-                  icon: Icon(Icons.close, color: appColors.iconColor),
-                  onPressed: onClose,
-                ),
-              ],
+              ),
             ),
-          ),
-          // Results List
-          Expanded(
-            child: BlocBuilder<GroupExpenseBloc, GroupExpenseState>(
-              builder: (context, state) {
-                if (state is! GroupExpensesLoaded) {
-                  return const Center(child: CustomLoader());
-                }
+            // Results List
+            Expanded(
+              child: BlocBuilder<GroupExpenseBloc, GroupExpenseState>(
+                builder: (context, state) {
+                  if (state is! GroupExpensesLoaded) {
+                    return const Center(child: CustomLoader());
+                  }
 
-                return ListView.builder(
-                  itemCount: results.length,
-                  itemBuilder: (context, index) {
-                    final result = results[index];
-                    return ListTile(
-                      leading: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: appColors.cardColor2?.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
+                  return ListView.builder(
+                    itemCount: results.length,
+                    itemBuilder: (context, index) {
+                      final result = results[index];
+                      return ListTile(
+                        leading: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: appColors.cardColor2?.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(Icons.receipt_long, color: appColors.iconColor),
                         ),
-                        child: Icon(Icons.receipt_long, color: appColors.iconColor),
-                      ),
-                      title: Text(
-                        result.description,
-                        style: GoogleFonts.cabin(
-                          color: appColors.textColor,
-                          fontWeight: FontWeight.w500,
+                        title: Text(
+                          result.description,
+                          style: GoogleFonts.cabin(
+                            color: appColors.textColor,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
-                      ),
-                      subtitle: Text(
-                        '₹${result.amount.toStringAsFixed(2)} • ${result.payerName}',
-                        style: GoogleFonts.cabin(
-                          color: appColors.textColor2,
-                          fontSize: 12,
+                        subtitle: Text(
+                          '₹${result.amount.toStringAsFixed(2)} • ${result.payerName}',
+                          style: GoogleFonts.cabin(
+                            color: appColors.textColor2,
+                            fontSize: 12,
+                          ),
                         ),
-                      ),
-                      trailing: Text(
-                        result.date.toLocal().toString().split(' ')[0],
-                        style: GoogleFonts.cabin(
-                          color: appColors.textColor2,
-                          fontSize: 12,
+                        trailing: Text(
+                          result.date.toLocal().toString().split(' ')[0],
+                          style: GoogleFonts.cabin(
+                            color: appColors.textColor2,
+                            fontSize: 12,
+                          ),
                         ),
-                      ),
-                      onTap: () async {
-                        final state = context.read<GroupExpenseBloc>().state;
-                        if (state is GroupExpensesLoaded) {
-                          await onResultTap(result);
-                        }
-                      },
-                    );
-                  },
-                );
-              },
+                        onTap: () async {
+                          final state = context.read<GroupExpenseBloc>().state;
+                          if (state is GroupExpensesLoaded) {
+                            await onResultTap(result);
+                          }
+                        },
+                      );
+                    },
+                  );
+                },
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
