@@ -121,3 +121,18 @@ class DebouncedSearchExpenses extends GroupExpenseEvent {
   @override
   List<Object?> get props => [groupId, query];
 }
+
+class CopyGroupSummary extends GroupExpenseEvent {
+  final int groupId;
+  final String groupName;
+  final int memberCount;
+
+  CopyGroupSummary({
+    required this.groupId,
+    required this.groupName,
+    required this.memberCount,
+  });
+
+  @override
+  List<Object?> get props => [groupId, groupName, memberCount];
+}

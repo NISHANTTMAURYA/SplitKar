@@ -6,6 +6,7 @@ import '../group_settings_api.dart';
 import 'dart:developer' as dev;
 import '../../expense_components/add_expense_sheet.dart';
 import 'dart:async';
+import 'package:flutter/services.dart';
 
 class GroupExpenseBloc extends Bloc<GroupExpenseEvent, GroupExpenseState> {
   final GroupExpenseService _service;
@@ -22,6 +23,7 @@ class GroupExpenseBloc extends Bloc<GroupExpenseEvent, GroupExpenseState> {
     on<EditGroupExpense>(_onEditGroupExpense);
     on<DeleteGroupExpense>(_onDeleteGroupExpense);
     on<LoadExpenseCategories>(_onLoadExpenseCategories);
+    on<CopyGroupSummary>(_onCopyGroupSummary);
   }
 
   void searchWithDebounce(int groupId, String query) {
@@ -515,6 +517,89 @@ class GroupExpenseBloc extends Bloc<GroupExpenseEvent, GroupExpenseState> {
     } catch (e) {
       emit(GroupExpenseError(e.toString()));
     }
+  }
+
+  Future<void> _onCopyGroupSummary(
+    CopyGroupSummary event,
+    Emitter<GroupExpenseState> emit,
+  ) async {
+    try {
+      if (state is GroupExpensesLoaded) {
+        final currentState = state as GroupExpensesLoaded;
+        
+        // Format the summary text
+        final formattedText = _formatGroupSummaryForCopy(
+          groupName: event.groupName,
+          memberCount: event.memberCount,
+          summary: currentState.summary,
+        );
+        
+        // Copy to clipboard
+        await Clipboard.setData(ClipboardData(text: formattedText));
+        
+        // Emit success state (you might want to add a success state)
+        emit(currentState.copyWith());
+      }
+    } catch (e) {
+      emit(GroupExpenseError(e.toString()));
+    }
+  }
+
+  String _formatGroupSummaryForCopy({
+    required String groupName,
+    required int memberCount,
+    required GroupSummary summary,
+  }) {
+    final buffer = StringBuffer();
+    
+    // Header
+    buffer.writeln('💰 ${groupName.toUpperCase()} 💰');
+    buffer.writeln('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    buffer.writeln();
+    
+    // Group info
+    buffer.writeln('📊 GROUP SUMMARY');
+    buffer.writeln('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    buffer.writeln('👥 Members: $memberCount');
+    buffer.writeln('💸 Total Spent: ₹${summary.totalSpent.toStringAsFixed(2)}');
+    buffer.writeln('⏳ Pending Settlements: ${summary.totalSettlements}');
+    buffer.writeln();
+    
+    // Net balances
+    buffer.writeln('💳 NET BALANCES');
+    buffer.writeln('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    for (final balance in summary.balances) {
+      final emoji = balance.netBalance >= 0 ? '✅' : '❌';
+      final sign = balance.netBalance >= 0 ? '+' : '';
+      buffer.writeln('$emoji ${balance.username}: ${sign}₹${balance.netBalance.abs().toStringAsFixed(2)}');
+    }
+    buffer.writeln();
+    
+    // Settlement details
+    buffer.writeln('🔄 SETTLEMENT DETAILS');
+    buffer.writeln('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    
+    bool hasSettlements = false;
+    for (final balance in summary.balances) {
+      if (balance.owes.isNotEmpty) {
+        hasSettlements = true;
+        buffer.writeln('👤 ${balance.username.toUpperCase()}');
+        buffer.writeln('   └─ Owes:');
+        for (final owes in balance.owes) {
+          buffer.writeln('      • ${owes['to']}: ₹${owes['amount'].toStringAsFixed(2)}');
+        }
+        buffer.writeln();
+      }
+    }
+    
+    if (!hasSettlements) {
+      buffer.writeln('🎉 All settled up! No pending payments.');
+    }
+    
+    buffer.writeln('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    buffer.writeln('📱 Generated from SplitKar App');
+    
+    return buffer.toString();
   }
 
   Future<Map<String, dynamic>?> loadExpenseById(String expenseId, int groupId) async {

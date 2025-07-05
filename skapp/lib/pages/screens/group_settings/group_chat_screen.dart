@@ -337,6 +337,62 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                               ],
                             ),
                           ),
+                          // Copy button for expanded card
+                          if (state is GroupExpensesLoaded)
+                            Container(
+                              margin: const EdgeInsets.only(right: 8),
+                              child: Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: () {
+                                    context.read<GroupExpenseBloc>().add(
+                                      CopyGroupSummary(
+                                        groupId: widget.groupId,
+                                        groupName: widget.chatName,
+                                        memberCount: state.members.length,
+                                      ),
+                                    );
+                                    // Show success notification
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Row(
+                                          children: [
+                                            Icon(Icons.copy, color: appColors.inverseColor, size: 20),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              'Group summary copied to clipboard!',
+                                              style: GoogleFonts.cabin(
+                                                color: appColors.inverseColor,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        backgroundColor: appColors.cardColor2,
+                                        duration: const Duration(seconds: 2),
+                                        behavior: SnackBarBehavior.floating,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(10),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: appColors.cardColor2?.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Icon(
+                                      Icons.copy,
+                                      color: appColors.iconColor,
+                                      size: 20 * textScaleFactor,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
                           AnimatedRotation(
                             turns: _isExpenseSummaryExpanded ? 0.5 : 0,
                             duration: const Duration(milliseconds: 300),
@@ -1085,6 +1141,61 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                             ),
                           ),
                         ],
+                      ),
+                    ),
+                    // Copy button
+                    Container(
+                      margin: const EdgeInsets.only(right: 8),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () {
+                            context.read<GroupExpenseBloc>().add(
+                              CopyGroupSummary(
+                                groupId: widget.groupId,
+                                groupName: widget.chatName,
+                                memberCount: state.members.length,
+                              ),
+                            );
+                            // Show success notification
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Row(
+                                  children: [
+                                    Icon(Icons.copy, color: appColors.inverseColor, size: 20),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Group summary copied to clipboard!',
+                                      style: GoogleFonts.cabin(
+                                        color: appColors.inverseColor,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                backgroundColor: appColors.cardColor2,
+                                duration: const Duration(seconds: 2),
+                                behavior: SnackBarBehavior.floating,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                            );
+                          },
+                          borderRadius: BorderRadius.circular(8),
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: appColors.cardColor?.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              Icons.copy,
+                              color: appColors.inverseColor,
+                              size: 20 * textScaleFactor,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                     AnimatedRotation(
