@@ -422,7 +422,9 @@ class _AddFriendsSheetState extends State<AddFriendsSheet> {
   bool _validateForm() {
     if (_groupNameController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a group name')),
+        const SnackBar(content: Text('Please enter a group name'),
+        
+        ),
       );
       return false;
     }

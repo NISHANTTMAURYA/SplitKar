@@ -1,11 +1,31 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/services.dart';
 import 'package:skapp/config.dart';
 import 'package:logging/logging.dart';
+
+// Custom exception classes for better error handling
+class AuthException implements Exception {
+  final String message;
+  final String code;
+  
+  AuthException(this.message, {this.code = 'unknown'});
+  
+  @override
+  String toString() => message;
+}
+
+class NetworkException extends AuthException {
+  NetworkException(String message) : super(message, code: 'network_error');
+}
+
+class ValidationException extends AuthException {
+  ValidationException(String message) : super(message, code: 'validation_error');
+}
 
 class AuthService {
   static final _logger = Logger('AuthService');
@@ -22,7 +42,6 @@ class AuthService {
     scopes: ['email', 'profile'],
     signInOption: SignInOption.standard,
     serverClientId: '7120580451-cmn9dcuv9eo0la2path3u1uppeegh37f.apps.googleusercontent.com',
-    // clientId: '7120580451-3trd2pl5rapsbfbcqt99cn68o2un4e9v.apps.googleusercontent.com',
   );
   final FlutterSecureStorage _secureStorage = FlutterSecureStorage();
 
@@ -58,7 +77,36 @@ class AuthService {
     return 'An unexpected error occurred';
   }
 
-  // Manual Login
+  // Helper to handle different types of exceptions
+  String _handleException(dynamic error) {
+    if (error is SocketException) {
+      return 'Network connection failed. Please check your internet connection and try again.';
+    } else if (error is HttpException) {
+      return 'Server communication error. Please try again later.';
+    } else if (error is FormatException) {
+      return 'Invalid response from server. Please try again.';
+    } else if (error is TimeoutException) {
+      return 'Request timed out. Please check your connection and try again.';
+    } else if (error is PlatformException) {
+      // Handle platform-specific errors
+      switch (error.code) {
+        case 'sign_in_failed':
+          return 'Google Sign-In failed. Please try again.';
+        case 'network_error':
+          return 'Network error occurred. Please check your connection.';
+        default:
+          return 'An error occurred: ${error.message ?? 'Unknown error'}';
+      }
+    } else if (error is AuthException) {
+      return error.message; // Our custom exceptions already have user-friendly messages
+    } else if (error is String) {
+      return error; // Backend error messages are already user-friendly
+    } else {
+      return 'An unexpected error occurred. Please try again.';
+    }
+  }
+
+  // Manual Login with improved error handling
   Future<Map<String, dynamic>?> loginWithEmailOrUsername(String usernameOrEmail, String password) async {
     try {
       final response = await http.post(
@@ -67,9 +115,9 @@ class AuthService {
         body: jsonEncode({
           'username_or_email': usernameOrEmail,
           'password': password,
-          'profile_picture_url': 'https://lh3.googleusercontent.com/a/default-user=s999', // Default high-res profile picture
+          'profile_picture_url': 'https://lh3.googleusercontent.com/a/default-user=s999',
         }),
-      );
+      ).timeout(Duration(seconds: 10)); // Add timeout
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -77,15 +125,27 @@ class AuthService {
         return data;
       } else {
         final errorMessage = _parseBackendError(response);
-        throw errorMessage;
+        throw ValidationException(errorMessage);
       }
+    } on TimeoutException catch (e) {
+      _logger.severe('Timeout during login: $e');
+      throw NetworkException('Request timed out. Please try again.');
+    } on SocketException catch (e) {
+      _logger.severe('Network error during login: $e');
+      throw NetworkException('Unable to connect to server. Please check your internet connection or try again later.');
+    } on FormatException catch (e) {
+      _logger.severe('Invalid response format during login: $e');
+      throw AuthException('Invalid response from server. Please try again.');
     } catch (e) {
       _logger.severe('Error during login: $e');
-      rethrow; // Rethrow to be caught by the UI layer
+      if (e is AuthException) {
+        rethrow; // Re-throw our custom exceptions
+      }
+      throw AuthException(_handleException(e));
     }
   }
 
-  // Manual Registration
+  // Manual Registration with improved error handling
   Future<Map<String, dynamic>?> register({
     required String username,
     required String email,
@@ -105,9 +165,9 @@ class AuthService {
           'password2': password2,
           'first_name': firstName,
           'last_name': lastName,
-          'profile_picture_url': 'https://lh3.googleusercontent.com/a/default-user=s999', // Default high-res profile picture
+          'profile_picture_url': 'https://lh3.googleusercontent.com/a/default-user=s999',
         }),
-      );
+      ).timeout(Duration(seconds: 10));
 
       if (response.statusCode == 201) {
         final data = jsonDecode(response.body);
@@ -115,24 +175,37 @@ class AuthService {
         return data;
       } else {
         final errorMessage = _parseBackendError(response);
-        throw errorMessage; // Throw the specific error message
+        throw ValidationException(errorMessage);
       }
+    } on TimeoutException catch (e) {
+      _logger.severe('Timeout during registration: $e');
+      throw NetworkException('Request timed out. Please try again.');
+    } on SocketException catch (e) {
+      _logger.severe('Network error during registration: $e');
+      throw NetworkException('Unable to connect to server. Please check your internet connection or try again later');
+    } on FormatException catch (e) {
+      _logger.severe('Invalid response format during registration: $e');
+      throw AuthException('Invalid response from server. Please try again.');
     } catch (e) {
       _logger.severe('Error during registration: $e');
-      rethrow; // Rethrow to be caught by the UI layer
+      if (e is AuthException) {
+        rethrow;
+      }
+      throw AuthException(_handleException(e));
     }
   }
 
-  // Google Sign In
+  // Google Sign In with improved error handling
   Future<Map<String, dynamic>?> signInWithGoogle() async {
     try {
       _logger.info('Starting Google Sign-In');
       await _googleSignIn.signOut();
       final GoogleSignInAccount? account = await _googleSignIn.signIn();
       _logger.info('Account: $account');
+      
       if (account == null) {
         _logger.warning('Google Sign In was canceled by user');
-        return null;
+        return null; // User cancelled - don't throw error
       }
 
       final GoogleSignInAuthentication googleAuth = await account.authentication;
@@ -142,13 +215,12 @@ class AuthService {
       
       if (idToken == null) {
         _logger.severe('Failed to get ID token from Google Sign In');
-        return null;
+        throw AuthException('Google Sign-In failed. Please try again.');
       }
 
       // Get the user's photo URL and convert to high resolution
       String? photoUrl = account.photoUrl;
       if (photoUrl != null) {
-        // Convert to high resolution URL
         photoUrl = photoUrl.split('=')[0] + '=s999';
         _logger.info('Using high-res profile picture URL: $photoUrl');
       } else {
@@ -163,7 +235,8 @@ class AuthService {
           'id_token': idToken,
           'profile_picture_url': photoUrl,
         }),
-      );
+      ).timeout(Duration(seconds: 10));
+      
       _logger.info('HTTP Response Status: ${response.statusCode}');
       _logger.info('HTTP Response Body: ${response.body}');
 
@@ -173,26 +246,35 @@ class AuthService {
         await _saveTokens(data['access'], data['refresh']);
         return data;
       } else {
-        // Google sign-in specific error handling might differ slightly
         final errorMessage = _parseBackendError(response);
         _logger.severe('Google Sign-In failed: $errorMessage');
-        // Depending on the specific error format, you might return null
-        // or throw a specific exception. For now, returning null as before
-        // for Google Sign-In API errors.
-        return null; // Or throw errorMessage; if you want consistent error handling
+        throw AuthException('Google Sign-In failed: $errorMessage');
       }
     } on PlatformException catch (e) {
       _logger.severe('Platform Exception during Google sign in: ${e.code} - ${e.message}');
       if (e.code == 'sign_in_failed') {
-        _logger.warning('Make sure you have configured the SHA-1 fingerprint in Google Cloud Console');
+        throw AuthException('Google Sign-In failed. Please try again.');
+      } else if (e.code == 'network_error') {
+        throw NetworkException('Network error during Google Sign-In. Please check your connection.');
+      } else {
+        throw AuthException('Google Sign-In error: ${e.message ?? 'Unknown error'}');
       }
-      rethrow;
-    } catch (error) {
-      _logger.severe('Error during Google sign in: $error');
-      rethrow;
+    } on TimeoutException catch (e) {
+      _logger.severe('Timeout during Google sign in: $e');
+      throw NetworkException('Request timed out. Please try again.');
+    } on SocketException catch (e) {
+      _logger.severe('Network error during Google sign in: $e');
+      throw NetworkException('Unable to connect to server. Please check your internet connection or try again later.');
+    } catch (e) {
+      _logger.severe('Error during Google sign in: $e');
+      if (e is AuthException) {
+        rethrow;
+      }
+      throw AuthException(_handleException(e));
     }
   }
 
+  // Rest of your methods remain the same...
   Future<bool> isOnline() async {
     try {
       final result = await InternetAddress.lookup('google.com');
@@ -206,22 +288,18 @@ class AuthService {
     final token = await getToken();
     if (token == null) return false;
 
-    // First check if we're online
     final isOnline = await this.isOnline();
     _logger.info('Token validation - Online status: $isOnline');
 
     if (isOnline) {
-      // When online, validate token with backend
       final isValid = await _validateTokenOnline(token);
       if (!isValid) {
-        // If validation fails, just logout immediately
         _logger.info('Token validation failed - logging out');
         await signOut();
         return false;
       }
       return true;
     } else {
-      // When offline, only check if token exists and isn't expired
       final expiry = await _secureStorage.read(key: _tokenExpiryKey);
       if (expiry != null) {
         final expiryDate = DateTime.parse(expiry);
@@ -248,7 +326,6 @@ class AuthService {
       _logger.info('Token validation response status: ${response.statusCode}');
       
       if (response.statusCode == 200) {
-        // Update last validated timestamp
         await _secureStorage.write(
           key: _lastValidatedKey,
           value: DateTime.now().toIso8601String(),
@@ -257,7 +334,6 @@ class AuthService {
         return true;
       }
       
-      // Any non-200 response means we should logout
       _logger.warning('Token validation failed with status: ${response.statusCode}');
       await signOut();
       return false;
@@ -268,7 +344,6 @@ class AuthService {
     }
   }
 
-  // Force token validation regardless of cache
   Future<bool> forceTokenValidation() async {
     final token = await getToken();
     if (token == null) return false;
@@ -288,7 +363,6 @@ class AuthService {
     try {
       final newToken = await refreshToken();
       if (newToken != null) {
-        // Update token expiry to match backend (30 minutes for JWT)
         final expiry = DateTime.now().add(Duration(minutes: 30));
         await _secureStorage.write(
           key: _tokenExpiryKey,
@@ -296,7 +370,6 @@ class AuthService {
         );
         return true;
       }
-      // If refresh failed and returned null, we should sign out
       await signOut();
       return false;
     } catch (e) {
@@ -309,20 +382,17 @@ class AuthService {
     await _secureStorage.write(key: _tokenKey, value: accessToken);
     await _secureStorage.write(key: _refreshTokenKey, value: refreshToken);
     
-    // Set token expiry to match backend (30 minutes for JWT)
     final expiry = DateTime.now().add(Duration(minutes: 30));
     await _secureStorage.write(
       key: _tokenExpiryKey,
       value: expiry.toIso8601String(),
     );
     
-    // Set last validated timestamp
     await _secureStorage.write(
       key: _lastValidatedKey,
       value: DateTime.now().toIso8601String(),
     );
 
-    // Extract and cache user ID from new token
     try {
       final parts = accessToken.split('.');
       if (parts.length == 3) {
@@ -351,12 +421,11 @@ class AuthService {
     try {
       _logger.info('Starting sign out process...');
       
-      // Clear all tokens and data
       await _secureStorage.delete(key: _tokenKey);
       await _secureStorage.delete(key: _refreshTokenKey);
       await _secureStorage.delete(key: _tokenExpiryKey);
       await _secureStorage.delete(key: _lastValidatedKey);
-      await _secureStorage.delete(key: _userIdKey);  // Clear cached user ID
+      await _secureStorage.delete(key: _userIdKey);
       
       await _googleSignIn.signOut();
       _logger.info('Successfully signed out');
@@ -368,16 +437,15 @@ class AuthService {
 
   Future<String?> refreshToken() async {
     try {
-      // First check if we're online
       if (!await isOnline()) {
         _logger.info('Offline mode - skipping token refresh');
-        return await getToken();  // Return existing token
+        return await getToken();
       }
 
       final refreshToken = await getRefreshToken();
       if (refreshToken == null) {
         _logger.warning('No refresh token available');
-        await signOut(); // Clear all tokens if refresh token is missing
+        await signOut();
         return null;
       }
 
@@ -392,7 +460,6 @@ class AuthService {
         final newAccessToken = data['access'];
         await _secureStorage.write(key: _tokenKey, value: newAccessToken);
         
-        // Update token expiry
         final expiry = DateTime.now().add(Duration(minutes: 30));
         await _secureStorage.write(
           key: _tokenExpiryKey,
@@ -401,7 +468,6 @@ class AuthService {
         
         return newAccessToken;
       } else {
-        // Any non-200 response means we should logout
         _logger.warning('Token refresh failed with status: ${response.statusCode}');
         await signOut();
         return null;
@@ -415,35 +481,30 @@ class AuthService {
 
   Future<String?> getUserId() async {
     try {
-      // First try to get cached user ID
       final cachedUserId = await _secureStorage.read(key: _userIdKey);
       if (cachedUserId != null) {
         _logger.info('Using cached user ID');
         return cachedUserId;
       }
 
-      // If not cached, get from token
       final token = await getToken();
       if (token == null) {
         _logger.warning('No token available to get user ID');
         return null;
       }
 
-      // Parse JWT token
       final parts = token.split('.');
       if (parts.length != 3) {
         _logger.warning('Invalid token format');
         return null;
       }
 
-      // Decode payload
       final payload = json.decode(
         utf8.decode(base64Url.decode(base64Url.normalize(parts[1]))),
       );
 
       final userId = payload['user_id']?.toString();
       if (userId != null) {
-        // Cache the user ID
         await _secureStorage.write(key: _userIdKey, value: userId);
         _logger.info('Cached user ID from token');
       }
@@ -454,4 +515,4 @@ class AuthService {
       return null;
     }
   }
-} 
+}

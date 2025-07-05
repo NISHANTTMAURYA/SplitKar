@@ -271,6 +271,11 @@ class AlertService extends ChangeNotifier {
             content: Text('Failed to process action: ${e.toString()}'),
             backgroundColor: Colors.red[400],
             behavior: SnackBarBehavior.floating,
+            
+            
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
         );
       }
