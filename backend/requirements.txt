@@ -1,0 +1,10 @@
+Django>=5.1.4
+djangorestframework
+djangorestframework-simplejwt
+django-cors-headers
+django-jazzmin
+social-auth-app-django
+python-dotenv
+google-auth
+google-auth-oauthlib
+google-auth-httplib2
