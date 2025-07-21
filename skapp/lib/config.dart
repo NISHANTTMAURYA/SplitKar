@@ -16,14 +16,19 @@ class AppConfig {
       'http://192.168.29.109:8000/api'; // Replace with your IP
   static const String ngrokBaseUrl =
       'https://edd3-2405-201-27-518b-5477-e6bb-9995-49d3.ngrok-free.app/api';
+  static const String productionBaseUrl =
+      'https://splitkar.onrender.com/api'; // Production deployment
 
   // Environment flags
   static const bool useEmulator = false; // Android Emulator
   static const bool useNgrok = false; // Ngrok Tunnel
+  static const bool useProduction = true; // Production deployment
 
   // Select the correct base URL based on flags
   static String get baseUrl {
-    if (useNgrok) {
+    if (useProduction) {
+      return productionBaseUrl;
+    } else if (useNgrok) {
       return ngrokBaseUrl;
     } else if (useEmulator) {
       return emulatorBaseUrl;
