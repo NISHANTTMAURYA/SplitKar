@@ -1,0 +1,23 @@
+services:
+  # - type: web
+  #   name: splitkar-backend
+  #   env: python
+  #   rootDir: backend
+  #   buildCommand: pip install -r requirements.txt
+  #   startCommand: python manage.py migrate && python manage.py collectstatic --noinput && gunicorn project.wsgi
+  #   envVars:
+  #     - key: DJANGO_SECRET_KEY
+  #       value: <your-secret-key>
+  #     - key: DATABASE_URL
+  #       value: <your-internal-db-url>
+  #     - key: GOOGLE_OAUTH2_KEY
+  #       value: <your-google-oauth2-key>
+  #     - key: GOOGLE_OAUTH2_SECRET
+  #       value: <your-google-oauth2-secret>
+  #     - key: DEBUG
+  #       value: "False"
+
+  - type: cron
+    name: splitkar-ping
+    schedule: "*/14 * * * *"
+    command: curl https://splitkar.onrender.com
