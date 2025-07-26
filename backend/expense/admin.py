@@ -108,7 +108,7 @@ class BalanceAdmin(admin.ModelAdmin):
         if obj.balance_amount > 0:
             return f"{obj.user1.username} owes {obj.user2.username}"
         elif obj.balance_amount < 0:
-            return f"{obj.user2.username} owes {obj.user1.username}"
+            return f"{obj.user1.username} is owed by {obj.user2.username}"
         return f"{obj.user1.username} ↔ {obj.user2.username} (settled)"
     get_users_display.short_description = 'Users'
     

@@ -421,7 +421,7 @@ class Balance(TimeStampedModel):
         if self.balance_amount > 0:
             return f"{self.user1.username} owes ₹{self.balance_amount} to {self.user2.username}"
         elif self.balance_amount < 0:
-            return f"{self.user2.username} owes ₹{abs(self.balance_amount)} to {self.user1.username}"
+            return f"{self.user1.username} is owed ₹{abs(self.balance_amount)} by {self.user2.username}"
         else:
             return f"{self.user1.username} and {self.user2.username} are settled"
     
@@ -476,7 +476,7 @@ class UserTotalBalance(models.Model):
         if self.total_balance > 0:
             return f"{self.user1.username} owes ₹{self.total_balance} to {self.user2.username}"
         elif self.total_balance < 0:
-            return f"{self.user2.username} owes ₹{abs(self.total_balance)} to {self.user1.username}"
+            return f"{self.user1.username} is owed ₹{abs(self.total_balance)} by {self.user2.username}"
         else:
             return f"{self.user1.username} and {self.user2.username} are settled"
 

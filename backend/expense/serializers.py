@@ -271,8 +271,8 @@ class AddFriendExpenseSerializer(serializers.Serializer):
             )
             if split_type == 'equal':
                 split_amount = total_amount / len(users)
-                # Calculate total paid by each user
-                paid_by_user = {p['payer_id']: Decimal(p['amount_paid']) for p in payments}
+                # For friend expenses, only one payer pays the full amount
+                paid_by_user = {payer_id: total_amount}
                 for user in users:
                     paid = paid_by_user.get(user.id, Decimal('0'))
                     paid_back = min(split_amount, paid)
@@ -283,7 +283,8 @@ class AddFriendExpenseSerializer(serializers.Serializer):
                         amount_paid_back=paid_back
                     )
             elif split_type == 'percentage':
-                paid_by_user = {p['payer_id']: Decimal(p['amount_paid']) for p in payments}
+                # For friend expenses, only one payer pays the full amount
+                paid_by_user = {payer_id: total_amount}
                 for s in splits:
                     share_user = User.objects.get(id=s['user_id'])
                     percentage = Decimal(s['percentage'])
