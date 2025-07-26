@@ -310,6 +310,7 @@ class AddFriendExpenseSerializer(serializers.Serializer):
 class UserTotalBalanceSerializer(serializers.ModelSerializer):
     other_user_id = serializers.SerializerMethodField()
     other_user_username = serializers.SerializerMethodField()
+    total_balance = serializers.SerializerMethodField()
 
     class Meta:
         model = UserTotalBalance
@@ -327,7 +328,14 @@ class UserTotalBalanceSerializer(serializers.ModelSerializer):
         if obj.user1 == user:
             return obj.user2.username
         else:
-            return obj.user1.username 
+            return obj.user1.username
+
+    def get_total_balance(self, obj):
+        user = self.context.get('user')
+        if obj.user1 == user:
+            return -obj.total_balance
+        else:
+            return obj.total_balance
 
 
 class BalanceSerializer(serializers.ModelSerializer):
