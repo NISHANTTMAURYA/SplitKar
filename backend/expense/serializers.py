@@ -271,8 +271,8 @@ class AddFriendExpenseSerializer(serializers.Serializer):
             )
             if split_type == 'equal':
                 split_amount = total_amount / len(users)
-                # Calculate total paid by each user
-                paid_by_user = {p['payer_id']: Decimal(p['amount_paid']) for p in payments}
+                # For friend expenses, only one payer pays the full amount
+                paid_by_user = {payer_id: total_amount}
                 for user in users:
                     paid = paid_by_user.get(user.id, Decimal('0'))
                     paid_back = min(split_amount, paid)
@@ -283,7 +283,8 @@ class AddFriendExpenseSerializer(serializers.Serializer):
                         amount_paid_back=paid_back
                     )
             elif split_type == 'percentage':
-                paid_by_user = {p['payer_id']: Decimal(p['amount_paid']) for p in payments}
+                # For friend expenses, only one payer pays the full amount
+                paid_by_user = {payer_id: total_amount}
                 for s in splits:
                     share_user = User.objects.get(id=s['user_id'])
                     percentage = Decimal(s['percentage'])
@@ -309,6 +310,7 @@ class AddFriendExpenseSerializer(serializers.Serializer):
 class UserTotalBalanceSerializer(serializers.ModelSerializer):
     other_user_id = serializers.SerializerMethodField()
     other_user_username = serializers.SerializerMethodField()
+    total_balance = serializers.SerializerMethodField()
 
     class Meta:
         model = UserTotalBalance
@@ -326,7 +328,14 @@ class UserTotalBalanceSerializer(serializers.ModelSerializer):
         if obj.user1 == user:
             return obj.user2.username
         else:
-            return obj.user1.username 
+            return obj.user1.username
+
+    def get_total_balance(self, obj):
+        user = self.context.get('user')
+        if obj.user1 == user:
+            return -obj.total_balance
+        else:
+            return obj.total_balance
 
 
 class BalanceSerializer(serializers.ModelSerializer):

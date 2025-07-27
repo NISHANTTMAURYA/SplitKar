@@ -283,36 +283,46 @@ def recalculate_user_balances(user):
     # Reset all balances to zero
     user_balances.update(balance_amount=Decimal('0'))
     
-    # Recalculate from all expense shares and payments
-    user_payments = ExpensePayment.objects.filter(payer=user, expense__is_deleted=False)
-    user_shares = ExpenseShare.objects.filter(user=user, expense__is_deleted=False)
+    # Get all expenses where this user is involved (either as payer or share holder)
+    user_expenses = Expense.objects.filter(
+        models.Q(payments__payer=user) | models.Q(shares__user=user),
+        is_deleted=False
+    ).distinct()
     
-    # Process each payment this user made
-    for payment in user_payments:
-        expense = payment.expense
-        for share in expense.shares.all():
-            if share.user != user:  # Don't create balance with self
-                payer_ratio = payment.amount_paid / expense.total_amount
-                amount_owed = share.amount_owed * payer_ratio
+    # Process each expense to calculate net balances
+    for expense in user_expenses:
+        total_amount = expense.total_amount
+        payments = list(expense.payments.all())
+        shares = list(expense.shares.all())
+        
+        # Calculate total paid by each user
+        paid_by_user = {}
+        for payment in payments:
+            paid_by_user[payment.payer_id] = paid_by_user.get(payment.payer_id, Decimal('0')) + payment.amount_paid
+        
+        # Calculate net owed for each user
+        for share in shares:
+            share_user = share.user
+            amount_owed = share.amount_owed
+            amount_paid = paid_by_user.get(share_user.id, Decimal('0'))
+            net_owed = amount_owed - amount_paid
+            
+            if abs(net_owed) < Decimal('0.01'):
+                continue  # Settled
+                
+            # Distribute net_owed to payers by their payment ratio
+            for payment in payments:
+                payer = payment.payer
+                if payer == share_user:
+                    continue  # Don't create balance with yourself
+                    
+                payer_ratio = payment.amount_paid / total_amount if total_amount else Decimal('0')
+                amount_owed_to_payer = net_owed * payer_ratio
+                
                 Balance.objects.update_balance(
-                    user1=share.user,
-                    user2=user,
-                    amount_change=amount_owed,
-                    group=expense.group
-                )
-
-    # Process each share this user owes (ensure balances for non-payers)
-    for share in user_shares:
-        expense = share.expense
-        for payment in expense.payments.all():
-            payer = payment.payer
-            if payer != user:  # Don't create balance with self
-                payer_ratio = payment.amount_paid / expense.total_amount
-                amount_owed = share.amount_owed * payer_ratio
-                Balance.objects.update_balance(
-                    user1=user,
+                    user1=share_user,
                     user2=payer,
-                    amount_change=-amount_owed,  # Negative because user owes payer
+                    amount_change=amount_owed_to_payer,
                     group=expense.group
                 )
     
